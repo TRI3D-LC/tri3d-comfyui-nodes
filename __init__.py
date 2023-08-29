@@ -1,16 +1,6 @@
-
-def tensor_to_cv2_img(tensor):
-    # Transfer tensor to CPU and convert to numpy array
-    np_img = tensor.cpu().numpy()
-    
-    # If tensor has 3 dimensions (C, H, W), transpose to (H, W, C)
-    if len(np_img.shape) == 3:
-        np_img = np.transpose(np_img, (1, 2, 0))
-    
-    # Scale to [0, 255] and convert type to uint8
-    np_img = (np_img * 255).astype(np.uint8)
-    
-    return np_img
+import cv2
+import numpy as np
+import torch
 
 class Example:
     def __init__(self):
@@ -28,9 +18,7 @@ class Example:
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "test"
     CATEGORY = "Example"
-    import cv2
-    import numpy as np
-    import torch
+    
 
     def tensor_to_cv2_img(tensor):
         np_img = tensor.cpu().numpy()
