@@ -32,6 +32,7 @@ class Example:
                 hand_mask += cv2.inRange(seg_img, lowerb, upperb)
 
             # Find contours to get the bounding box of the hands
+            hand_region = None
             contours, _ = cv2.findContours(hand_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             for contour in contours:
                 x, y, w, h = cv2.boundingRect(contour)
