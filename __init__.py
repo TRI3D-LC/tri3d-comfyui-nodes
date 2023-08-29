@@ -1,4 +1,4 @@
-class Example:
+class TRI3DExtractHand:
     def __init__(self):
         pass    
     @classmethod
@@ -10,9 +10,9 @@ class Example:
             },
         }
     RETURN_TYPES = ("IMAGE",)
-    FUNCTION = "test"
-    CATEGORY = "ALPHA"
-    def test(self, image,seg):
+    FUNCTION = "main"
+    CATEGORY = "TRI3D"
+    def main(self, image,seg):
         import cv2
         import numpy as np
         import torch
@@ -89,7 +89,7 @@ class Example:
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
-    "tri3d-extract-hand": Example
+    "tri3d-extract-hand": TRI3DExtractHand
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
