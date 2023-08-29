@@ -45,13 +45,16 @@ class Example:
             return tensor
         cv2_image = tensor_to_cv2_img(image)
         cv2_seg = tensor_to_cv2_img(seg)
+
+        print(cv2_image.shape)
+        print(cv2_seg.shape)
         
         desired_height, desired_width = cv2_image.shape[:2]
-        cv2_seg_resized = cv2.resize(cv2_seg, (desired_width, desired_height))
-        added_image = cv2.add(cv2_image, cv2_seg_resized)
+        # cv2_seg_resized = cv2.resize(cv2_seg, (desired_width, desired_height))
+        # added_image = cv2.add(cv2_image, cv2_seg_resized)
         
         # Convert the added image back to a torch tensor
-        result_tensor = cv2_img_to_tensor(added_image)
+        result_tensor = cv2_img_to_tensor(cv2_image)
         
         return result_tensor
 
