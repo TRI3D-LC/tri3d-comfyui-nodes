@@ -21,22 +21,23 @@ class Example:
         def bounded_image(img,color_code_list, canny_img):
             import cv2
             import numpy as np
-            mask = np.zeros_like(canny_img)
+            input_img = canny_img
+            seg_img = img
 
-            for color_code in color_code_list:
-                lower = np.array(color_code, dtype = "uint8")
-                upper = np.array(color_code, dtype = "uint8")
-                color_mask = cv2.inRange(img, lower, upper)
-                contours, _ = cv2.findContours(color_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            # Create a mask for hands
+            hand_mask = np.zeros_like(seg_img[:,:,0])
+            for color in color_code_list:
+                hand_mask += cv2.inRange(seg_img, color, color)
+
+            # Find contours to get the bounding box of the hands
+            contours, _ = cv2.findContours(hand_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            for contour in contours:
+                x, y, w, h = cv2.boundingRect(contour)
                 
-                for cnt in contours:
-                    hull = cv2.convexHull(cnt)
-                    cv2.drawContours(mask, [hull], 0, (255), thickness=cv2.FILLED)
-
-            kernel = np.ones((10,10),np.uint8)  # Kernel size determines the size of the dilation (margin size)
-            mask = cv2.dilate(mask, kernel, iterations = 1)
-            bounded_canny_img = cv2.bitwise_and(canny_img, mask)
-            return bounded_canny_img
+                # Extract the region from the original image
+                hand_region = input_img[y:y+h, x:x+w]
+            
+            return hand_region
         
 
         def get_segment_counts(segm):
