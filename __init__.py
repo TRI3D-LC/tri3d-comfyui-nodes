@@ -54,7 +54,7 @@ class Example:
         # added_image = cv2.add(cv2_image, cv2_seg_resized)
         
         # Convert the added image back to a torch tensor
-        result_tensor = cv2_img_to_tensor(cv2_image)
+        result_tensor = cv2_img_to_tensor(cv2_seg)
         
         return result_tensor
 
