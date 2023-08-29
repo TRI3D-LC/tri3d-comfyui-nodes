@@ -6,12 +6,13 @@ class Example:
         return {
             "required": {
                 "image": ("IMAGE",),
+                "seg" : ("IMAGE",),
             },
         }
-    RETURN_TYPES = ("IMAGE",)
+    RETURN_TYPES = ("IMAGE","IMAGE")
     FUNCTION = "test"
     CATEGORY = "ALPHA"
-    def test(self, image):
+    def test(self, image,seg):
         import cv2
         import numpy as np
         import torch
@@ -25,13 +26,13 @@ class Example:
             img = torch.from_numpy(img)[None,]
             return img
 
-        print("image", image.shape, type(image))
         cv2_image = tensor_to_cv2_img(image)    
-        print("cv2_image", cv2_image.shape, type(cv2_image))            
+        cv2_seg = tensor_to_cv2_img(seg)
+
         result_tensor_img = cv2_img_to_tensor(cv2_image)
-        print("result_tensor_img", result_tensor_img.shape, type(result_tensor_img))
+        result_tensor_seg = cv2_img_to_tensor(cv2_seg)
         
-        return (result_tensor_img,)
+        return (result_tensor_img,result_tensor_seg,)
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
