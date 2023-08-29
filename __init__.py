@@ -12,7 +12,7 @@ class Example:
             },
         }
 
-    RETURN_TYPES = ("IMAGE","IMAGE")
+    RETURN_TYPES = ("IMAGE",)
     FUNCTION = "test"
     CATEGORY = "Example"
     
@@ -97,7 +97,7 @@ class Example:
         result_tensor_seg = cv2_img_to_tensor(cv2_seg)
         result_tensor_img = cv2_img_to_tensor(cv2_image)
         
-        return (result_tensor_img, result_tensor_seg)
+        return result_tensor_img
 
 
 
