@@ -60,6 +60,19 @@ class Example:
             bounded_canny_img = cv2.cvtColor(bounded_canny_img, cv2.COLOR_BGR2GRAY)
             return bounded_canny_img
         
+
+        def get_segment_counts(segm):
+            # Load the segmentation image
+
+            # Reshape the image array to be 2D
+            reshaped = segm.reshape(-1, segm.shape[-1])
+
+            # Find unique vectors and their counts
+            unique_vectors, counts = np.unique(reshaped, axis=0, return_counts=True)
+            segment_counts = list(zip(unique_vectors, counts))
+            # pprint(segment_counts)
+            return segment_counts
+
         def tensor_to_cv2_img(tensor, remove_alpha=False):
             i = 255. * tensor.squeeze(0).cpu().numpy()  # This will give us (H, W, C)
             img = np.clip(i, 0, 255).astype(np.uint8)
@@ -75,6 +88,9 @@ class Example:
 
         # 128 128 64 / 128 128 192
         color_code_list = [[128,128,64], [128,128,192]]
+        print("color_code_list",color_code_list)
+        segs = get_segment_counts(cv2_seg)
+        print("segs",segs)
         bimage = bounded_image(cv2_seg,color_code_list,cv2_image)
 
         b_tensor_img = cv2_img_to_tensor(bimage)
