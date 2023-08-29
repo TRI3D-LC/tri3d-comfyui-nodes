@@ -18,43 +18,39 @@ class Example:
         import torch
 
         
-        def bounded_image(img,color_code_list, canny_img):
+        def bounded_image(seg_img, color_code_list, input_img):
             import cv2
             import numpy as np
-            input_img = canny_img
-            seg_img = img
-
+            
             # Create a mask for hands
             hand_mask = np.zeros_like(seg_img[:,:,0])
             for color in color_code_list:
                 lowerb = np.array(color, dtype=np.uint8)
                 upperb = np.array(color, dtype=np.uint8)
-                hand_mask += cv2.inRange(seg_img, lowerb, upperb)
-                print(hand_mask.shape,seg_img.shape,lowerb)
+                temp_mask = cv2.inRange(seg_img, lowerb, upperb)
+                hand_mask = cv2.bitwise_or(hand_mask, temp_mask)
 
             # Find contours to get the bounding box of the hands
-            hand_region = None
             contours, _ = cv2.findContours(hand_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            for contour in contours:
-                x, y, w, h = cv2.boundingRect(contour)
-                
-                # Extract the region from the original image
-                hand_region = input_img[y:y+h, x:x+w]
             
+            # If no contours were found, just return None
+            if not contours:
+                return None
+
+            # Combine all contours to find encompassing bounding box
+            all_points = np.concatenate(contours, axis=0)
+            x, y, w, h = cv2.boundingRect(all_points)
+            margin = 10
+            x = max(x - margin, 0)
+            y = max(y - margin, 0)
+            w = min(w + 2*margin, input_img.shape[1] - x)  # Ensure width does not exceed image boundary
+            h = min(h + 2*margin, input_img.shape[0] - y)  # Ensure height does not exceed image boundary
+
+
+            # Extract the region from the original image that contains both hands
+            hand_region = input_img[y:y+h, x:x+w]
+
             return hand_region
-        
-
-        def get_segment_counts(segm):
-            # Load the segmentation image
-
-            # Reshape the image array to be 2D
-            reshaped = segm.reshape(-1, segm.shape[-1])
-
-            # Find unique vectors and their counts
-            unique_vectors, counts = np.unique(reshaped, axis=0, return_counts=True)
-            segment_counts = list(zip(unique_vectors, counts))
-            # pprint(segment_counts)
-            return segment_counts
 
         def tensor_to_cv2_img(tensor, remove_alpha=False):
             i = 255. * tensor.squeeze(0).cpu().numpy()  # This will give us (H, W, C)
@@ -71,10 +67,7 @@ class Example:
 
         # 128 128 64 / 128 128 192
         color_code_list = [[128,128,64], [128,128,192]]
-        print("color_code_list",color_code_list)
-        # segs = get_segment_counts(cv2_seg)
         bimage = bounded_image(cv2_seg,color_code_list,cv2_image)
-
         b_tensor_img = cv2_img_to_tensor(bimage)
         
         return (b_tensor_img,)
