@@ -24,40 +24,18 @@ class Example:
             mask = np.zeros_like(canny_img)
 
             for color_code in color_code_list:
-
-                # Generate a mask for the current color code
                 lower = np.array(color_code, dtype = "uint8")
                 upper = np.array(color_code, dtype = "uint8")
                 color_mask = cv2.inRange(img, lower, upper)
-                # cv2.imwrite(output_dir + str(color_code) + ".jpg",color_mask)
-                # Find contours in the mask
                 contours, _ = cv2.findContours(color_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 
                 for cnt in contours:
-
-                    # x, y, w, h = cv2.boundingRect(cnt)
-
-                    # # Display the region within the bounding box on the mask
-                    # mask[y:y+h, x:x+w] = 255
-
-                    # # print("contour found",cnt)
-                    # Get the convex hull
                     hull = cv2.convexHull(cnt)
-                    # Draw the convex hull onto the mask
                     cv2.drawContours(mask, [hull], 0, (255), thickness=cv2.FILLED)
 
-            # cv2.imwrite(output_dir + "mask_original.jpg",mask)
-            # Add a margin around the hand
             kernel = np.ones((10,10),np.uint8)  # Kernel size determines the size of the dilation (margin size)
             mask = cv2.dilate(mask, kernel, iterations = 1)
-
-            # Apply the mask to the canny image
-
-            # cv2.imwrite(output_dir + "mask.jpg",mask)
             bounded_canny_img = cv2.bitwise_and(canny_img, mask)
-            # print(bounded_canny_img.shape)
-            #convert to gray scale
-            bounded_canny_img = cv2.cvtColor(bounded_canny_img, cv2.COLOR_BGR2GRAY)
             return bounded_canny_img
         
 
@@ -89,7 +67,7 @@ class Example:
         # 128 128 64 / 128 128 192
         color_code_list = [[128,128,64], [128,128,192]]
         print("color_code_list",color_code_list)
-        segs = get_segment_counts(cv2_seg)
+        # segs = get_segment_counts(cv2_seg)
         print("segs",segs)
         bimage = bounded_image(cv2_seg,color_code_list,cv2_image)
 
