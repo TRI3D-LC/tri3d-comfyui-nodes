@@ -21,6 +21,7 @@ class Example:
         def bounded_image(seg_img, color_code_list, input_img):
             import cv2
             import numpy as np
+            print(seg_img.shape, seg_img.dtype,"seg_img")
             
             # Create a mask for hands
             hand_mask = np.zeros_like(seg_img[:,:,0])
