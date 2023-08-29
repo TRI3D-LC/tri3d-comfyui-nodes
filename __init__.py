@@ -16,7 +16,7 @@ class Example:
         import numpy as np
         import torch
         def tensor_to_cv2_img(tensor, remove_alpha=False):
-            i = 255. * tensor.cpu().numpy()
+            i = 255. * tensor.squeeze(0).permute(1, 2, 0).cpu().numpy()  # Changed the format to (H, W, C)
             img = cv2.cvtColor(np.clip(i, 0, 255).astype(np.uint8), cv2.COLOR_BGR2RGB)
             return img
         
