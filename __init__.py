@@ -45,8 +45,6 @@ class Example:
             y = max(y - margin, 0)
             w = min(w + 2*margin, input_img.shape[1] - x)  # Ensure width does not exceed image boundary
             h = min(h + 2*margin, input_img.shape[0] - y)  # Ensure height does not exceed image boundary
-
-
             # Extract the region from the original image that contains both hands
             hand_region = input_img[y:y+h, x:x+w]
 
