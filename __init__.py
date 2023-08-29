@@ -82,7 +82,8 @@ class Example:
         cv2_seg = tensor_to_cv2_img(seg)
 
         # 128 128 64 / 128 128 192
-        color_code_list = [[128,128,64], [128,128,192]]
+        # color_code_list = [[128,128,64], [128,128,192]]
+        color_code_list = [[64,128,128], [192,128,128]]
         print("Hello")
         bimage = bounded_image(cv2_seg,color_code_list,cv2_image)
         print(bimage.shape, bimage.dtype,"bimage")
