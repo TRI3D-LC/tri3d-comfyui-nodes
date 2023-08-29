@@ -66,7 +66,7 @@ class Example:
         cv2_image = tensor_to_cv2_img(image)                
         result_tensor_img = cv2_img_to_tensor(cv2_image)
         
-        return result_tensor_img
+        return image
 
 
 
