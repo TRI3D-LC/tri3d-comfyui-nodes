@@ -30,6 +30,7 @@ class Example:
                 lowerb = np.array(color, dtype=np.uint8)
                 upperb = np.array(color, dtype=np.uint8)
                 hand_mask += cv2.inRange(seg_img, lowerb, upperb)
+                print(hand_mask.shape,seg_img.shape,lowerb)
 
             # Find contours to get the bounding box of the hands
             hand_region = None
