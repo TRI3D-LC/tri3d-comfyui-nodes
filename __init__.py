@@ -1,75 +1,70 @@
+
+def tensor_to_cv2_img(tensor):
+    # Transfer tensor to CPU and convert to numpy array
+    np_img = tensor.cpu().numpy()
+    
+    # If tensor has 3 dimensions (C, H, W), transpose to (H, W, C)
+    if len(np_img.shape) == 3:
+        np_img = np.transpose(np_img, (1, 2, 0))
+    
+    # Scale to [0, 255] and convert type to uint8
+    np_img = (np_img * 255).astype(np.uint8)
+    
+    return np_img
+
 class Example:
-    """
-    A example node
-
-    Class methods
-    -------------
-    INPUT_TYPES (dict): 
-        Tell the main program input parameters of nodes.
-
-    Attributes
-    ----------
-    RETURN_TYPES (`tuple`): 
-        The type of each element in the output tulple.
-    RETURN_NAMES (`tuple`):
-        Optional: The name of each output in the output tulple.
-    FUNCTION (`str`):
-        The name of the entry-point method. For example, if `FUNCTION = "execute"` then it will run Example().execute()
-    OUTPUT_NODE ([`bool`]):
-        If this node is an output node that outputs a result/image from the graph. The SaveImage node is an example.
-        The backend iterates on these output nodes and tries to execute all their parents if their parent graph is properly connected.
-        Assumed to be False if not present.
-    CATEGORY (`str`):
-        The category the node should appear in the UI.
-    execute(s) -> tuple || None:
-        The entry point method. The name of this method must be the same as the value of property `FUNCTION`.
-        For example, if `FUNCTION = "execute"` then this method's name must be `execute`, if `FUNCTION = "foo"` then it must be `foo`.
-    """
     def __init__(self):
         pass
     
     @classmethod
     def INPUT_TYPES(s):
-        """
-            Return a dictionary which contains config for all input fields.
-            Some types (string): "MODEL", "VAE", "CLIP", "CONDITIONING", "LATENT", "IMAGE", "INT", "STRING", "FLOAT".
-            Input types "INT", "STRING" or "FLOAT" are special values for fields on the node.
-            The type can be a list for selection.
-
-            Returns: `dict`:
-                - Key input_fields_group (`string`): Can be either required, hidden or optional. A node class must have property `required`
-                - Value input_fields (`dict`): Contains input fields config:
-                    * Key field_name (`string`): Name of a entry-point method's argument
-                    * Value field_config (`tuple`):
-                        + First value is a string indicate the type of field or a list for selection.
-                        + Secound value is a config for type "INT", "STRING" or "FLOAT".
-        """
         return {
             "required": {
                 "image": ("IMAGE",),
                 "seg": ("IMAGE",),
-
-                
             },
         }
 
     RETURN_TYPES = ("IMAGE",)
-    #RETURN_NAMES = ("image_output_name",)
-
     FUNCTION = "test"
-
-    #OUTPUT_NODE = False
-
     CATEGORY = "Example"
+    import cv2
+    import numpy as np
+    import torch
 
-    def test(self,image,seg):
-        import cv2 
-        import numpy as np
-        print(type(image))
-        print(type(seg))
-        print(dir(image))
-        image = 1.0 - image
-        return (image,)
+    def tensor_to_cv2_img(tensor):
+        np_img = tensor.cpu().numpy()
+        if len(np_img.shape) == 3:
+            np_img = np.transpose(np_img, (1, 2, 0))
+        np_img = (np_img * 255).astype(np.uint8)
+        return np_img
+
+    def cv2_img_to_tensor(cv2_img):
+        # Convert image values to [0, 1]
+        cv2_img = cv2_img.astype(np.float32) / 255.0
+        
+        # Convert the numpy array to a torch tensor
+        tensor = torch.from_numpy(cv2_img)
+        
+        # If the tensor has 3 dimensions (H, W, C), change to (C, H, W)
+        if len(tensor.shape) == 3:
+            tensor = tensor.permute(2, 0, 1)
+            
+        return tensor
+
+    def test(self, image, seg):
+        cv2_image = tensor_to_cv2_img(image)
+        cv2_seg = tensor_to_cv2_img(seg)
+        
+        desired_height, desired_width = cv2_image.shape[:2]
+        cv2_seg_resized = cv2.resize(cv2_seg, (desired_width, desired_height))
+        added_image = cv2.add(cv2_image, cv2_seg_resized)
+        
+        # Convert the added image back to a torch tensor
+        result_tensor = cv2_img_to_tensor(added_image)
+        
+        return result_tensor
+
 
 
 # A dictionary that contains all nodes you want to export with their names
