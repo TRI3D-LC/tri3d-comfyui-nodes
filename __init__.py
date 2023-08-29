@@ -40,11 +40,15 @@ class Example:
             # Combine all contours to find encompassing bounding box
             all_points = np.concatenate(contours, axis=0)
             x, y, w, h = cv2.boundingRect(all_points)
+
+            print(x,y,w,h,"x,y,w,h")
             margin = 10
             x = max(x - margin, 0)
             y = max(y - margin, 0)
             w = min(w + 2*margin, input_img.shape[1] - x)  # Ensure width does not exceed image boundary
             h = min(h + 2*margin, input_img.shape[0] - y)  # Ensure height does not exceed image boundary
+            print(x,y,w,h,"x,y,w,h")
+            print(input_img.shape,"input_img.shape")
             # Extract the region from the original image that contains both hands
             hand_region = input_img[y:y+h, x:x+w]
 
