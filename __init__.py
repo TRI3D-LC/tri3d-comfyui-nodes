@@ -16,13 +16,26 @@ class Example:
         import cv2
         import numpy as np
         import torch
+        from pprint import pprint
+
+        def get_segment_counts(segm):
+            # Load the segmentation image
+
+            # Reshape the image array to be 2D
+            reshaped = segm.reshape(-1, segm.shape[-1])
+
+            # Find unique vectors and their counts
+            unique_vectors, counts = np.unique(reshaped, axis=0, return_counts=True)
+            segment_counts = list(zip(unique_vectors, counts))
+            pprint(segment_counts)
+            return segment_counts
 
         
         def bounded_image(seg_img, color_code_list, input_img):
             import cv2
             import numpy as np
             print(seg_img.shape, seg_img.dtype,"seg_img")
-            
+            get_segment_counts(seg_img)
             # Create a mask for hands
             hand_mask = np.zeros_like(seg_img[:,:,0])
             for color in color_code_list:
