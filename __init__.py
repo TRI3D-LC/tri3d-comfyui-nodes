@@ -12,7 +12,7 @@ class Example:
             },
         }
 
-    RETURN_TYPES = ("IMAGE",)
+    RETURN_TYPES = ("IMAGE","IMAGE")
     FUNCTION = "test"
     CATEGORY = "Example"
     
@@ -62,6 +62,19 @@ class Example:
         print("seg", seg.shape)
         print_rgb_histogram(image)
         print_rgb_histogram(seg)
+       
+        def tensor_to_cv2_img(tensor, remove_alpha=False):
+            np_img = tensor.cpu().numpy()
+            if len(np_img.shape) == 3:
+                np_img = np.transpose(np_img, (1, 2, 0))
+            np_img = (np_img * 255).astype(np.uint8)
+
+            # Check for alpha channel in image and optionally remove it
+            if remove_alpha and np_img.shape[-1] == 4:
+                np_img = np_img[:, :, :3]
+
+            return np_img
+
         def cv2_img_to_tensor(cv2_img):
             # Convert image values to [0, 1]
             cv2_img = cv2_img.astype(np.float32) / 255.0
@@ -79,15 +92,12 @@ class Example:
 
         print(cv2_image.shape)
         print(cv2_seg.shape)
-        
-        desired_height, desired_width = cv2_image.shape[:2]
-        # cv2_seg_resized = cv2.resize(cv2_seg, (desired_width, desired_height))
-        # added_image = cv2.add(cv2_image, cv2_seg_resized)
-        
+                
         # Convert the added image back to a torch tensor
-        result_tensor = cv2_img_to_tensor(cv2_seg)
+        result_tensor_seg = cv2_img_to_tensor(cv2_seg)
+        result_tensor_img = cv2_img_to_tensor(cv2_image)
         
-        return result_tensor
+        return result_tensor_img, result_tensor_seg
 
 
 
