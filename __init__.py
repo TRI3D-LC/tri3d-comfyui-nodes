@@ -62,7 +62,12 @@ class Example:
 
     CATEGORY = "Example"
 
-    def test(self, image,seg):
+    def test(self,image,seg):
+        import cv2 
+        import numpy as np
+        print(type(image))
+        print(type(seg))
+        print(dir(image))
         image = 1.0 - image
         return (image,)
 
