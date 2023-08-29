@@ -27,7 +27,9 @@ class Example:
             # Create a mask for hands
             hand_mask = np.zeros_like(seg_img[:,:,0])
             for color in color_code_list:
-                hand_mask += cv2.inRange(seg_img, color, color)
+                lowerb = np.array(color, dtype=np.uint8)
+                upperb = np.array(color, dtype=np.uint8)
+                hand_mask += cv2.inRange(seg_img, lowerb, upperb)
 
             # Find contours to get the bounding box of the hands
             contours, _ = cv2.findContours(hand_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
