@@ -24,6 +24,9 @@ class Example:
         import numpy as np
         import torch
 
+        print("image", image.shape)
+        print("seg", seg.shape)
+
         def tensor_to_cv2_img(tensor, remove_alpha=False):
             np_img = tensor.cpu().numpy()
             if len(np_img.shape) == 3:
