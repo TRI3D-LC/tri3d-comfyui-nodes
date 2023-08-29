@@ -68,7 +68,6 @@ class Example:
         color_code_list = [[128,128,64], [128,128,192]]
         print("color_code_list",color_code_list)
         # segs = get_segment_counts(cv2_seg)
-        print("segs",segs)
         bimage = bounded_image(cv2_seg,color_code_list,cv2_image)
 
         b_tensor_img = cv2_img_to_tensor(bimage)
