@@ -54,29 +54,15 @@ class Example:
 
                     return np_img
         def tensor_to_cv2_img(tensor, remove_alpha=False):
-            np_img = tensor.cpu().numpy()
-            if len(np_img.shape) == 3:
-                np_img = np.transpose(np_img, (1, 2, 0))
-            np_img = (np_img * 255).astype(np.uint8)
-
-            # Check for alpha channel in image and optionally remove it
-            if remove_alpha and np_img.shape[-1] == 4:
-                np_img = np_img[:, :, :3]
-
-            return np_img
-        def cv2_img_to_tensor(cv2_img):
-            # Convert image values to [0, 1]
-            cv2_img = cv2_img.astype(np.float32) / 255.0
-            
-            # Convert the numpy array to a torch tensor
-            tensor = torch.from_numpy(cv2_img)
-            
-            # If the tensor has 3 dimensions (H, W, C), change to (C, H, W)
-            if len(tensor.shape) == 3:
-                tensor = tensor.permute(2, 0, 1)
-                
-            return tensor
-        
+            i = 255. * tensor.cpu().numpy()
+            img = cv2.cvtColor(np.clip(i, 0, 255).astype(np.uint8), cv2.COLOR_BGR2RGB)
+            return img
+        def cv2_img_to_tensor(img):
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img_normalized = img_rgb / 255.0
+            tensor = torch.from_numpy(img_normalized).float()
+            return tensor.permute(2, 0, 1)  # Convert HxWxC to CxHxW
+   
         cv2_image = tensor_to_cv2_img(image)                
         result_tensor_img = cv2_img_to_tensor(cv2_image)
         
