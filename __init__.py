@@ -60,8 +60,8 @@ class Example:
                     return np_img
         print("image", image.shape)
         print("seg", seg.shape)
-        print_rgb_histogram(image)
-        print_rgb_histogram(seg)
+        # print_rgb_histogram(image)
+        # print_rgb_histogram(seg)
        
         def tensor_to_cv2_img(tensor, remove_alpha=False):
             np_img = tensor.cpu().numpy()
