@@ -24,9 +24,12 @@ class Example:
             img = img.astype(np.float32) / 255.0
             img = torch.from_numpy(img)[None,]
             return img
-   
-        cv2_image = tensor_to_cv2_img(image)                
+
+        print("image", image.shape, type(image))
+        cv2_image = tensor_to_cv2_img(image)    
+        print("cv2_image", cv2_image.shape, type(cv2_image))            
         result_tensor_img = cv2_img_to_tensor(cv2_image)
+        print("result_tensor_img", result_tensor_img.shape, type(result_tensor_img))
         
         return result_tensor_img
 
