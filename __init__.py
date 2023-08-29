@@ -1,6 +1,7 @@
 class Example:
     def __init__(self):
         pass    
+
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -15,14 +16,15 @@ class Example:
         import cv2
         import numpy as np
         import torch
+        
         def tensor_to_cv2_img(tensor, remove_alpha=False):
-            i = 255. * tensor.cpu().numpy()
+            i = 255. * tensor.squeeze(0).permute(1, 2, 0).cpu().numpy()  # Changed the format to (H, W, C)
             img = cv2.cvtColor(np.clip(i, 0, 255).astype(np.uint8), cv2.COLOR_BGR2RGB)
             return img
         
         def cv2_img_to_tensor(img):
             img = img.astype(np.float32) / 255.0
-            img = torch.from_numpy(img)[None,]
+            img = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0)  # Changed the format to (B, C, H, W)
             return img
 
         print("image", image.shape, type(image))
@@ -33,13 +35,4 @@ class Example:
         
         return result_tensor_img
 
-# A dictionary that contains all nodes you want to export with their names
-# NOTE: names should be globally unique
-NODE_CLASS_MAPPINGS = {
-    "tri3d-extract-hand": Example
-}
-
-# A dictionary that contains the friendly/humanly readable titles for the nodes
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "tri3d-extract-hand": "Extract Hand"
-}
+# Your other code remains the same.
