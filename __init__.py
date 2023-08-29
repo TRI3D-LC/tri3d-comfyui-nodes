@@ -1,6 +1,3 @@
-import cv2
-import numpy as np
-import torch
 
 class Example:
     def __init__(self):
@@ -20,27 +17,32 @@ class Example:
     CATEGORY = "Example"
     
 
-    def tensor_to_cv2_img(tensor):
-        np_img = tensor.cpu().numpy()
-        if len(np_img.shape) == 3:
-            np_img = np.transpose(np_img, (1, 2, 0))
-        np_img = (np_img * 255).astype(np.uint8)
-        return np_img
-
-    def cv2_img_to_tensor(cv2_img):
-        # Convert image values to [0, 1]
-        cv2_img = cv2_img.astype(np.float32) / 255.0
-        
-        # Convert the numpy array to a torch tensor
-        tensor = torch.from_numpy(cv2_img)
-        
-        # If the tensor has 3 dimensions (H, W, C), change to (C, H, W)
-        if len(tensor.shape) == 3:
-            tensor = tensor.permute(2, 0, 1)
-            
-        return tensor
+    
 
     def test(self, image, seg):
+        import cv2
+        import numpy as np
+        import torch
+
+        def tensor_to_cv2_img(tensor):
+            np_img = tensor.cpu().numpy()
+            if len(np_img.shape) == 3:
+                np_img = np.transpose(np_img, (1, 2, 0))
+            np_img = (np_img * 255).astype(np.uint8)
+            return np_img
+
+        def cv2_img_to_tensor(cv2_img):
+            # Convert image values to [0, 1]
+            cv2_img = cv2_img.astype(np.float32) / 255.0
+            
+            # Convert the numpy array to a torch tensor
+            tensor = torch.from_numpy(cv2_img)
+            
+            # If the tensor has 3 dimensions (H, W, C), change to (C, H, W)
+            if len(tensor.shape) == 3:
+                tensor = tensor.permute(2, 0, 1)
+                
+            return tensor
         cv2_image = tensor_to_cv2_img(image)
         cv2_seg = tensor_to_cv2_img(seg)
         
