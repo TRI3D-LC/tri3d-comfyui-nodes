@@ -57,16 +57,15 @@ class Example:
             i = 255. * tensor.cpu().numpy()
             img = cv2.cvtColor(np.clip(i, 0, 255).astype(np.uint8), cv2.COLOR_BGR2RGB)
             return img
+        
         def cv2_img_to_tensor(img):
-            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img_normalized = img_rgb / 255.0
-            tensor = torch.from_numpy(img_normalized).float()
-            return tensor.permute(2, 0, 1)  # Convert HxWxC to CxHxW
+            img = img.astype(np.float32) / 255.0
+            img = torch.from_numpy(img)[None,]
    
         cv2_image = tensor_to_cv2_img(image)                
         result_tensor_img = cv2_img_to_tensor(cv2_image)
         
-        return image
+        return result_tensor_img
 
 
 
