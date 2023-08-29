@@ -24,11 +24,16 @@ class Example:
         import numpy as np
         import torch
 
-        def tensor_to_cv2_img(tensor):
+        def tensor_to_cv2_img(tensor, remove_alpha=False):
             np_img = tensor.cpu().numpy()
             if len(np_img.shape) == 3:
                 np_img = np.transpose(np_img, (1, 2, 0))
             np_img = (np_img * 255).astype(np.uint8)
+
+            # Check for alpha channel in image and optionally remove it
+            if remove_alpha and np_img.shape[-1] == 4:
+                np_img = np_img[:, :, :3]
+
             return np_img
 
         def cv2_img_to_tensor(cv2_img):
@@ -44,7 +49,7 @@ class Example:
                 
             return tensor
         cv2_image = tensor_to_cv2_img(image)
-        cv2_seg = tensor_to_cv2_img(seg)
+        cv2_seg = tensor_to_cv2_img(seg, remove_alpha=True)
 
         print(cv2_image.shape)
         print(cv2_seg.shape)
