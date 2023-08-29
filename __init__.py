@@ -8,7 +8,6 @@ class Example:
         return {
             "required": {
                 "image": ("IMAGE",),
-                "seg": ("IMAGE",),
             },
         }
 
@@ -19,15 +18,11 @@ class Example:
 
     
 
-    def test(self, image, seg):
+    def test(self, image):
         import cv2
         import numpy as np
         import torch
         from collections import Counter
-
-
-       
-
         def print_rgb_histogram(tensor):
             # Convert tensor to numpy array
             np_arr = tensor.cpu().numpy()
@@ -58,11 +53,6 @@ class Example:
                         np_img = np_img[:, :, :3]
 
                     return np_img
-        print("image", image.shape)
-        print("seg", seg.shape)
-        # print_rgb_histogram(image)
-        # print_rgb_histogram(seg)
-       
         def tensor_to_cv2_img(tensor, remove_alpha=False):
             np_img = tensor.cpu().numpy()
             if len(np_img.shape) == 3:
@@ -74,7 +64,6 @@ class Example:
                 np_img = np_img[:, :, :3]
 
             return np_img
-
         def cv2_img_to_tensor(cv2_img):
             # Convert image values to [0, 1]
             cv2_img = cv2_img.astype(np.float32) / 255.0
@@ -87,14 +76,8 @@ class Example:
                 tensor = tensor.permute(2, 0, 1)
                 
             return tensor
-        cv2_image = tensor_to_cv2_img(image)
-        cv2_seg = tensor_to_cv2_img(seg, remove_alpha=True)
-
-        print(cv2_image.shape)
-        print(cv2_seg.shape)
-                
-        # Convert the added image back to a torch tensor
-        result_tensor_seg = cv2_img_to_tensor(cv2_seg)
+        
+        cv2_image = tensor_to_cv2_img(image)                
         result_tensor_img = cv2_img_to_tensor(cv2_image)
         
         return result_tensor_img
