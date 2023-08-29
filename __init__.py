@@ -29,13 +29,10 @@ class Example:
             segment_counts = list(zip(unique_vectors, counts))
             pprint(segment_counts)
             return segment_counts
-
         
         def bounded_image(seg_img, color_code_list, input_img):
             import cv2
             import numpy as np
-            print(seg_img.shape, seg_img.dtype,"seg_img")
-            get_segment_counts(seg_img)
             # Create a mask for hands
             hand_mask = np.zeros_like(seg_img[:,:,0])
             for color in color_code_list:
@@ -84,9 +81,7 @@ class Example:
         # 128 128 64 / 128 128 192
         # color_code_list = [[128,128,64], [128,128,192]]
         color_code_list = [[64,128,128], [192,128,128]]
-        print("Hello")
         bimage = bounded_image(cv2_seg,color_code_list,cv2_image)
-        print(bimage.shape, bimage.dtype,"bimage")
         b_tensor_img = cv2_img_to_tensor(bimage)
         
         return (b_tensor_img,)
