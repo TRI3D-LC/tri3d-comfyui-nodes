@@ -54,7 +54,7 @@ class TRI3DExtractHand:
             x, y, w, h = cv2.boundingRect(all_points)
 
             print(x,y,w,h,"x,y,w,h")
-            margin = 10
+            margin = 25
             x = max(x - margin, 0)
             y = max(y - margin, 0)
             w = min(w + 2*margin, input_img.shape[1] - x)  # Ensure width does not exceed image boundary
