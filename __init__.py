@@ -34,6 +34,7 @@ class TRI3DExtractHand:
             import cv2
             import numpy as np
             # Create a mask for hands
+            seg_img = cv2.resize(seg_img,(input_img.shape[1],input_img.shape[0]))
             hand_mask = np.zeros_like(seg_img[:,:,0])
             for color in color_code_list:
                 lowerb = np.array(color, dtype=np.uint8)
