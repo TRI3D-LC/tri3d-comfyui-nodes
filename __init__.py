@@ -34,7 +34,7 @@ class TRI3DExtractHand:
             import cv2
             import numpy as np
             # Create a mask for hands
-            seg_img = cv2.resize(seg_img,(input_img.shape[1],input_img.shape[0]))
+            seg_img = cv2.resize(seg_img,(input_img.shape[1],input_img.shape[0]),interpolation=cv2.INTER_NEAREST)
             hand_mask = np.zeros_like(seg_img[:,:,0])
             for color in color_code_list:
                 lowerb = np.array(color, dtype=np.uint8)
@@ -78,7 +78,7 @@ class TRI3DExtractHand:
 
         cv2_image = tensor_to_cv2_img(image)    
         cv2_seg = tensor_to_cv2_img(seg)
-        cv2_seg = cv2.resize(cv2_seg,(cv2_image.shape[1],cv2_image.shape[0]),interpolation=cv2.INTER_NEAREST)
+        # cv2_seg = cv2.resize(cv2_seg,(cv2_image.shape[1],cv2_image.shape[0]),interpolation=cv2.INTER_NEAREST)
 
         # 128 128 64 / 128 128 192
         # color_code_list = [[128,128,64], [128,128,192]]
