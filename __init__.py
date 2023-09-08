@@ -78,6 +78,7 @@ class TRI3DExtractHand:
 
         cv2_image = tensor_to_cv2_img(image)    
         cv2_seg = tensor_to_cv2_img(seg)
+        cv2_seg = cv2.resize(cv2_seg,(cv2_image.shape[1],cv2_image.shape[0]),interpolation=cv2.INTER_NEAREST)
 
         # 128 128 64 / 128 128 192
         # color_code_list = [[128,128,64], [128,128,192]]
