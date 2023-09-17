@@ -155,22 +155,29 @@ class TRI3DFuzzification:
             input_facehair = get_mask_from_colors(cv2_inputseg, color_code_dict['face_hair'])
             input_background = get_mask_from_colors(cv2_inputseg, color_code_dict['background'])
             input_rest = cv2.bitwise_not(cv2.add(input_facehair, input_background))
+
             controlnet_facehair = get_mask_from_colors(cv2_controlnetoutputseg, color_code_dict['face_hair'])
 
             # Initial Image: Set it to input_rest
             blended_image = np.copy(cv2_input)
             blended_image = cv2.bitwise_and(blended_image, input_rest)
 
-
-            # # Stage 2: Fill face and hair pixels using controlnet_facehair
+            # Stage 2: Overlay face and hair pixels from controlnet_facehair onto blended_image
             face_hair_region = cv2.bitwise_and(cv2_controlnetoutput, controlnet_facehair)
-            blended_image = cv2.add(blended_image, face_hair_region)
-
-            # Stage 3: Fill the background pixels using input_background
             inverse_face_hair_mask = cv2.bitwise_not(controlnet_facehair)
-            remaining_mask = cv2.bitwise_and(input_background, inverse_face_hair_mask)
-            background_region = cv2.bitwise_and(cv2_input, remaining_mask)
-            blended_image = cv2.add(blended_image, background_region)
+            blended_without_facehair = cv2.bitwise_and(blended_image, inverse_face_hair_mask)
+            blended_image = cv2.add(blended_without_facehair, face_hair_region)
+
+            # Stage 3: Overlay the remaining pixels with white
+            remaining_mask = cv2.bitwise_not(cv2.add(input_rest, controlnet_facehair))
+            inverse_remaining_mask = cv2.bitwise_not(remaining_mask)
+            
+            white_fill = np.ones_like(cv2_input) * 255  # Create an image filled with white
+            white_region = cv2.bitwise_and(white_fill, remaining_mask)
+            
+            blended_without_remaining = cv2.bitwise_and(blended_image, inverse_remaining_mask)
+            blended_image = cv2.add(blended_without_remaining, white_region)
+
 
             return blended_image
 
