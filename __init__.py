@@ -289,6 +289,10 @@ class TRI3DFuzzification:
         cv2_controlnetoutput = tensor_to_cv2_img(controlnetoutput)
         cv2_controlnetoutputseg = tensor_to_cv2_img(controlnetoutputseg)
 
+        cv2_inputseg = cv2.resize(cv2_inputseg,(cv2_input.shape[1],cv2_input.shape[0]),interpolation=cv2.INTER_NEAREST)
+        cv2_controlnetoutputseg = cv2.resize(cv2_controlnetoutputseg,(cv2_input.shape[1],cv2_input.shape[0]),interpolation=cv2.INTER_NEAREST)
+        cv2_controlnetoutputseg = cv2.resize(cv2_controlnetoutputseg,(cv2_input.shape[1],cv2_input.shape[0]),interpolation=cv2.INTER_NEAREST)
+
         
         # # cv2_seg = cv2.resize(cv2_seg,(cv2_image.shape[1],cv2_image.shape[0]),interpolation=cv2.INTER_NEAREST)
 
