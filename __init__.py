@@ -111,6 +111,89 @@ class TRI3DFuzzification:
         import numpy as np
         import torch
         from pprint import pprint
+        from scipy.spatial import distance
+
+
+        def combined_image(img1, img2, mask):
+            if img1.shape[2] == 4:
+            # Convert it from four channels to three channels
+                img1 = cv2.cvtColor(img1, cv2.COLOR_BGRA2BGR)
+            mask_inv = cv2.bitwise_not(mask)
+
+            # Normalize the masks to the range [0, 1]
+            mask = cv2.normalize(mask, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+            mask_inv = cv2.normalize(mask_inv, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+            # Convert images and masks to the same data type
+            img1 = img1.astype(np.float32)
+            img2 = img2.astype(np.float32)
+            mask = mask.astype(np.float32)
+            mask_inv = mask_inv.astype(np.float32)
+
+            img1 = cv2.resize(img1, (mask.shape[1], mask.shape[0]),interpolation=cv2.INTER_NEAREST)
+            img2 = cv2.resize(img2, (mask.shape[1], mask.shape[0]),interpolation=cv2.INTER_NEAREST)
+
+            # Check if img1 (and hence img2) have more than one channel (e.g., RGB images)
+            if len(img1.shape) > 2:
+                # Convert mask and mask_inv to the same number of channels as img1
+                mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+                mask_inv = cv2.cvtColor(mask_inv, cv2.COLOR_GRAY2BGR)
+
+            # Use the masks to get the weighted regions of each image
+            img1_masked = cv2.multiply(img1, mask_inv)
+            img2_masked = cv2.multiply(img2, mask)
+
+            # Combine the two images
+            combined = cv2.add(img1_masked, img2_masked).astype(np.uint8)
+            return combined
+
+
+        def fuzzify(img):
+            if len(img.shape) == 3:
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            # Threshold the image
+            _, thresholded = cv2.threshold(img, 1, 255, cv2.THRESH_BINARY)
+
+            # Find contours in the thresholded image
+            contours, _ = cv2.findContours(thresholded, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            # # Approximate contours to reduce number of points
+            # epsilon_factor = 0.02  # can be adjusted, higher values mean more simplification
+            # simplified_contours = [cv2.approxPolyDP(cnt, epsilon_factor * cv2.arcLength(cnt, True), True) for cnt in contours]
+
+            # Define brush size
+            brush_radius = int(15*img.shape[0]/1024.0)
+            mask = np.zeros_like(img)
+
+            for contour in contours:
+                # print("contour shape - ",contour.shape)
+                contour_points = contour.squeeze(1)
+                
+                # Determine the bounding box around the contour and expand it by the brush radius
+                x_min, y_min = np.min(contour_points, axis=0) - brush_radius
+                x_max, y_max = np.max(contour_points, axis=0) + brush_radius
+
+                # Clip the coordinates to the image boundaries
+                x_min, y_min = max(0, x_min), max(0, y_min)
+                x_max, y_max = min(img.shape[1]-1, x_max), min(img.shape[0]-1, y_max)
+
+                # # Create a grid of coordinates within this bounding box
+                # ys, xs = np.ogrid[y_min:y_max+1, x_min:x_max+1]
+                # grid_coords = np.column_stack((xs.ravel(), ys.ravel()))
+
+                ys, xs = np.mgrid[y_min:y_max+1, x_min:x_max+1]
+                grid_coords = np.column_stack((xs.flatten(), ys.flatten()))
+
+                # Compute distances for pixels inside the bounding box
+                distances = distance.cdist(grid_coords, contour_points, 'euclidean')
+                min_distances = distances.min(axis=1)
+                brush_effect = np.clip((1 - min_distances / brush_radius) * 255, 0, 255)
+
+                mask[grid_coords[:, 1], grid_coords[:, 0]] = np.maximum(mask[grid_coords[:, 1], grid_coords[:, 0]], brush_effect)
+
+            # Save the result
+            final_mask = np.maximum(img, mask.astype(img.dtype))
+            return final_mask
 
         def get_segment_counts(segm):
             # Load the segmentation image
@@ -162,11 +245,17 @@ class TRI3DFuzzification:
             blended_image = np.copy(cv2_input)
             blended_image = cv2.bitwise_and(blended_image, input_rest)
 
+            # blended_image = combined_image(cv2_input, np.zeros_like(cv2_input), fuzzify(input_rest))
+
+
             # Stage 2: Overlay face and hair pixels from controlnet_facehair onto blended_image
             face_hair_region = cv2.bitwise_and(cv2_controlnetoutput, controlnet_facehair)
             inverse_face_hair_mask = cv2.bitwise_not(controlnet_facehair)
             blended_without_facehair = cv2.bitwise_and(blended_image, inverse_face_hair_mask)
             blended_image = cv2.add(blended_without_facehair, face_hair_region)
+
+            # blended_facehair = combined_image(blended_image, cv2_controlnetoutput, fuzzify(controlnet_facehair))
+
 
             # Stage 3: Overlay the remaining pixels with white
             remaining_mask = cv2.bitwise_not(cv2.add(input_rest, controlnet_facehair))
@@ -177,6 +266,10 @@ class TRI3DFuzzification:
             
             blended_without_remaining = cv2.bitwise_and(blended_image, inverse_remaining_mask)
             blended_image = cv2.add(blended_without_remaining, white_region)
+
+            # remaining_mask = cv2.bitwise_not(cv2.add(input_rest, controlnet_facehair))
+            # blended_image = combined_image(blended_facehair, cv2_input, fuzzify(remaining_mask))
+
 
 
             return blended_image
