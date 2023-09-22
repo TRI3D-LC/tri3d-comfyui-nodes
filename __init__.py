@@ -446,8 +446,7 @@ class TRI3DATRParse:
         shutil.rmtree(ATR_OUTPUT_PATH, ignore_errors=True)
         os.makedirs(ATR_OUTPUT_PATH, exist_ok=True)
 
-        os.makedirs("atr_node",exist_ok=True)
-        cv2.imwrite("atr_node/input.png",cv2_image)
+        cv2.imwrite(ATR_INPUT_PATH + "image.png",cv2_image)
 
         # Run the ATR model
         cwd = os.getcwd()
@@ -455,7 +454,7 @@ class TRI3DATRParse:
         os.system("python simple_extractor.py --dataset atr --model-restore 'checkpoints/atr.pth' --input-dir input --output-dir output")
 
         # Load the segmentation image
-        cv2_segm = cv2.imread(ATR_OUTPUT_PATH + 'input.png')
+        cv2_segm = cv2.imread(ATR_OUTPUT_PATH + 'image.png')
 
         os.chdir(cwd)
         b_tensor_img = cv2_img_to_tensor(cv2_segm)
