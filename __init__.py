@@ -470,6 +470,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-extract-hand": TRI3DExtractHand,
     "tri3d-fuzzification": TRI3DFuzzification,
     "tri3d-position-hands": TRI3DPositiontHands,
+    "tri3d-atr-parse": TRI3DATRParse,
 
 }
 
@@ -478,4 +479,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-extract-hand": "Extract Hand",
     "tri3d-fuzzification" : "Fuzzification",
     "tri3d-position-hands" : "Position Hands",
+    "tri3d-atr-parse" : "ATR Parse",
 }
