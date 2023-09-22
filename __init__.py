@@ -459,6 +459,7 @@ class TRI3DATRParse:
 
         os.chdir(cwd)
         cv2_segm = cv2.imread(ATR_OUTPUT_PATH + 'image.png')
+        cv2_segm = cv2.cvtColor(cv2_segm, cv2.COLOR_BGR2RGB)
 
         b_tensor_img = cv2_img_to_tensor(cv2_segm)
         
