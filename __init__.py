@@ -401,6 +401,69 @@ class TRI3DPositiontHands:
         
         return (b_tensor_img,)
 
+
+class TRI3DATRParse:
+    def __init__(self):
+        pass    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+            },
+        }
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "main"
+    CATEGORY = "TRI3D"
+    def main(self, image):
+        import cv2
+        import numpy as np
+        import torch
+        import os 
+        import shutil
+        from pprint import pprint
+
+        def tensor_to_cv2_img(tensor, remove_alpha=False):
+            i = 255. * tensor.squeeze(0).cpu().numpy()  # This will give us (H, W, C)
+            img = np.clip(i, 0, 255).astype(np.uint8)
+            return img
+
+        def cv2_img_to_tensor(img):
+            img = img.astype(np.float32) / 255.0
+            img = torch.from_numpy(img)[None,]
+            return img
+
+        cv2_image = tensor_to_cv2_img(image)    
+
+        ATR_PATH = 'atr_node/'
+        ATR_INPUT_PATH = ATR_PATH + 'input/'
+        ATR_OUTPUT_PATH = ATR_PATH + 'output/'
+
+        # Create the input directory if it does not exist
+        shutil.rmtree(ATR_INPUT_PATH, ignore_errors=True)
+        os.makedirs(ATR_INPUT_PATH, exist_ok=True)
+
+        shutil.rmtree(ATR_OUTPUT_PATH, ignore_errors=True)
+        os.makedirs(ATR_OUTPUT_PATH, exist_ok=True)
+
+        os.makedirs("atr_node",exist_ok=True)
+        cv2.imwrite("atr_node/input.png",cv2_image)
+
+        # Run the ATR model
+        cwd = os.getcwd()
+        os.chdir(ATR_PATH)
+        os.system("python simple_extractor.py --dataset atr --model-restore 'checkpoints/atr.pth' --input-dir input --output-dir output")
+
+        # Load the segmentation image
+        cv2_segm = cv2.imread(ATR_OUTPUT_PATH + 'input.png')
+
+        os.chdir(cwd)
+        b_tensor_img = cv2_img_to_tensor(cv2_segm)
+        
+        return (b_tensor_img,)
+
+
+
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
