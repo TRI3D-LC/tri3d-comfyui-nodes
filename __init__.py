@@ -88,8 +88,6 @@ class TRI3DExtractHand:
         
         return (b_tensor_img,)
 
-
-
 class TRI3DFuzzification:
     def __init__(self):
         pass    
@@ -312,15 +310,109 @@ class TRI3DFuzzification:
         
         return (output_img,)
 
+
+class TRI3DPositiontHands:
+    def __init__(self):
+        pass    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "seg" : ("IMAGE",),
+                "handimg" : ("IMAGE",),
+            },
+        }
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "main"
+    CATEGORY = "TRI3D"
+    def main(self, image,seg,handimg):
+        import cv2
+        import numpy as np
+        import torch
+        from pprint import pprint
+
+        def bounded_image_points(seg_img, color_code_list, input_img):
+            import cv2
+            import numpy as np
+            # Create a mask for hands
+            seg_img = cv2.resize(seg_img,(input_img.shape[1],input_img.shape[0]),interpolation=cv2.INTER_NEAREST)
+            hand_mask = np.zeros_like(seg_img[:,:,0])
+            for color in color_code_list:
+                lowerb = np.array(color, dtype=np.uint8)
+                upperb = np.array(color, dtype=np.uint8)
+                temp_mask = cv2.inRange(seg_img, lowerb, upperb)
+                hand_mask = cv2.bitwise_or(hand_mask, temp_mask)
+
+            # Find contours to get the bounding box of the hands
+            contours, _ = cv2.findContours(hand_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            
+            # If no contours were found, just return None
+            if not contours:
+                return None
+
+            # Combine all contours to find encompassing bounding box
+            all_points = np.concatenate(contours, axis=0)
+            x, y, w, h = cv2.boundingRect(all_points)
+            margin = 25
+            x = max(x - margin, 0)
+            y = max(y - margin, 0)
+            w = min(w + 2*margin, input_img.shape[1] - x)  # Ensure width does not exceed image boundary
+            h = min(h + 2*margin, input_img.shape[0] - y)  # Ensure height does not exceed image boundary
+
+            return (x,y,w,h)
+
+        def tensor_to_cv2_img(tensor, remove_alpha=False):
+            i = 255. * tensor.squeeze(0).cpu().numpy()  # This will give us (H, W, C)
+            img = np.clip(i, 0, 255).astype(np.uint8)
+            return img
+
+        def cv2_img_to_tensor(img):
+            img = img.astype(np.float32) / 255.0
+            img = torch.from_numpy(img)[None,]
+            return img
+
+        cv2_image = tensor_to_cv2_img(image)    
+        cv2_seg = tensor_to_cv2_img(seg)
+        # cv2_seg = cv2.resize(cv2_seg,(cv2_image.shape[1],cv2_image.shape[0]),interpolation=cv2.INTER_NEAREST)
+
+        # 128 128 64 / 128 128 192
+        # color_code_list = [[128,128,64], [128,128,192]]
+        color_code_list = [[64,128,128], [192,128,128]]
+        positions = bounded_image_points(cv2_seg,color_code_list,cv2_image)
+
+
+        
+        cv2_handimg = tensor_to_cv2_img(handimg)
+        #Resize cv2_handimg to positions
+
+        print("before resizing ",cv2_handimg.shape,"handimg.shape")
+        cv2_handimg = cv2.resize(cv2_handimg,(positions[2],positions[3]),interpolation=cv2.INTER_NEAREST)
+
+
+        print(positions,"positions")
+        print(cv2_image.shape,"cv2img.shape")
+        print(cv2_handimg.shape,"handimg.shape")
+
+        #position cv2_handimg in cv2_image
+        cv2_image[positions[1]:positions[1]+positions[3],positions[0]:positions[0]+positions[2]] = cv2_handimg
+
+        b_tensor_img = cv2_img_to_tensor(cv2_image)
+        
+        return (b_tensor_img,)
+
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
     "tri3d-extract-hand": TRI3DExtractHand,
-    "tri3d-fuzzification": TRI3DFuzzification
+    "tri3d-fuzzification": TRI3DFuzzification,
+    "tri3d-position-hands": TRI3DPositiontHands,
+
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-extract-hand": "Extract Hand",
-    "tri3d-fuzzification" : "Fuzzification"
+    "tri3d-fuzzification" : "Fuzzification",
+    "tri3d-position-hands" : "Position Hands",
 }
