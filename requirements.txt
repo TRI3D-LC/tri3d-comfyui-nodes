@@ -1,1 +1,6 @@
 opencv-python
+jinja
+pillow
+torch
+torchvision
+gdown
