@@ -454,9 +454,10 @@ class TRI3DATRParse:
         os.system("python simple_extractor.py --dataset atr --model-restore 'checkpoints/atr.pth' --input-dir input --output-dir output")
 
         # Load the segmentation image
-        cv2_segm = cv2.imread(ATR_OUTPUT_PATH + 'image.png')
 
         os.chdir(cwd)
+        cv2_segm = cv2.imread(ATR_OUTPUT_PATH + 'image.png')
+
         b_tensor_img = cv2_img_to_tensor(cv2_segm)
         
         return (b_tensor_img,)
