@@ -434,6 +434,8 @@ class TRI3DATRParse:
             return img
 
         cv2_image = tensor_to_cv2_img(image)    
+        cv2_segm = cv2.cvtColor(cv2_segm, cv2.COLOR_BGR2RGB)
+
 
         ATR_PATH = 'custom_nodes/tri3d-comfyui-nodes/atr_node/'
         ATR_INPUT_PATH = ATR_PATH + 'input/'
@@ -457,7 +459,6 @@ class TRI3DATRParse:
 
         os.chdir(cwd)
         cv2_segm = cv2.imread(ATR_OUTPUT_PATH + 'image.png')
-        cv2_segm = cv2.cvtColor(cv2_segm, cv2.COLOR_BGR2RGB)
 
         b_tensor_img = cv2_img_to_tensor(cv2_segm)
         
