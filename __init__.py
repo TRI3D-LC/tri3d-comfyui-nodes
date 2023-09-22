@@ -435,7 +435,7 @@ class TRI3DATRParse:
 
         cv2_image = tensor_to_cv2_img(image)    
 
-        ATR_PATH = 'atr_node/'
+        ATR_PATH = 'custom_nodes/tri3d-comfyui-nodes/atr_node/'
         ATR_INPUT_PATH = ATR_PATH + 'input/'
         ATR_OUTPUT_PATH = ATR_PATH + 'output/'
 
