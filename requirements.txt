@@ -1,5 +1,5 @@
 opencv-python
-jinja
+ninja
 pillow
 torch
 torchvision
