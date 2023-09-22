@@ -3,3 +3,5 @@ input/
 output/
 venv
 .DS_Store
+checkpoints/
+checkpoint/
