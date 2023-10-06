@@ -7,7 +7,7 @@ class TRI3DExtractHand:
             "required": {
                 "image": ("IMAGE",),
                 "seg" : ("IMAGE",),
-                "margin" : "INTEGER",
+                "margin" : "INT",
             },
         }
     RETURN_TYPES = ("IMAGE",)
@@ -321,7 +321,7 @@ class TRI3DPositiontHands:
                 "image": ("IMAGE",),
                 "seg" : ("IMAGE",),
                 "handimg" : ("IMAGE",),
-                "margin" : "INTEGER",
+                "margin" : "INT",
             },
         }
     RETURN_TYPES = ("IMAGE",)
