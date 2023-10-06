@@ -7,12 +7,13 @@ class TRI3DExtractHand:
             "required": {
                 "image": ("IMAGE",),
                 "seg" : ("IMAGE",),
+                "margin" : "INTEGER",
             },
         }
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "main"
     CATEGORY = "TRI3D"
-    def main(self, image,seg):
+    def main(self, image,seg,margin = 15):
         import cv2
         import numpy as np
         import torch
@@ -54,7 +55,6 @@ class TRI3DExtractHand:
             x, y, w, h = cv2.boundingRect(all_points)
 
             print(x,y,w,h,"x,y,w,h")
-            margin = 5
             x = max(x - margin, 0)
             y = max(y - margin, 0)
             w = min(w + 2*margin, input_img.shape[1] - x)  # Ensure width does not exceed image boundary
@@ -321,12 +321,13 @@ class TRI3DPositiontHands:
                 "image": ("IMAGE",),
                 "seg" : ("IMAGE",),
                 "handimg" : ("IMAGE",),
+                "margin" : "INTEGER",
             },
         }
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "main"
     CATEGORY = "TRI3D"
-    def main(self, image,seg,handimg):
+    def main(self, image,seg,handimg,margin = 15):
         import cv2
         import numpy as np
         import torch
@@ -354,7 +355,6 @@ class TRI3DPositiontHands:
             # Combine all contours to find encompassing bounding box
             all_points = np.concatenate(contours, axis=0)
             x, y, w, h = cv2.boundingRect(all_points)
-            margin = 5
             x = max(x - margin, 0)
             y = max(y - margin, 0)
             w = min(w + 2*margin, input_img.shape[1] - x)  # Ensure width does not exceed image boundary
