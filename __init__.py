@@ -8,12 +8,16 @@ class TRI3DExtractHand:
                 "image": ("IMAGE",),
                 "seg" : ("IMAGE",),
                 "margin" : ("INT", {"default": 15, "min": 0 }),
+                "left_hand" : ("BOOL", {"default": True}),
+                "right_hand" : ("BOOL", {"default": True}),
+                "head" : ("BOOL", {"default": False}),
+                "hair" : ("BOOL", {"default": False}),
             },
         }
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "main"
     CATEGORY = "TRI3D"
-    def main(self, image,seg,margin = 15):
+    def main(self, image,seg,margin,left_hand,right_hand,head,hair):
         import cv2
         import numpy as np
         import torch
@@ -82,7 +86,22 @@ class TRI3DExtractHand:
 
         # 128 128 64 / 128 128 192
         # color_code_list = [[128,128,64], [128,128,192]]
-        color_code_list = [[64,128,128], [192,128,128]]
+        # (array([  0, 128,   0], dtype=uint8), 9393), #hair
+            # (array([  0, 128, 128], dtype=uint8), 50277), #lower garment
+            # (array([ 64, 128, 128], dtype=uint8), 14548), #left hand
+            # (array([192, 128,   0], dtype=uint8), 33325), #face
+            # (array([192, 128, 128], dtype=uint8), 14855)] #right hand
+        color_code_list = []
+        if left_hand:
+            color_code_list.append([64,128,128])
+        if right_hand:
+            color_code_list.append([192,128,128])
+        if head:
+            color_code_list.append([192,128,0])
+        if hair:
+            color_code_list.append([0,128,0])
+
+        # color_code_list = [[64,128,128], [192,128,128]]
         bimage = bounded_image(cv2_seg,color_code_list,cv2_image)
         b_tensor_img = cv2_img_to_tensor(bimage)
         
@@ -322,12 +341,16 @@ class TRI3DPositiontHands:
                 "seg" : ("IMAGE",),
                 "handimg" : ("IMAGE",),
                 "margin" : ("INT", {"default": 15, "min": 0 }),
+                "left_hand" : ("BOOL", {"default": True}),
+                "right_hand" : ("BOOL", {"default": True}),
+                "head" : ("BOOL", {"default": False}),
+                "hair" : ("BOOL", {"default": False}),
             },
         }
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "main"
     CATEGORY = "TRI3D"
-    def main(self, image,seg,handimg,margin = 15):
+    def main(self, image,seg,handimg,margin,left_hand,right_hand,head,hair):
         import cv2
         import numpy as np
         import torch
@@ -378,7 +401,17 @@ class TRI3DPositiontHands:
 
         # 128 128 64 / 128 128 192
         # color_code_list = [[128,128,64], [128,128,192]]
-        color_code_list = [[64,128,128], [192,128,128]]
+        # color_code_list = [[64,128,128], [192,128,128]]
+        color_code_list = []
+        if left_hand:
+            color_code_list.append([64,128,128])
+        if right_hand:
+            color_code_list.append([192,128,128])
+        if head:
+            color_code_list.append([192,128,0])
+        if hair:
+            color_code_list.append([0,128,0])
+
         positions = bounded_image_points(cv2_seg,color_code_list,cv2_image)
 
 
