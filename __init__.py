@@ -8,10 +8,10 @@ class TRI3DExtractHand:
                 "image": ("IMAGE",),
                 "seg" : ("IMAGE",),
                 "margin" : ("INT", {"default": 15, "min": 0 }),
-                "left_hand" : ("BOOL", {"default": True}),
-                "right_hand" : ("BOOL", {"default": True}),
-                "head" : ("BOOL", {"default": False}),
-                "hair" : ("BOOL", {"default": False}),
+                "left_hand" : ("BOOLEAN", {"default": True}),
+                "right_hand" : ("BOOLEAN", {"default": True}),
+                "head" : ("BOOLEAN", {"default": False}),
+                "hair" : ("BOOLEAN", {"default": False}),
             },
         }
     RETURN_TYPES = ("IMAGE",)
@@ -341,10 +341,10 @@ class TRI3DPositiontHands:
                 "seg" : ("IMAGE",),
                 "handimg" : ("IMAGE",),
                 "margin" : ("INT", {"default": 15, "min": 0 }),
-                "left_hand" : ("BOOL", {"default": True}),
-                "right_hand" : ("BOOL", {"default": True}),
-                "head" : ("BOOL", {"default": False}),
-                "hair" : ("BOOL", {"default": False}),
+                "left_hand" : ("BOOLEAN", {"default": True}),
+                "right_hand" : ("BOOLEAN", {"default": True}),
+                "head" : ("BOOLEAN", {"default": False}),
+                "hair" : ("BOOLEAN", {"default": False}),
             },
         }
     RETURN_TYPES = ("IMAGE",)
