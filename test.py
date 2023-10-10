@@ -1,5 +1,6 @@
 import cv2 
 import numpy as np
+from pprint import pprint
 def get_segment_counts(segm):
     # Load the segmentation image
 
@@ -11,6 +12,20 @@ def get_segment_counts(segm):
     segment_counts = list(zip(unique_vectors, counts))
     pprint(segment_counts)
     return segment_counts
+
+
+def extract_garment(image_path, segm_path, color_code):
+    # Load the images
+    original = cv2.imread(image_path)
+    segm = cv2.imread(segm_path)
+
+    # Create a mask where the segmentation image color equals the color_code
+    mask = cv2.inRange(segm, color_code, color_code)
+
+    # Apply the mask to the original image
+    masked = cv2.bitwise_and(original, original, mask=mask)
+
+    return masked
 
 def bounded_image(seg_img, color_code_list, input_img):
     import cv2
@@ -49,9 +64,15 @@ def bounded_image(seg_img, color_code_list, input_img):
 
 
 color_code_list = [[128,128,64], [128,128,192]]
-seg_img = cv2.imread("input/seg.png",cv2.IMREAD_UNCHANGED)
-input_img = cv2.imread("input/input_aligned.jpg",cv2.IMREAD_UNCHANGED)
-print(seg_img.shape,"seg_img.shape")
-print(input_img.shape,"input_img.shape")
-# bimage = bounded_image(seg_img, color_code_list, input_img)
-# cv2.imwrite("output/output.png",bimage)
+seg_img = cv2.imread("input/shoes.png",cv2.IMREAD_UNCHANGED)
+segments = get_segment_counts(seg_img)
+
+for cur_seg in segments:
+    cur = cur_seg[0]
+    masked = extract_garment("input/shoes.png","input/shoes.png",cur)
+    cv2.imwrite("output/" + str(cur_seg) + ".png",masked)
+# input_img = cv2.imread("input/input_aligned.jpg",cv2.IMREAD_UNCHANGED)
+# print(seg_img.shape,"seg_img.shape")
+# print(input_img.shape,"input_img.shape")
+# # bimage = bounded_image(seg_img, color_code_list, input_img)
+# # cv2.imwrite("output/output.png",bimage)

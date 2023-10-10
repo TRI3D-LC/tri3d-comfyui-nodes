@@ -12,12 +12,14 @@ class TRI3DExtractHand:
                 "right_hand" : ("BOOLEAN", {"default": True}),
                 "head" : ("BOOLEAN", {"default": False}),
                 "hair" : ("BOOLEAN", {"default": False}),
+                "left_leg" : ("BOOLEAN", {"default": False}),
+                "right_leg" : ("BOOLEAN", {"default": False}),
             },
         }
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "main"
     CATEGORY = "TRI3D"
-    def main(self, image,seg,margin,left_hand,right_hand,head,hair):
+    def main(self, image,seg,margin,left_hand,right_hand,head,hair,left_leg,right_leg):
         import cv2
         import numpy as np
         import torch
@@ -100,6 +102,10 @@ class TRI3DExtractHand:
             color_code_list.append([192,128,0])
         if hair:
             color_code_list.append([0,128,0])
+        if left_leg:
+            color_code_list.append([0,0,64])
+        if right_leg:
+            color_code_list.append([0,0,192])
 
         # color_code_list = [[64,128,128], [192,128,128]]
         bimage = bounded_image(cv2_seg,color_code_list,cv2_image)
@@ -230,6 +236,18 @@ class TRI3DFuzzification:
             # (array([ 64, 128, 128], dtype=uint8), 14548), #left hand
             # (array([192, 128,   0], dtype=uint8), 33325), #face
             # (array([192, 128, 128], dtype=uint8), 14855)] #right hand
+
+            # (array([ 0,  0, 64], dtype=uint8), 20918),
+            # (array([  0,   0, 192], dtype=uint8), 20264), #left shoe
+            # (array([  0, 128,   0], dtype=uint8), 64359),
+            # (array([  0, 128,  64], dtype=uint8), 21031), #right shoe
+            # (array([  0, 128, 192], dtype=uint8), 76005),
+            # (array([128,   0,   0], dtype=uint8), 102761),
+            # (array([128,   0,  64], dtype=uint8), 89881),
+            # (array([128,   0, 192], dtype=uint8), 93931),
+            # (array([128, 128,   0], dtype=uint8), 39445),
+            # (array([128, 128,  64], dtype=uint8), 44930),
+            # (array([128, 128, 192], dtype=uint8), 59772)]
 
             # color_code_list = [[64,128,128], [192,128,128]] #left and right hands
             # color_code_list = [[192,128,0]] #face 
