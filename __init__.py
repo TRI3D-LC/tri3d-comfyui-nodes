@@ -93,6 +93,10 @@ class TRI3DExtractHand:
             # (array([ 64, 128, 128], dtype=uint8), 14548), #left hand
             # (array([192, 128,   0], dtype=uint8), 33325), #face
             # (array([192, 128, 128], dtype=uint8), 14855)] #right hand
+            # [(array([0, 0, 0], dtype=uint8), 638434), #background
+            # (array([  0,   0, 128], dtype=uint8), 77453),
+            # (array([ 64, 128,   0], dtype=uint8), 5640),
+            # (array([192,   0,   0], dtype=uint8), 5409),
         get_segment_counts(cv2_seg)
         color_code_list = []
         if left_hand:
@@ -104,9 +108,9 @@ class TRI3DExtractHand:
         if hair:
             color_code_list.append([0,128,0])
         if left_leg:
-            color_code_list.append([0,0,64])
+            color_code_list.append([192,0,0])
         if right_leg:
-            color_code_list.append([0,0,192])
+            color_code_list.append([64,128,0])
 
         # color_code_list = [[64,128,128], [192,128,128]]
         bimage = bounded_image(cv2_seg,color_code_list,cv2_image)
