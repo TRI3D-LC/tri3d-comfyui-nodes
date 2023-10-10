@@ -368,12 +368,14 @@ class TRI3DPositiontHands:
                 "right_hand" : ("BOOLEAN", {"default": True}),
                 "head" : ("BOOLEAN", {"default": False}),
                 "hair" : ("BOOLEAN", {"default": False}),
+                "left_leg" : ("BOOLEAN", {"default": False}),
+                "right_leg" : ("BOOLEAN", {"default": False}),
             },
         }
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "main"
     CATEGORY = "TRI3D"
-    def main(self, image,seg,handimg,margin,left_hand,right_hand,head,hair):
+    def main(self, image,seg,handimg,margin,left_hand,right_hand,head,hair,left_leg,right_leg):
         import cv2
         import numpy as np
         import torch
@@ -434,6 +436,10 @@ class TRI3DPositiontHands:
             color_code_list.append([192,128,0])
         if hair:
             color_code_list.append([0,128,0])
+        if left_leg:
+            color_code_list.append([192,0,0])
+        if right_leg:
+            color_code_list.append([64,128,0])
 
         positions = bounded_image_points(cv2_seg,color_code_list,cv2_image)
 
