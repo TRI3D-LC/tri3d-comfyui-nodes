@@ -93,6 +93,7 @@ class TRI3DExtractHand:
             # (array([ 64, 128, 128], dtype=uint8), 14548), #left hand
             # (array([192, 128,   0], dtype=uint8), 33325), #face
             # (array([192, 128, 128], dtype=uint8), 14855)] #right hand
+        get_segment_counts(cv2_seg)
         color_code_list = []
         if left_hand:
             color_code_list.append([64,128,128])
