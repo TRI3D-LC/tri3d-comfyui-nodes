@@ -242,7 +242,6 @@ class TRI3DExtractHandBatch:
                 black_img = np.zeros_like(cv2_image)
                 batch_results.append(cv2_img_to_tensor(black_img).squeeze(0))
 
-        batch_results = torch.stack(batch_results)
         
         return (batch_results,)
 
@@ -696,7 +695,7 @@ class TRI3DPositionHandsBatch:
             b_tensor_img = cv2_img_to_tensor(cv2_image)
             batch_results.append(b_tensor_img.squeeze(0))
 
-        batch_results = torch.stack(batch_results)
+        # batch_results = torch.stack(batch_results)
         
         return (batch_results,)
 
@@ -764,7 +763,7 @@ class TRI3DATRParseBatch:
             b_tensor_img = cv2_img_to_tensor(cv2_segm)
             batch_results.append(b_tensor_img.squeeze(0))
 
-        batch_results = torch.stack(batch_results)
+        # batch_results = torch.stack(batch_results)
 
         return (batch_results,)
 
