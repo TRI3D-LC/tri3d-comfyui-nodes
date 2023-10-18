@@ -534,7 +534,7 @@ class TRI3DATRParseBatch:
 
         batch_results = torch.stack(batch_results)
 
-        return (b_tensor_img,)
+        return (batch_results,)
 
 
 class TRI3DATRParse:
