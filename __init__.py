@@ -1,127 +1,4 @@
-class TRI3DExtractHand:
-    def __init__(self):
-        pass    
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "image": ("IMAGE",),
-                "seg" : ("IMAGE",),
-                "margin" : ("INT", {"default": 15, "min": 0 }),
-                "left_hand" : ("BOOLEAN", {"default": True}),
-                "right_hand" : ("BOOLEAN", {"default": True}),
-                "head" : ("BOOLEAN", {"default": False}),
-                "hair" : ("BOOLEAN", {"default": False}),
-                "left_leg" : ("BOOLEAN", {"default": False}),
-                "right_leg" : ("BOOLEAN", {"default": False}),
-            },
-        }
-    RETURN_TYPES = ("IMAGE",)
-    FUNCTION = "main"
-    CATEGORY = "TRI3D"
-    def main(self, image,seg,margin,left_hand,right_hand,head,hair,left_leg,right_leg):
-        import cv2
-        import numpy as np
-        import torch
-        from pprint import pprint
-
-        def get_segment_counts(segm):
-            # Load the segmentation image
-
-            # Reshape the image array to be 2D
-            reshaped = segm.reshape(-1, segm.shape[-1])
-
-            # Find unique vectors and their counts
-            unique_vectors, counts = np.unique(reshaped, axis=0, return_counts=True)
-            segment_counts = list(zip(unique_vectors, counts))
-            pprint(segment_counts)
-            return segment_counts
-        
-        def bounded_image(seg_img, color_code_list, input_img):
-            import cv2
-            import numpy as np
-            # Create a mask for hands
-            seg_img = cv2.resize(seg_img,(input_img.shape[1],input_img.shape[0]),interpolation=cv2.INTER_NEAREST)
-            hand_mask = np.zeros_like(seg_img[:,:,0])
-            for color in color_code_list:
-                lowerb = np.array(color, dtype=np.uint8)
-                upperb = np.array(color, dtype=np.uint8)
-                temp_mask = cv2.inRange(seg_img, lowerb, upperb)
-                hand_mask = cv2.bitwise_or(hand_mask, temp_mask)
-
-            # Find contours to get the bounding box of the hands
-            contours, _ = cv2.findContours(hand_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            
-            # If no contours were found, just return None
-            if not contours:
-                return None
-
-            # Combine all contours to find encompassing bounding box
-            all_points = np.concatenate(contours, axis=0)
-            x, y, w, h = cv2.boundingRect(all_points)
-
-            print(x,y,w,h,"x,y,w,h")
-            x = max(x - margin, 0)
-            y = max(y - margin, 0)
-            w = min(w + 2*margin, input_img.shape[1] - x)  # Ensure width does not exceed image boundary
-            h = min(h + 2*margin, input_img.shape[0] - y)  # Ensure height does not exceed image boundary
-            print(x,y,w,h,"x,y,w,h")
-            print(input_img.shape,"input_img.shape")
-            # Extract the region from the original image that contains both hands
-            hand_region = input_img[y:y+h, x:x+w]
-
-            return hand_region
-
-        def tensor_to_cv2_img(tensor, remove_alpha=False):
-            i = 255. * tensor.squeeze(0).cpu().numpy()  # This will give us (H, W, C)
-            img = np.clip(i, 0, 255).astype(np.uint8)
-            return img
-
-        def cv2_img_to_tensor(img):
-            img = img.astype(np.float32) / 255.0
-            img = torch.from_numpy(img)[None,]
-            return img
-
-        cv2_image = tensor_to_cv2_img(image)    
-        cv2_seg = tensor_to_cv2_img(seg)
-        # cv2_seg = cv2.resize(cv2_seg,(cv2_image.shape[1],cv2_image.shape[0]),interpolation=cv2.INTER_NEAREST)
-
-        # 128 128 64 / 128 128 192
-        # color_code_list = [[128,128,64], [128,128,192]]
-        # (array([  0, 128,   0], dtype=uint8), 9393), #hair
-            # (array([  0, 128, 128], dtype=uint8), 50277), #lower garment
-            # (array([  0,   0, 128], dtype=uint8), 291418), #upper garment
-
-            # (array([ 64, 128, 128], dtype=uint8), 14548), #left hand
-            # (array([192, 128,   0], dtype=uint8), 33325), #face
-            # (array([192, 128, 128], dtype=uint8), 14855)] #right hand
-            # [(array([0, 0, 0], dtype=uint8), 638434), #background
-            # (array([  0,   0, 128], dtype=uint8), 77453),
-            # (array([ 64, 128,   0], dtype=uint8), 5640),
-            # (array([192,   0,   0], dtype=uint8), 5409),
-        get_segment_counts(cv2_seg)
-        color_code_list = []
-        if left_hand:
-            color_code_list.append([64,128,128])
-        if right_hand:
-            color_code_list.append([192,128,128])
-        if head:
-            color_code_list.append([192,128,0])
-        if hair:
-            color_code_list.append([0,128,0])
-        if left_leg:
-            color_code_list.append([192,0,0])
-        if right_leg:
-            color_code_list.append([64,128,0])
-
-        # color_code_list = [[64,128,128], [192,128,128]]
-        bimage = bounded_image(cv2_seg,color_code_list,cv2_image)
-        b_tensor_img = cv2_img_to_tensor(bimage)
-        
-        return (b_tensor_img,)
-
-
-class TRI3DExtractHandBatch:
+class TRI3DExtractPartsBatch:
     def __init__(self):
         pass    
     @classmethod
@@ -479,119 +356,7 @@ class TRI3DFuzzification:
         
         return (output_img,)
 
-
-class TRI3DPositiontHands:
-    def __init__(self):
-        pass    
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "image": ("IMAGE",),
-                "seg" : ("IMAGE",),
-                "handimg" : ("IMAGE",),
-                "margin" : ("INT", {"default": 15, "min": 0 }),
-                "left_hand" : ("BOOLEAN", {"default": True}),
-                "right_hand" : ("BOOLEAN", {"default": True}),
-                "head" : ("BOOLEAN", {"default": False}),
-                "hair" : ("BOOLEAN", {"default": False}),
-                "left_leg" : ("BOOLEAN", {"default": False}),
-                "right_leg" : ("BOOLEAN", {"default": False}),
-            },
-        }
-    RETURN_TYPES = ("IMAGE",)
-    FUNCTION = "main"
-    CATEGORY = "TRI3D"
-    def main(self, image,seg,handimg,margin,left_hand,right_hand,head,hair,left_leg,right_leg):
-        import cv2
-        import numpy as np
-        import torch
-        from pprint import pprint
-
-        def bounded_image_points(seg_img, color_code_list, input_img):
-            import cv2
-            import numpy as np
-            # Create a mask for hands
-            seg_img = cv2.resize(seg_img,(input_img.shape[1],input_img.shape[0]),interpolation=cv2.INTER_NEAREST)
-            hand_mask = np.zeros_like(seg_img[:,:,0])
-            for color in color_code_list:
-                lowerb = np.array(color, dtype=np.uint8)
-                upperb = np.array(color, dtype=np.uint8)
-                temp_mask = cv2.inRange(seg_img, lowerb, upperb)
-                hand_mask = cv2.bitwise_or(hand_mask, temp_mask)
-
-            # Find contours to get the bounding box of the hands
-            contours, _ = cv2.findContours(hand_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            
-            # If no contours were found, just return None
-            if not contours:
-                return None
-
-            # Combine all contours to find encompassing bounding box
-            all_points = np.concatenate(contours, axis=0)
-            x, y, w, h = cv2.boundingRect(all_points)
-            x = max(x - margin, 0)
-            y = max(y - margin, 0)
-            w = min(w + 2*margin, input_img.shape[1] - x)  # Ensure width does not exceed image boundary
-            h = min(h + 2*margin, input_img.shape[0] - y)  # Ensure height does not exceed image boundary
-
-            return (x,y,w,h)
-
-        def tensor_to_cv2_img(tensor, remove_alpha=False):
-            i = 255. * tensor.squeeze(0).cpu().numpy()  # This will give us (H, W, C)
-            img = np.clip(i, 0, 255).astype(np.uint8)
-            return img
-
-        def cv2_img_to_tensor(img):
-            img = img.astype(np.float32) / 255.0
-            img = torch.from_numpy(img)[None,]
-            return img
-
-        cv2_image = tensor_to_cv2_img(image)    
-        cv2_seg = tensor_to_cv2_img(seg)
-        # cv2_seg = cv2.resize(cv2_seg,(cv2_image.shape[1],cv2_image.shape[0]),interpolation=cv2.INTER_NEAREST)
-
-        # 128 128 64 / 128 128 192
-        # color_code_list = [[128,128,64], [128,128,192]]
-        # color_code_list = [[64,128,128], [192,128,128]]
-        color_code_list = []
-        if left_hand:
-            color_code_list.append([64,128,128])
-        if right_hand:
-            color_code_list.append([192,128,128])
-        if head:
-            color_code_list.append([192,128,0])
-        if hair:
-            color_code_list.append([0,128,0])
-        if left_leg:
-            color_code_list.append([192,0,0])
-        if right_leg:
-            color_code_list.append([64,128,0])
-
-        positions = bounded_image_points(cv2_seg,color_code_list,cv2_image)
-
-
-        
-        cv2_handimg = tensor_to_cv2_img(handimg)
-        #Resize cv2_handimg to positions
-
-        print("before resizing ",cv2_handimg.shape,"handimg.shape")
-        cv2_handimg = cv2.resize(cv2_handimg,(positions[2],positions[3]),interpolation=cv2.INTER_NEAREST)
-
-
-        print(positions,"positions")
-        print(cv2_image.shape,"cv2img.shape")
-        print(cv2_handimg.shape,"handimg.shape")
-
-        #position cv2_handimg in cv2_image
-        cv2_image[positions[1]:positions[1]+positions[3],positions[0]:positions[0]+positions[2]] = cv2_handimg
-
-        b_tensor_img = cv2_img_to_tensor(cv2_image)
-        
-        return (b_tensor_img,)
-
-
-class TRI3DPositionHandsBatch:
+class TRI3DPositionPartsBatch:
     def __init__(self):
         pass    
     @classmethod
@@ -699,8 +464,6 @@ class TRI3DPositionHandsBatch:
         
         return (batch_results,)
 
-
-
 class TRI3DATRParseBatch:
     def __init__(self):
         pass    
@@ -768,91 +531,20 @@ class TRI3DATRParseBatch:
         return (batch_results,)
 
 
-class TRI3DATRParse:
-    def __init__(self):
-        pass    
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "image": ("IMAGE",),
-            },
-        }
-    RETURN_TYPES = ("IMAGE",)
-    FUNCTION = "main"
-    CATEGORY = "TRI3D"
-    def main(self, image):
-        import cv2
-        import numpy as np
-        import torch
-        import os 
-        import shutil
-        from pprint import pprint
-
-        def tensor_to_cv2_img(tensor, remove_alpha=False):
-            i = 255. * tensor.squeeze(0).cpu().numpy()  # This will give us (H, W, C)
-            img = np.clip(i, 0, 255).astype(np.uint8)
-            return img
-
-        def cv2_img_to_tensor(img):
-            img = img.astype(np.float32) / 255.0
-            img = torch.from_numpy(img)[None,]
-            return img
-
-        cv2_image = tensor_to_cv2_img(image)    
-        cv2_image = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2RGB)
-
-
-        ATR_PATH = 'custom_nodes/tri3d-comfyui-nodes/atr_node/'
-        ATR_INPUT_PATH = ATR_PATH + 'input/'
-        ATR_OUTPUT_PATH = ATR_PATH + 'output/'
-
-        # Create the input directory if it does not exist
-        shutil.rmtree(ATR_INPUT_PATH, ignore_errors=True)
-        os.makedirs(ATR_INPUT_PATH, exist_ok=True)
-
-        shutil.rmtree(ATR_OUTPUT_PATH, ignore_errors=True)
-        os.makedirs(ATR_OUTPUT_PATH, exist_ok=True)
-
-        cv2.imwrite(ATR_INPUT_PATH + "image.png",cv2_image)
-
-        # Run the ATR model
-        cwd = os.getcwd()
-        os.chdir(ATR_PATH)
-        os.system("python simple_extractor.py --dataset atr --model-restore 'checkpoints/atr.pth' --input-dir input --output-dir output")
-
-        # Load the segmentation image
-
-        os.chdir(cwd)
-        cv2_segm = cv2.imread(ATR_OUTPUT_PATH + 'image.png')
-        cv2_segm = cv2.cvtColor(cv2_segm, cv2.COLOR_BGR2RGB)
-
-        b_tensor_img = cv2_img_to_tensor(cv2_segm)
-        
-        return (b_tensor_img,)
-
-
-
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
-    "tri3d-extract-hand": TRI3DExtractHand,
     "tri3d-fuzzification": TRI3DFuzzification,
-    "tri3d-position-hands": TRI3DPositiontHands,
-    "tri3d-atr-parse": TRI3DATRParse,
     "tri3d-atr-parse-batch": TRI3DATRParseBatch,
-    "tri3d-position-hands-batch": TRI3DPositionHandsBatch,
-    'tri3d-extract-hand-batch': TRI3DExtractHandBatch,
+    "tri3d-position-parts-batch": TRI3DPositionPartsBatch,
+    'tri3d-extract-parts-batch': TRI3DExtractPartsBatch,
 
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "tri3d-extract-hand": "Extract Hand",
     "tri3d-fuzzification" : "Fuzzification",
-    "tri3d-position-hands" : "Position Hands",
-    "tri3d-atr-parse" : "ATR Parse",
     "tri3d-atr-parse-batch" : "ATR Parse Batch",
-    "tri3d-position-hands-batch" : "Position Hands Batch",
-    'tri3d-extract-hand-batch': 'Extract Hand Batch',
+    "tri3d-position-parts-batch" : "Position Parts Batch",
+    'tri3d-extract-parts-batch': 'Extract Parts Batch',
 }
