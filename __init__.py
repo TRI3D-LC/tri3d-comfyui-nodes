@@ -86,6 +86,7 @@ class TRI3DExtractPartsBatch:
 
 
         batch_results = []
+        images = []
 
         for i in range(batch_images.shape[0]):
             image = batch_images[i]
@@ -112,14 +113,23 @@ class TRI3DExtractPartsBatch:
             
             # Handle case when bimage is None to avoid error during conversion to tensor
             if bimage is not None:
-                b_tensor_img = cv2_img_to_tensor(bimage)
-                batch_results.append(b_tensor_img.squeeze(0))
+                images.append(bimage)
             else:
-                # Handle the None case according to your needs, for instance, append a black image
                 black_img = np.zeros_like(cv2_image)
-                batch_results.append(cv2_img_to_tensor(black_img).squeeze(0))
+                images.append(black_img)
 
-        
+        # Get max height and width
+        max_height = max(img.shape[0] for img in images)
+        max_width = max(img.shape[1] for img in images)
+
+        batch_results = []
+
+        for img in images:
+            # Resize the image to max height and width
+            resized_img = cv2.resize(img, (max_width, max_height), interpolation=cv2.INTER_AREA)
+            tensor_img = cv2_img_to_tensor(resized_img)
+            batch_results.append(tensor_img)
+
         return (batch_results,)
 
 class TRI3DPositionPartsBatch:
@@ -479,7 +489,6 @@ class TRI3DATRParse:
         b_tensor_img = cv2_img_to_tensor(cv2_segm)
         
         return (b_tensor_img,)
-
 class TRI3DPositiontHands:
     def __init__(self):
         pass    
