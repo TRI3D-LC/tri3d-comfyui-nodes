@@ -129,7 +129,7 @@ class TRI3DExtractPartsBatch:
             resized_img = cv2.resize(img, (max_width, max_height), interpolation=cv2.INTER_AREA)
             tensor_img = cv2_img_to_tensor(resized_img)
             batch_results.append(tensor_img.squeeze(0))
-
+        batch_results = torch.stack(batch_results)
         return (batch_results,)
 
 class TRI3DPositionPartsBatch:
@@ -236,7 +236,7 @@ class TRI3DPositionPartsBatch:
             b_tensor_img = cv2_img_to_tensor(cv2_image)
             batch_results.append(b_tensor_img.squeeze(0))
 
-        # batch_results = torch.stack(batch_results)
+        batch_results = torch.stack(batch_results)
         
         return (batch_results,)
 
@@ -302,7 +302,7 @@ class TRI3DATRParseBatch:
             b_tensor_img = cv2_img_to_tensor(cv2_segm)
             batch_results.append(b_tensor_img.squeeze(0))
 
-        # batch_results = torch.stack(batch_results)
+        batch_results = torch.stack(batch_results)
 
         return (batch_results,)
 
@@ -598,7 +598,6 @@ class TRI3DPositiontHands:
         b_tensor_img = cv2_img_to_tensor(cv2_image)
         
         return (b_tensor_img,)
-
 class TRI3DFuzzification:
     def __init__(self):
         pass    
@@ -832,7 +831,6 @@ class TRI3DFuzzification:
         output_img = cv2_img_to_tensor(bimage)
         
         return (output_img,)
-
 
 
 # A dictionary that contains all nodes you want to export with their names
