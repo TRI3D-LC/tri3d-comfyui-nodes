@@ -472,7 +472,7 @@ class TRI3DATRParseBatch:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "image": ("IMAGE",),
+                "images": ("IMAGE",),
             },
         }
     RETURN_TYPES = ("IMAGE",)
