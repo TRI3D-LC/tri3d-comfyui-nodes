@@ -128,8 +128,8 @@ class TRI3DExtractHandBatch:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "image": ("IMAGE",),
-                "seg" : ("IMAGE",),
+                "batch_images": ("IMAGE",),
+                "batch_segs" : ("IMAGE",),
                 "margin" : ("INT", {"default": 15, "min": 0 }),
                 "left_hand" : ("BOOLEAN", {"default": True}),
                 "right_hand" : ("BOOLEAN", {"default": True}),
