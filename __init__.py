@@ -465,6 +465,117 @@ class TRI3DPositiontHands:
         
         return (b_tensor_img,)
 
+
+class TRI3DPositionHands:
+    def __init__(self):
+        pass    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "batch_images": ("IMAGE",),
+                "batch_segs" : ("IMAGE",),
+                "batch_handimgs" : ("IMAGE",),
+                "margin" : ("INT", {"default": 15, "min": 0 }),
+                "left_hand" : ("BOOLEAN", {"default": True}),
+                "right_hand" : ("BOOLEAN", {"default": True}),
+                "head" : ("BOOLEAN", {"default": False}),
+                "hair" : ("BOOLEAN", {"default": False}),
+                "left_leg" : ("BOOLEAN", {"default": False}),
+                "right_leg" : ("BOOLEAN", {"default": False}),
+            },
+        }
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "main"
+    CATEGORY = "TRI3D"
+
+    def main(self, batch_images, batch_segs, batch_handimgs, margin, left_hand, right_hand, head, hair, left_leg, right_leg):
+        import cv2
+        import numpy as np
+        import torch
+        from pprint import pprint
+
+        
+        def bounded_image_points(seg_img, color_code_list, input_img):
+            import cv2
+            import numpy as np
+            # Create a mask for hands
+            seg_img = cv2.resize(seg_img,(input_img.shape[1],input_img.shape[0]),interpolation=cv2.INTER_NEAREST)
+            hand_mask = np.zeros_like(seg_img[:,:,0])
+            for color in color_code_list:
+                lowerb = np.array(color, dtype=np.uint8)
+                upperb = np.array(color, dtype=np.uint8)
+                temp_mask = cv2.inRange(seg_img, lowerb, upperb)
+                hand_mask = cv2.bitwise_or(hand_mask, temp_mask)
+
+            # Find contours to get the bounding box of the hands
+            contours, _ = cv2.findContours(hand_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            
+            # If no contours were found, just return None
+            if not contours:
+                return None
+
+            # Combine all contours to find encompassing bounding box
+            all_points = np.concatenate(contours, axis=0)
+            x, y, w, h = cv2.boundingRect(all_points)
+            x = max(x - margin, 0)
+            y = max(y - margin, 0)
+            w = min(w + 2*margin, input_img.shape[1] - x)  # Ensure width does not exceed image boundary
+            h = min(h + 2*margin, input_img.shape[0] - y)  # Ensure height does not exceed image boundary
+
+            return (x,y,w,h)
+
+        def tensor_to_cv2_img(tensor, remove_alpha=False):
+            i = 255. * tensor.squeeze(0).cpu().numpy()  # This will give us (H, W, C)
+            img = np.clip(i, 0, 255).astype(np.uint8)
+            return img
+
+        def cv2_img_to_tensor(img):
+            img = img.astype(np.float32) / 255.0
+            img = torch.from_numpy(img)[None,]
+            return img
+
+
+        batch_results = []
+
+        for i in range(batch_images.shape[0]):
+            image = batch_images[i]
+            seg = batch_segs[i]
+            handimg = batch_handimgs[i]
+            
+            cv2_image = tensor_to_cv2_img(image)    
+            cv2_seg = tensor_to_cv2_img(seg)
+
+            color_code_list = []
+            if left_hand:
+                color_code_list.append([64,128,128])
+            if right_hand:
+                color_code_list.append([192,128,128])
+            if head:
+                color_code_list.append([192,128,0])
+            if hair:
+                color_code_list.append([0,128,0])
+            if left_leg:
+                color_code_list.append([192,0,0])
+            if right_leg:
+                color_code_list.append([64,128,0])
+
+            positions = bounded_image_points(cv2_seg, color_code_list, cv2_image)
+
+            cv2_handimg = tensor_to_cv2_img(handimg)
+            cv2_handimg = cv2.resize(cv2_handimg, (positions[2], positions[3]), interpolation=cv2.INTER_NEAREST)
+
+            cv2_image[positions[1]:positions[1]+positions[3], positions[0]:positions[0]+positions[2]] = cv2_handimg
+
+            b_tensor_img = cv2_img_to_tensor(cv2_image)
+            batch_results.append(b_tensor_img.squeeze(0))
+
+        batch_results = torch.stack(batch_results)
+        
+        return (batch_results,)
+
+
+
 class TRI3DATRParseBatch:
     def __init__(self):
         pass    
