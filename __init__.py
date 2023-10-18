@@ -128,7 +128,7 @@ class TRI3DExtractPartsBatch:
             # Resize the image to max height and width
             resized_img = cv2.resize(img, (max_width, max_height), interpolation=cv2.INTER_AREA)
             tensor_img = cv2_img_to_tensor(resized_img)
-            batch_results.append(tensor_img)
+            batch_results.append(tensor_img.squeeze(0))
 
         return (batch_results,)
 
