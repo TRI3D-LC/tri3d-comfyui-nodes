@@ -90,6 +90,8 @@ class TRI3DExtractHand:
         # color_code_list = [[128,128,64], [128,128,192]]
         # (array([  0, 128,   0], dtype=uint8), 9393), #hair
             # (array([  0, 128, 128], dtype=uint8), 50277), #lower garment
+            # (array([  0,   0, 128], dtype=uint8), 291418), #upper garment
+
             # (array([ 64, 128, 128], dtype=uint8), 14548), #left hand
             # (array([192, 128,   0], dtype=uint8), 33325), #face
             # (array([192, 128, 128], dtype=uint8), 14855)] #right hand
@@ -463,6 +465,77 @@ class TRI3DPositiontHands:
         
         return (b_tensor_img,)
 
+class TRI3DATRParseBatch:
+    def __init__(self):
+        pass    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+            },
+        }
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "main"
+    CATEGORY = "TRI3D"
+    
+    
+
+    def main(self, images):
+        import cv2
+        import numpy as np
+        import torch
+        import os
+        import shutil
+        from pprint import pprint
+
+        def tensor_to_cv2_img(tensor, remove_alpha=False):
+            i = 255. * tensor.cpu().numpy()  # This will give us (H, W, C)
+            img = np.clip(i, 0, 255).astype(np.uint8)
+            return img
+
+        def cv2_img_to_tensor(img):
+            img = img.astype(np.float32) / 255.0
+            img = torch.from_numpy(img)[None,]
+            return img
+
+        batch_results = []
+
+        for i in range(images.shape[0]):
+            image = images[i]
+            cv2_image = tensor_to_cv2_img(image)    
+            cv2_image = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2RGB)
+
+            ATR_PATH = 'custom_nodes/tri3d-comfyui-nodes/atr_node/'
+            ATR_INPUT_PATH = ATR_PATH + 'input/'
+            ATR_OUTPUT_PATH = ATR_PATH + 'output/'
+
+            # Create the input directory if it does not exist
+            shutil.rmtree(ATR_INPUT_PATH, ignore_errors=True)
+            os.makedirs(ATR_INPUT_PATH, exist_ok=True)
+
+            shutil.rmtree(ATR_OUTPUT_PATH, ignore_errors=True)
+            os.makedirs(ATR_OUTPUT_PATH, exist_ok=True)
+
+            cv2.imwrite(ATR_INPUT_PATH + "image.png", cv2_image)
+
+            # Run the ATR model
+            cwd = os.getcwd()
+            os.chdir(ATR_PATH)
+            os.system("python simple_extractor.py --dataset atr --model-restore 'checkpoints/atr.pth' --input-dir input --output-dir output")
+
+            # Load the segmentation image
+            os.chdir(cwd)
+            cv2_segm = cv2.imread(ATR_OUTPUT_PATH + 'image.png')
+            cv2_segm = cv2.cvtColor(cv2_segm, cv2.COLOR_BGR2RGB)
+
+            b_tensor_img = cv2_img_to_tensor(cv2_segm)
+            batch_results.append(b_tensor_img.squeeze(0))
+
+        batch_results = torch.stack(batch_results)
+
+        return (batch_results,)
+
 
 class TRI3DATRParse:
     def __init__(self):
@@ -536,6 +609,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-fuzzification": TRI3DFuzzification,
     "tri3d-position-hands": TRI3DPositiontHands,
     "tri3d-atr-parse": TRI3DATRParse,
+    "tri3d-atr-parse-batch": TRI3DATRParseBatch,
 
 }
 
@@ -545,4 +619,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-fuzzification" : "Fuzzification",
     "tri3d-position-hands" : "Position Hands",
     "tri3d-atr-parse" : "ATR Parse",
+    "tri3d-atr-parse-batch" : "ATR Parse Batch",
 }
