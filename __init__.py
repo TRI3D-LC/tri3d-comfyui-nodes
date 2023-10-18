@@ -479,15 +479,12 @@ class TRI3DATRParseBatch:
     FUNCTION = "main"
     CATEGORY = "TRI3D"
     
-    
-
     def main(self, images):
         import cv2
         import numpy as np
         import torch
         import os
         import shutil
-        from pprint import pprint
 
         def tensor_to_cv2_img(tensor, remove_alpha=False):
             i = 255. * tensor.cpu().numpy()  # This will give us (H, W, C)
@@ -499,36 +496,34 @@ class TRI3DATRParseBatch:
             img = torch.from_numpy(img)[None,]
             return img
 
-        batch_results = []
+        ATR_PATH = 'custom_nodes/tri3d-comfyui-nodes/atr_node/'
+        ATR_INPUT_PATH = ATR_PATH + 'input/'
+        ATR_OUTPUT_PATH = ATR_PATH + 'output/'
+
+        # Create the input directory if it does not exist
+        shutil.rmtree(ATR_INPUT_PATH, ignore_errors=True)
+        os.makedirs(ATR_INPUT_PATH, exist_ok=True)
+
+        shutil.rmtree(ATR_OUTPUT_PATH, ignore_errors=True)
+        os.makedirs(ATR_OUTPUT_PATH, exist_ok=True)
 
         for i in range(images.shape[0]):
             image = images[i]
             cv2_image = tensor_to_cv2_img(image)    
             cv2_image = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2RGB)
+            cv2.imwrite(ATR_INPUT_PATH + f"image{i}.png", cv2_image)
 
-            ATR_PATH = 'custom_nodes/tri3d-comfyui-nodes/atr_node/'
-            ATR_INPUT_PATH = ATR_PATH + 'input/'
-            ATR_OUTPUT_PATH = ATR_PATH + 'output/'
+        # Run the ATR model
+        cwd = os.getcwd()
+        os.chdir(ATR_PATH)
+        os.system("python simple_extractor.py --dataset atr --model-restore 'checkpoints/atr.pth' --input-dir input --output-dir output")
+        os.chdir(cwd)
 
-            # Create the input directory if it does not exist
-            shutil.rmtree(ATR_INPUT_PATH, ignore_errors=True)
-            os.makedirs(ATR_INPUT_PATH, exist_ok=True)
-
-            shutil.rmtree(ATR_OUTPUT_PATH, ignore_errors=True)
-            os.makedirs(ATR_OUTPUT_PATH, exist_ok=True)
-
-            cv2.imwrite(ATR_INPUT_PATH + "image.png", cv2_image)
-
-            # Run the ATR model
-            cwd = os.getcwd()
-            os.chdir(ATR_PATH)
-            os.system("python simple_extractor.py --dataset atr --model-restore 'checkpoints/atr.pth' --input-dir input --output-dir output")
-
-            # Load the segmentation image
-            os.chdir(cwd)
-            cv2_segm = cv2.imread(ATR_OUTPUT_PATH + 'image.png')
+        # Collect and return the results
+        batch_results = []
+        for i in range(images.shape[0]):
+            cv2_segm = cv2.imread(ATR_OUTPUT_PATH + f'image{i}.png')
             cv2_segm = cv2.cvtColor(cv2_segm, cv2.COLOR_BGR2RGB)
-
             b_tensor_img = cv2_img_to_tensor(cv2_segm)
             batch_results.append(b_tensor_img.squeeze(0))
 
