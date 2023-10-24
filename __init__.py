@@ -86,6 +86,7 @@ class TRI3DExtractPartsMaskBatch:
 
         # Convert the masks to tensors
         batch_masks = torch.stack(masks)
+        print(batch_masks.shape,"batch_masks.shape")
         
         return (batch_masks,)
 
@@ -222,6 +223,7 @@ class TRI3DExtractPartsBatch:
             tensor_img = cv2_img_to_tensor(resized_img)
             batch_results.append(tensor_img.squeeze(0))
         batch_results = torch.stack(batch_results)
+        print(batch_results.shape,"batch_results.shape")
         return (batch_results,)
 
 class TRI3DPositionPartsBatch:
