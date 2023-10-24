@@ -19,7 +19,7 @@ class TRI3DExtractPartsMaskBatch:
             },
         }
     
-    RETURN_TYPES = ("IMAGE",)
+    RETURN_TYPES = ("IMAGE","IMAGE")
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
@@ -36,9 +36,9 @@ class TRI3DExtractPartsMaskBatch:
                 upperb = np.array(color, dtype=np.uint8)
                 temp_mask = cv2.inRange(seg_img, lowerb, upperb)
                 seg_mask = cv2.bitwise_or(seg_mask, temp_mask)
-            mask_3channel = cv2.merge([seg_mask, seg_mask, seg_mask])
+            # mask_3channel = cv2.merge([seg_mask, seg_mask, seg_mask])
             
-            return mask_3channel
+            return seg_mask
 
         def tensor_to_cv2_img(tensor, remove_alpha=False):
             i = 255. * tensor.squeeze(0).cpu().numpy()  # This will give us (H, W, C)
@@ -50,13 +50,9 @@ class TRI3DExtractPartsMaskBatch:
             img = torch.from_numpy(img)[None,]
             return img
 
-        def mask_to_tensor(mask_img):
-            """ Convert the 3-channel mask image to tensor """
-            mask_img = mask_img.astype(np.float32) / 255.0
-            mask_tensor = torch.from_numpy(mask_img).permute(2, 0, 1)  # (C, H, W)
-            return mask_tensor
-
+       
         masks = []
+        imgs = []
 
         for i in range(batch_images.shape[0]):
             seg = batch_segs[i]
@@ -81,15 +77,23 @@ class TRI3DExtractPartsMaskBatch:
                 color_code_list.append([0,128,128])
 
             mask = generate_mask(cv2_seg, color_code_list)
-            tensor_mask = cv2_img_to_tensor(mask)
+            mask_3channel = cv2.merge([mask,mask,mask])
+            tensor_mask = cv2_img_to_tensor(mask_3channel)
+            #extract the image from mask
+            cv2_image = tensor_to_cv2_img(batch_images[i])
+            cv2_image = cv2.bitwise_and(cv2_image,mask_3channel)
+            tensor_image = cv2_img_to_tensor(cv2_image)
+
             print(tensor_mask.shape,"tensor_mask.shape")
             masks.append(tensor_mask.squeeze(0))
+            imgs.append(tensor_image.squeeze(0))
 
         # Convert the masks to tensors
         batch_masks = torch.stack(masks)
+        batch_imgs = torch.stack(imgs)
         print(batch_masks.shape,"batch_masks.shape")
         
-        return (batch_masks,)
+        return (batch_masks,batch_imgs)
 
 class TRI3DExtractPartsBatch:
     def __init__(self):
