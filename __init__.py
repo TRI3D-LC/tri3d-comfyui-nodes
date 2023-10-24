@@ -81,7 +81,7 @@ class TRI3DExtractPartsMaskBatch:
                 color_code_list.append([0,128,128])
 
             mask = generate_mask(cv2_seg, color_code_list)
-            tensor_mask = mask_to_tensor(mask)
+            tensor_mask = cv2_img_to_tensor(cv2_seg)
             masks.append(tensor_mask)
 
         # Convert the masks to tensors
