@@ -1,3 +1,87 @@
+class TRI3DExtractPartsMaskBatch:
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "batch_images": ("IMAGE",),
+                "batch_segs": ("IMAGE",),
+                "left_hand": ("BOOLEAN", {"default": True}),
+                "right_hand": ("BOOLEAN", {"default": True}),
+                "head": ("BOOLEAN", {"default": False}),
+                "hair": ("BOOLEAN", {"default": False}),
+                "left_leg": ("BOOLEAN", {"default": False}),
+                "right_leg": ("BOOLEAN", {"default": False}),
+                "upper_garment" : ("BOOLEAN", {"default": False}),
+                "lower_garment" : ("BOOLEAN", {"default": False}),
+            },
+        }
+    
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "main"
+    CATEGORY = "TRI3D"
+
+    def main(self, batch_images, batch_segs, left_hand, right_hand, head, hair, left_leg, right_leg,upper_garment,lower_garment):
+        import cv2
+        import numpy as np
+        import torch
+
+        def generate_mask(seg_img, color_code_list):
+            seg_mask = np.zeros_like(seg_img[:,:,0], dtype=np.uint8)
+            
+            for color in color_code_list:
+                lowerb = np.array(color, dtype=np.uint8)
+                upperb = np.array(color, dtype=np.uint8)
+                temp_mask = cv2.inRange(seg_img, lowerb, upperb)
+                seg_mask = cv2.bitwise_or(seg_mask, temp_mask)
+            
+            return seg_mask
+
+        def tensor_to_cv2_img(tensor, remove_alpha=False):
+            i = 255. * tensor.squeeze(0).cpu().numpy()  # This will give us (H, W, C)
+            img = np.clip(i, 0, 255).astype(np.uint8)
+            return img
+
+        def cv2_img_to_tensor(img):
+            img = img.astype(np.float32) / 255.0
+            img = torch.from_numpy(img)[None,]
+            return img
+
+        masks = []
+
+        for i in range(batch_images.shape[0]):
+            seg = batch_segs[i]
+            cv2_seg = tensor_to_cv2_img(seg)
+
+            color_code_list = []
+            if left_hand:
+                color_code_list.append([64,128,128])
+            if right_hand:
+                color_code_list.append([192,128,128])
+            if head:
+                color_code_list.append([192,128,0])
+            if hair:
+                color_code_list.append([0,128,0])
+            if left_leg:
+                color_code_list.append([192,0,0])
+            if right_leg:
+                color_code_list.append([64,128,0])
+            if upper_garment:
+                color_code_list.append([0,0,128])
+            if lower_garment:
+                color_code_list.append([0,128,128])
+
+            mask = generate_mask(cv2_seg, color_code_list)
+            masks.append(mask)
+
+        # Convert the masks to tensors
+        tensor_masks = [cv2_img_to_tensor(m) for m in masks]
+        batch_masks = torch.stack(tensor_masks)
+        
+        return (batch_masks,)
+
 class TRI3DExtractPartsBatch:
     def __init__(self):
         pass    
@@ -843,6 +927,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-atr-parse-batch": TRI3DATRParseBatch,
     "tri3d-position-parts-batch": TRI3DPositionPartsBatch,
     'tri3d-extract-parts-batch': TRI3DExtractPartsBatch,
+    'tri3d-extract-parts-mask-batch': TRI3DExtractPartsMaskBatch,
 
 }
 
@@ -855,4 +940,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch" : "ATR Parse Batch",
     "tri3d-position-parts-batch" : "Position Parts Batch",
     'tri3d-extract-parts-batch': 'Extract Parts Batch',
+    'tri3d-extract-parts-mask-batch': 'Extract Parts Mask Batch',
 }
