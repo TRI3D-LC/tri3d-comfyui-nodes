@@ -81,7 +81,7 @@ class TRI3DExtractPartsMaskBatch:
             tensor_mask = cv2_img_to_tensor(mask_3channel)
 
             cv2_image = tensor_to_cv2_img(batch_images[i])
-            extracted_image = cv2.bitwise_and(cv2_image, cv2_image, mask=single_channel_mask)  # Use the single_channel_mask here
+            extracted_image = cv2.bitwise_and(cv2_image, cv2_image, mask=mask)  # Use the single_channel_mask here
             tensor_extracted_image = cv2_img_to_tensor(extracted_image)
             extracted_images.append(tensor_extracted_image)
 
