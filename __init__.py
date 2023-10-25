@@ -16,6 +16,12 @@ class TRI3DExtractPartsMaskBatch:
                 "right_leg": ("BOOLEAN", {"default": False}),
                 "upper_garment" : ("BOOLEAN", {"default": False}),
                 "lower_garment" : ("BOOLEAN", {"default": False}),
+                "bag" : ("BOOLEAN", {"default": False}),
+                "left_shoe" : ("BOOLEAN", {"default": False}),
+                "right_shoe" : ("BOOLEAN", {"default": False}),
+                "dress" : ("BOOLEAN", {"default": False}),
+                "background" : ("BOOLEAN", {"default": False}),
+
             },
         }
     
@@ -23,7 +29,7 @@ class TRI3DExtractPartsMaskBatch:
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, batch_images, batch_segs, left_hand, right_hand, head, hair, left_leg, right_leg,upper_garment,lower_garment):
+    def main(self, batch_images, batch_segs, left_hand, right_hand, head, hair, left_leg, right_leg,upper_garment,lower_garment,bag,left_shoe,right_shoe,dress,background):
         import cv2
         import numpy as np
         import torch
@@ -73,6 +79,17 @@ class TRI3DExtractPartsMaskBatch:
             seg = batch_segs[i]
             cv2_seg = tensor_to_cv2_img(seg)
 
+            # [(array([0, 0, 0], dtype=uint8), 141339), #background gg
+            # (array([ 0, 64,  0], dtype=uint8), 6967), # 
+            # (array([  0, 128,   0], dtype=uint8), 579), #hair gg
+            # (array([ 64,   0, 128], dtype=uint8), 6997), #lower garment
+            # (array([ 64, 128,   0], dtype=uint8), 2003), #right leg gg
+            # (array([ 64, 128, 128], dtype=uint8), 2449), #left shoe
+            # (array([128, 128, 128], dtype=uint8), 34373), #dress gg
+            # (array([192,   0,   0], dtype=uint8), 1960), #left leg gg
+            # (array([192,   0, 128], dtype=uint8), 5431), #left hand gg
+            # (array([192, 128,   0], dtype=uint8), 5573), #head gg
+            # (array([192, 128, 128], dtype=uint8), 1481)] #right hand gg
             color_code_list = []
             if left_hand:
                 color_code_list.append([64,128,128])
@@ -90,6 +107,16 @@ class TRI3DExtractPartsMaskBatch:
                 color_code_list.append([0,0,128])
             if lower_garment:
                 color_code_list.append([0,128,128])
+            if bag:
+                color_code_list.append([0,64,0])
+            if left_shoe:
+                color_code_list.append([64,128,0])
+            if right_shoe:
+                color_code_list.append([192,0,128])
+            if dress:
+                color_code_list.append([128,128,128])
+            if background:
+                color_code_list.append([0,0,0])
 
             get_segment_counts(cv2_seg)
             mask = generate_mask(cv2_seg, color_code_list)
