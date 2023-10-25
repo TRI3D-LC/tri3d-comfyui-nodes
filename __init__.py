@@ -25,7 +25,7 @@ class TRI3DExtractPartsMaskBatch:
                 "belt" : ("BOOLEAN", {"default": False}),
                 "skirt" : ("BOOLEAN", {"default": False}),
                 "hat" : ("BOOLEAN", {"default": False}),
-                "sunglasses-E" : ("BOOLEAN", {"default": False}),
+                "sunglasses" : ("BOOLEAN", {"default": False}),
                 "scarf" : ("BOOLEAN", {"default": False}),
 
             },
@@ -211,7 +211,7 @@ class TRI3DExtractPartsMaskBatch:
             
             
 
-            get_segment_counts(cv2_seg)
+            # get_segment_counts(cv2_seg)
             mask = generate_mask(cv2_seg, color_code_list)
             mask_3channel = cv2.merge([mask,mask,mask])
             tensor_mask = cv2_img_to_tensor(mask_3channel)
