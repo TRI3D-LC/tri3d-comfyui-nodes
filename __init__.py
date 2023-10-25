@@ -27,6 +27,21 @@ class TRI3DExtractPartsMaskBatch:
         import cv2
         import numpy as np
         import torch
+        from pprint import pprint
+
+
+        def get_segment_counts(segm):
+            # Load the segmentation image
+
+            # Reshape the image array to be 2D
+            reshaped = segm.reshape(-1, segm.shape[-1])
+
+            # Find unique vectors and their counts
+            unique_vectors, counts = np.unique(reshaped, axis=0, return_counts=True)
+            segment_counts = list(zip(unique_vectors, counts))
+            pprint(segment_counts)
+            return segment_counts
+
 
         def generate_mask(seg_img, color_code_list):
             seg_mask = np.zeros_like(seg_img[:,:,0], dtype=np.uint8)
@@ -76,6 +91,7 @@ class TRI3DExtractPartsMaskBatch:
             if lower_garment:
                 color_code_list.append([0,128,128])
 
+            get_segment_counts(cv2_seg)
             mask = generate_mask(cv2_seg, color_code_list)
             mask_3channel = cv2.merge([mask,mask,mask])
             tensor_mask = cv2_img_to_tensor(mask_3channel)
