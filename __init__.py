@@ -24,6 +24,9 @@ class TRI3DExtractPartsMaskBatch:
                 "lower_garment" : ("BOOLEAN", {"default": False}),
                 "belt" : ("BOOLEAN", {"default": False}),
                 "skirt" : ("BOOLEAN", {"default": False}),
+                "hat" : ("BOOLEAN", {"default": False}),
+                "sunglasses-E" : ("BOOLEAN", {"default": False}),
+                "scarf" : ("BOOLEAN", {"default": False}),
 
             },
         }
@@ -32,7 +35,7 @@ class TRI3DExtractPartsMaskBatch:
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, batch_images, batch_segs, right_leg,right_hand, head, hair, left_shoe,bag,background,dress,left_leg,right_shoe,left_hand, upper_garment,lower_garment,belt,skirt):
+    def main(self, batch_images, batch_segs, right_leg,right_hand, head, hair, left_shoe,bag,background,dress,left_leg,right_shoe,left_hand, upper_garment,lower_garment,belt,skirt,hat,sunglasses,scarf):
         import cv2
         import numpy as np
         import torch
@@ -101,7 +104,7 @@ class TRI3DExtractPartsMaskBatch:
             # (array([  0,   0, 128], dtype=uint8), 20415), #upper garment
             # (array([  0, 128,   0], dtype=uint8), 8836), #hair
             # (array([  0, 128, 128], dtype=uint8), 28007), #lower garment 
-            # (array([64,  0,  0], dtype=uint8), 1305), #betl
+            # (array([64,  0,  0], dtype=uint8), 1305), #belt
             # (array([ 64,   0, 128], dtype=uint8), 1192), #left leg
             # (array([ 64, 128,   0], dtype=uint8), 500), #right shoe
             # (array([ 64, 128, 128], dtype=uint8), 82), #left hand
@@ -121,6 +124,37 @@ class TRI3DExtractPartsMaskBatch:
             # (array([192, 128,   0], dtype=uint8), 23975), #head
             # (array([192, 128, 128], dtype=uint8), 5894)] #right hand
 
+            #hat
+            # [(array([0, 0, 0], dtype=uint8), 267968), #background
+            # (array([  0,   0, 128], dtype=uint8), 132660), #upper garment
+            # (array([  0, 128,   0], dtype=uint8), 46662), #hair
+            # (array([128,   0,   0], dtype=uint8), 34761), #hat
+            # (array([192, 128,   0], dtype=uint8), 27709)] #head
+
+           
+
+            #Scarf
+            # [(array([0, 0, 0], dtype=uint8), 127762), #background
+            # (array([  0,   0, 128], dtype=uint8), 15658), #upper garment
+            # (array([  0, 128,   0], dtype=uint8), 6503), #hair
+            # (array([  0, 128, 128], dtype=uint8), 54000), #lower garment
+            # (array([64,  0,  0], dtype=uint8), 555), #belt
+            # (array([ 64, 128, 128], dtype=uint8), 18632), #left hand
+            # (array([128,  64,   0], dtype=uint8), 87896), #scarf
+            # (array([192, 128,   0], dtype=uint8), 5266), #head
+            # (array([192, 128, 128], dtype=uint8), 34276)] #right hand
+
+            #Sunglasses
+            # [(array([0, 0, 0], dtype=uint8), 107198), #background
+            # (array([  0,   0, 128], dtype=uint8), 22374), #upper garment
+            # (array([  0, 128,   0], dtype=uint8), 79), #hair
+            # (array([ 64, 128, 128], dtype=uint8), 1), #left hand
+            # (array([128,   0,   0], dtype=uint8), 2070), #hat
+            # (array([128, 128,   0], dtype=uint8), 6017), #sunglasses
+            # (array([192, 128,   0], dtype=uint8), 33036), #head
+            # (array([192, 128, 128], dtype=uint8), 13121)] #right hand
+
+            #################
             # (array([192,   0, 128], dtype=uint8), 5431), #right leg GG
             if right_leg:
                 color_code_list.append([192,0,128])
@@ -164,6 +198,12 @@ class TRI3DExtractPartsMaskBatch:
                 color_code_list.append([64,0,0])
             if skirt:
                 color_code_list.append([128,0,128])
+            if hat:
+                color_code_list.append([128,0,0])
+            if sunglasses:
+                color_code_list.append([128,128,0])
+            if scarf:
+                color_code_list.append([128,64,0])
 
 
             
