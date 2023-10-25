@@ -23,6 +23,7 @@ class TRI3DExtractPartsMaskBatch:
                 "upper_garment" : ("BOOLEAN", {"default": False}),
                 "lower_garment" : ("BOOLEAN", {"default": False}),
                 "belt" : ("BOOLEAN", {"default": False}),
+                "skirt" : ("BOOLEAN", {"default": False}),
 
             },
         }
@@ -31,7 +32,7 @@ class TRI3DExtractPartsMaskBatch:
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, batch_images, batch_segs, right_leg,right_hand, head, hair, left_shoe,bag,background,dress,left_leg,right_shoe,left_hand, upper_garment,lower_garment,belt):
+    def main(self, batch_images, batch_segs, right_leg,right_hand, head, hair, left_shoe,bag,background,dress,left_leg,right_shoe,left_hand, upper_garment,lower_garment,belt,skirt):
         import cv2
         import numpy as np
         import torch
@@ -82,6 +83,7 @@ class TRI3DExtractPartsMaskBatch:
             cv2_seg = tensor_to_cv2_img(seg)
             color_code_list = []
 
+            #With Dress
             # [(array([0, 0, 0], dtype=uint8), 141339), #background
             # (array([ 0, 64,  0], dtype=uint8), 6967), # bag
             # (array([  0, 128,   0], dtype=uint8), 579), #hair
@@ -93,6 +95,31 @@ class TRI3DExtractPartsMaskBatch:
             # (array([192,   0, 128], dtype=uint8), 5431), #right leg
             # (array([192, 128,   0], dtype=uint8), 5573), #head
             # (array([192, 128, 128], dtype=uint8), 1481)] #right hand
+            
+            #With Belt
+            # [(array([0, 0, 0], dtype=uint8), 258764), #background
+            # (array([  0,   0, 128], dtype=uint8), 20415), #upper garment
+            # (array([  0, 128,   0], dtype=uint8), 8836), #hair
+            # (array([  0, 128, 128], dtype=uint8), 28007), #lower garment 
+            # (array([64,  0,  0], dtype=uint8), 1305), #betl
+            # (array([ 64,   0, 128], dtype=uint8), 1192), #left leg
+            # (array([ 64, 128,   0], dtype=uint8), 500), #right shoe
+            # (array([ 64, 128, 128], dtype=uint8), 82), #left hand
+            # (array([192,   0,   0], dtype=uint8), 1053), #left shoe
+            # (array([192,   0, 128], dtype=uint8), 1285), #right leg
+            # (array([192, 128,   0], dtype=uint8), 2575), #head
+            # (array([192, 128, 128], dtype=uint8), 986)] #right hand
+            
+            #Indian Dress
+            # [(array([0, 0, 0], dtype=uint8), 487834), #background
+            # (array([  0,   0, 128], dtype=uint8), 92215), #upper garment
+            # (array([  0, 128,   0], dtype=uint8), 10367), #hair
+            # (array([ 64,   0, 128], dtype=uint8), 2681), #left leg
+            # (array([ 64, 128, 128], dtype=uint8), 12369), #left hand
+            # (array([128,   0, 128], dtype=uint8), 225669), #skirt
+            # (array([192,   0, 128], dtype=uint8), 3236), #right leg
+            # (array([192, 128,   0], dtype=uint8), 23975), #head
+            # (array([192, 128, 128], dtype=uint8), 5894)] #right hand
 
             # (array([192,   0, 128], dtype=uint8), 5431), #right leg GG
             if right_leg:
@@ -135,21 +162,11 @@ class TRI3DExtractPartsMaskBatch:
                 color_code_list.append([0,128,128])
             if belt:
                 color_code_list.append([64,0,0])
+            if skirt:
+                color_code_list.append([128,0,128])
 
 
-            # [(array([0, 0, 0], dtype=uint8), 258764), #background
-            # (array([  0,   0, 128], dtype=uint8), 20415), #upper garment
-            # (array([  0, 128,   0], dtype=uint8), 8836), #hair
-            # (array([  0, 128, 128], dtype=uint8), 28007), #lower garment 
-            # (array([64,  0,  0], dtype=uint8), 1305), #betl
-            # (array([ 64,   0, 128], dtype=uint8), 1192), #left leg
-            # (array([ 64, 128,   0], dtype=uint8), 500), #right shoe
-            # (array([ 64, 128, 128], dtype=uint8), 82), #left hand
-            # (array([192,   0,   0], dtype=uint8), 1053), #left shoe
-            # (array([192,   0, 128], dtype=uint8), 1285), #right leg
-            # (array([192, 128,   0], dtype=uint8), 2575), #head
-            # (array([192, 128, 128], dtype=uint8), 986)] #right hand
-
+            
 
             
             
