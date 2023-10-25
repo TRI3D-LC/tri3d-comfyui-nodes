@@ -22,6 +22,7 @@ class TRI3DExtractPartsMaskBatch:
                 "left_hand": ("BOOLEAN", {"default": True}),
                 "upper_garment" : ("BOOLEAN", {"default": False}),
                 "lower_garment" : ("BOOLEAN", {"default": False}),
+                "belt" : ("BOOLEAN", {"default": False}),
 
             },
         }
@@ -30,7 +31,7 @@ class TRI3DExtractPartsMaskBatch:
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, batch_images, batch_segs, right_leg,right_hand, head, hair, left_shoe,bag,background,dress,left_leg,right_shoe,left_hand, upper_garment,lower_garment):
+    def main(self, batch_images, batch_segs, right_leg,right_hand, head, hair, left_shoe,bag,background,dress,left_leg,right_shoe,left_hand, upper_garment,lower_garment,belt):
         import cv2
         import numpy as np
         import torch
@@ -132,6 +133,22 @@ class TRI3DExtractPartsMaskBatch:
                 color_code_list.append([0,0,128])
             if lower_garment:
                 color_code_list.append([0,128,128])
+            if belt:
+                color_code_list.append([64,0,0])
+
+
+            # [(array([0, 0, 0], dtype=uint8), 258764), #background
+            # (array([  0,   0, 128], dtype=uint8), 20415), #upper garment
+            # (array([  0, 128,   0], dtype=uint8), 8836), #hair
+            # (array([  0, 128, 128], dtype=uint8), 28007), #lower garment 
+            # (array([64,  0,  0], dtype=uint8), 1305), #betl
+            # (array([ 64,   0, 128], dtype=uint8), 1192), #left leg
+            # (array([ 64, 128,   0], dtype=uint8), 500), #right shoe
+            # (array([ 64, 128, 128], dtype=uint8), 82), #left hand
+            # (array([192,   0,   0], dtype=uint8), 1053), #left shoe
+            # (array([192,   0, 128], dtype=uint8), 1285), #right leg
+            # (array([192, 128,   0], dtype=uint8), 2575), #head
+            # (array([192, 128, 128], dtype=uint8), 986)] #right hand
 
 
             
