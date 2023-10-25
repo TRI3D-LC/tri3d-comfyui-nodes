@@ -78,45 +78,56 @@ class TRI3DExtractPartsMaskBatch:
         for i in range(batch_images.shape[0]):
             seg = batch_segs[i]
             cv2_seg = tensor_to_cv2_img(seg)
+            color_code_list = []
 
             # [(array([0, 0, 0], dtype=uint8), 141339), #background gg
-            # (array([ 0, 64,  0], dtype=uint8), 6967), # 
-            # (array([  0, 128,   0], dtype=uint8), 579), #hair gg
-            # (array([ 64,   0, 128], dtype=uint8), 6997), #lower garment
-            # (array([ 64, 128,   0], dtype=uint8), 2003), #right leg gg
-            # (array([ 64, 128, 128], dtype=uint8), 2449), #left shoe
-            # (array([128, 128, 128], dtype=uint8), 34373), #dress gg
-            # (array([192,   0,   0], dtype=uint8), 1960), #left leg gg
-            # (array([192,   0, 128], dtype=uint8), 5431), #left hand gg
-            # (array([192, 128,   0], dtype=uint8), 5573), #head gg
-            # (array([192, 128, 128], dtype=uint8), 1481)] #right hand gg
-            color_code_list = []
-            if left_hand:
-                color_code_list.append([64,128,128])
-            if right_hand:
-                color_code_list.append([192,128,128])
-            if head:
-                color_code_list.append([192,128,0])
-            if hair:
-                color_code_list.append([0,128,0])
-            if left_leg:
-                color_code_list.append([192,0,0])
-            if right_leg:
-                color_code_list.append([64,128,0])
-            if upper_garment:
-                color_code_list.append([0,0,128])
-            if lower_garment:
-                color_code_list.append([0,128,128])
-            if bag:
-                color_code_list.append([0,64,0])
-            if left_shoe:
-                color_code_list.append([64,128,0])
-            if right_shoe:
-                color_code_list.append([192,0,128])
-            if dress:
-                color_code_list.append([128,128,128])
             if background:
                 color_code_list.append([0,0,0])
+
+            # (array([ 0, 64,  0], dtype=uint8), 6967), # bag
+            if bag:
+                color_code_list.append([0,64,0])
+            # (array([  0, 128,   0], dtype=uint8), 579), #hair gg
+            if hair:
+                color_code_list.append([0,128,0])
+            # (array([ 64,   0, 128], dtype=uint8), 6997), #lower garment
+            if lower_garment:
+                color_code_list.append([0,128,128])
+            # (array([ 64, 128,   0], dtype=uint8), 2003), #right leg gg
+            if right_leg:
+                color_code_list.append([192,0,128])
+
+            # (array([ 64, 128, 128], dtype=uint8), 2449), #left shoe
+            if left_shoe:
+                color_code_list.append([64,128,128])
+
+            # (array([128, 128, 128], dtype=uint8), 34373), #dress gg
+            if dress:
+                color_code_list.append([128,128,128])
+
+            # (array([192,   0,   0], dtype=uint8), 1960), #left leg gg
+            if left_leg:
+                color_code_list.append([192,0,0])
+
+            # (array([192,   0, 128], dtype=uint8), 5431), #left hand gg
+            if left_hand:
+                color_code_list.append([192, 0, 128])
+            # (array([192, 128,   0], dtype=uint8), 5573), #head gg
+            if head:
+                color_code_list.append([192,128,0])
+            # (array([192, 128, 128], dtype=uint8), 1481)] #right hand gg
+            if right_hand:
+                color_code_list.append([192,128,128])
+            
+            if upper_garment:
+                color_code_list.append([0,0,128])
+            
+            if right_shoe:
+                color_code_list.append([64,128,0])
+
+
+            
+            
 
             get_segment_counts(cv2_seg)
             mask = generate_mask(cv2_seg, color_code_list)
