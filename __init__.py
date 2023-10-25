@@ -86,110 +86,31 @@ class TRI3DExtractPartsMaskBatch:
             cv2_seg = tensor_to_cv2_img(seg)
             color_code_list = []
 
-            #With Dress
-            # [(array([0, 0, 0], dtype=uint8), 141339), #background
-            # (array([ 0, 64,  0], dtype=uint8), 6967), # bag
-            # (array([  0, 128,   0], dtype=uint8), 579), #hair
-            # (array([ 64,   0, 128], dtype=uint8), 6997), #left leg
-            # (array([ 64, 128,   0], dtype=uint8), 2003), #right shoe
-            # (array([ 64, 128, 128], dtype=uint8), 2449), #left hand
-            # (array([128, 128, 128], dtype=uint8), 34373), #dress 
-            # (array([192,   0,   0], dtype=uint8), 1960), #left shoe
-            # (array([192,   0, 128], dtype=uint8), 5431), #right leg
-            # (array([192, 128,   0], dtype=uint8), 5573), #head
-            # (array([192, 128, 128], dtype=uint8), 1481)] #right hand
-            
-            #With Belt
-            # [(array([0, 0, 0], dtype=uint8), 258764), #background
-            # (array([  0,   0, 128], dtype=uint8), 20415), #upper garment
-            # (array([  0, 128,   0], dtype=uint8), 8836), #hair
-            # (array([  0, 128, 128], dtype=uint8), 28007), #lower garment 
-            # (array([64,  0,  0], dtype=uint8), 1305), #belt
-            # (array([ 64,   0, 128], dtype=uint8), 1192), #left leg
-            # (array([ 64, 128,   0], dtype=uint8), 500), #right shoe
-            # (array([ 64, 128, 128], dtype=uint8), 82), #left hand
-            # (array([192,   0,   0], dtype=uint8), 1053), #left shoe
-            # (array([192,   0, 128], dtype=uint8), 1285), #right leg
-            # (array([192, 128,   0], dtype=uint8), 2575), #head
-            # (array([192, 128, 128], dtype=uint8), 986)] #right hand
-            
-            #Indian Dress
-            # [(array([0, 0, 0], dtype=uint8), 487834), #background
-            # (array([  0,   0, 128], dtype=uint8), 92215), #upper garment
-            # (array([  0, 128,   0], dtype=uint8), 10367), #hair
-            # (array([ 64,   0, 128], dtype=uint8), 2681), #left leg
-            # (array([ 64, 128, 128], dtype=uint8), 12369), #left hand
-            # (array([128,   0, 128], dtype=uint8), 225669), #skirt
-            # (array([192,   0, 128], dtype=uint8), 3236), #right leg
-            # (array([192, 128,   0], dtype=uint8), 23975), #head
-            # (array([192, 128, 128], dtype=uint8), 5894)] #right hand
 
-            #hat
-            # [(array([0, 0, 0], dtype=uint8), 267968), #background
-            # (array([  0,   0, 128], dtype=uint8), 132660), #upper garment
-            # (array([  0, 128,   0], dtype=uint8), 46662), #hair
-            # (array([128,   0,   0], dtype=uint8), 34761), #hat
-            # (array([192, 128,   0], dtype=uint8), 27709)] #head
 
-           
-
-            #Scarf
-            # [(array([0, 0, 0], dtype=uint8), 127762), #background
-            # (array([  0,   0, 128], dtype=uint8), 15658), #upper garment
-            # (array([  0, 128,   0], dtype=uint8), 6503), #hair
-            # (array([  0, 128, 128], dtype=uint8), 54000), #lower garment
-            # (array([64,  0,  0], dtype=uint8), 555), #belt
-            # (array([ 64, 128, 128], dtype=uint8), 18632), #left hand
-            # (array([128,  64,   0], dtype=uint8), 87896), #scarf
-            # (array([192, 128,   0], dtype=uint8), 5266), #head
-            # (array([192, 128, 128], dtype=uint8), 34276)] #right hand
-
-            #Sunglasses
-            # [(array([0, 0, 0], dtype=uint8), 107198), #background
-            # (array([  0,   0, 128], dtype=uint8), 22374), #upper garment
-            # (array([  0, 128,   0], dtype=uint8), 79), #hair
-            # (array([ 64, 128, 128], dtype=uint8), 1), #left hand
-            # (array([128,   0,   0], dtype=uint8), 2070), #hat
-            # (array([128, 128,   0], dtype=uint8), 6017), #sunglasses
-            # (array([192, 128,   0], dtype=uint8), 33036), #head
-            # (array([192, 128, 128], dtype=uint8), 13121)] #right hand
-
-            #################
-            # (array([192,   0, 128], dtype=uint8), 5431), #right leg GG
+            #################ATR MAPPING#################
             if right_leg:
                 color_code_list.append([192,0,128])
-            # (array([192, 128, 128], dtype=uint8), 1481)] #right hand GG
             if right_hand:
                 color_code_list.append([192,128,128])
-            # (array([192, 128,   0], dtype=uint8), 5573), #head gg
             if head:
                 color_code_list.append([192,128,0])
-            # (array([  0, 128,   0], dtype=uint8), 579), #hair gg
             if hair:
                 color_code_list.append([0,128,0])
-            # (array([192,   0,   0], dtype=uint8), 1960), #left shoe GG
             if left_shoe:
                 color_code_list.append([192,0,0])
-            # (array([ 0, 64,  0], dtype=uint8), 6967), # bag GG
             if bag:
                 color_code_list.append([0,64,0])
-            # [(array([0, 0, 0], dtype=uint8), 141339), #background GG
             if background:
                 color_code_list.append([0,0,0])
-            # (array([128, 128, 128], dtype=uint8), 34373), #dress GG
             if dress:
                 color_code_list.append([128,128,128])
-
-            # (array([ 64,   0, 128], dtype=uint8), 6997),  #left leg GG
             if left_leg:
                 color_code_list.append([64,0,128])
-            # (array([ 64, 128,   0], dtype=uint8), 2003), #right shoe GG
             if right_shoe:
                 color_code_list.append([64,128,0])
-            # (array([ 64, 128, 128], dtype=uint8), 2449), #left hand GG
             if left_hand:
                 color_code_list.append([64,128,128])
-
             if upper_garment:
                 color_code_list.append([0,0,128])
             if lower_garment:
@@ -204,12 +125,6 @@ class TRI3DExtractPartsMaskBatch:
                 color_code_list.append([128,128,0])
             if scarf:
                 color_code_list.append([128,64,0])
-
-
-            
-
-            
-            
 
             # get_segment_counts(cv2_seg)
             mask = generate_mask(cv2_seg, color_code_list)
@@ -627,21 +542,7 @@ class TRI3DExtractHand:
 
         cv2_image = tensor_to_cv2_img(image)    
         cv2_seg = tensor_to_cv2_img(seg)
-        # cv2_seg = cv2.resize(cv2_seg,(cv2_image.shape[1],cv2_image.shape[0]),interpolation=cv2.INTER_NEAREST)
-
-        # 128 128 64 / 128 128 192
-        # color_code_list = [[128,128,64], [128,128,192]]
-        # (array([  0, 128,   0], dtype=uint8), 9393), #hair
-            # (array([  0, 128, 128], dtype=uint8), 50277), #lower garment
-            # (array([  0,   0, 128], dtype=uint8), 291418), #upper garment
-
-            # (array([ 64, 128, 128], dtype=uint8), 14548), #left hand
-            # (array([192, 128,   0], dtype=uint8), 33325), #face
-            # (array([192, 128, 128], dtype=uint8), 14855)] #right hand
-            # [(array([0, 0, 0], dtype=uint8), 638434), #background
-            # (array([  0,   0, 128], dtype=uint8), 77453),
-            # (array([ 64, 128,   0], dtype=uint8), 5640),
-            # (array([192,   0,   0], dtype=uint8), 5409),
+     
         get_segment_counts(cv2_seg)
         color_code_list = []
         if left_hand:
