@@ -8,6 +8,7 @@ class TRI3DExtractPartsMaskBatch:
             "required": {
                 "batch_images": ("IMAGE",),
                 "batch_segs": ("IMAGE",),
+                "batch_secondary": ("IMAGE",),
                 "right_leg": ("BOOLEAN", {"default": False}),
                 "right_hand": ("BOOLEAN", {"default": True}),
 
@@ -31,11 +32,11 @@ class TRI3DExtractPartsMaskBatch:
             },
         }
     
-    RETURN_TYPES = ("IMAGE","IMAGE")
+    RETURN_TYPES = ("IMAGE","IMAGE","IMAGE")
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, batch_images, batch_segs, right_leg,right_hand, head, hair, left_shoe,bag,background,dress,left_leg,right_shoe,left_hand, upper_garment,lower_garment,belt,skirt,hat,sunglasses,scarf):
+    def main(self, batch_images, batch_segs,batch_secondary, right_leg,right_hand, head, hair, left_shoe,bag,background,dress,left_leg,right_shoe,left_hand, upper_garment,lower_garment,belt,skirt,hat,sunglasses,scarf):
         import cv2
         import numpy as np
         import torch
@@ -80,6 +81,7 @@ class TRI3DExtractPartsMaskBatch:
        
         masks = []
         extracted_images = []
+        extracted_secondaries = []
 
         for i in range(batch_images.shape[0]):
             seg = batch_segs[i]
@@ -132,9 +134,14 @@ class TRI3DExtractPartsMaskBatch:
             tensor_mask = cv2_img_to_tensor(mask_3channel)
 
             cv2_image = tensor_to_cv2_img(batch_images[i])
+            cv2_secondary = tensor_to_cv2_img(batch_secondary[i])
             extracted_image = cv2.bitwise_and(cv2_image, cv2_image, mask=mask)  # Use the single_channel_mask here
+            extracted_secondary = cv2.bitwise_and(cv2_secondary, cv2_secondary, mask=mask)  # Use the single_channel_mask here
             tensor_extracted_image = cv2_img_to_tensor(extracted_image)
+            tensor_extracted_secondary = cv2_img_to_tensor(extracted_secondary)
             extracted_images.append(tensor_extracted_image.squeeze(0))
+            extracted_secondaries.append(tensor_extracted_secondary.squeeze(0))
+
 
             print(tensor_mask.shape,"tensor_mask.shape")
             masks.append(tensor_mask.squeeze(0))
@@ -142,9 +149,10 @@ class TRI3DExtractPartsMaskBatch:
         # Convert the masks to tensors
         batch_masks = torch.stack(masks)
         batch_imgs = torch.stack(extracted_images)
+        batch_secondaries = torch.stack(extracted_secondaries)
         print(batch_masks.shape,"batch_masks.shape")
         
-        return (batch_masks,batch_imgs)
+        return (batch_masks,batch_imgs, batch_secondaries)
 
 class TRI3DExtractPartsBatch:
     def __init__(self):
