@@ -358,19 +358,31 @@ class TRI3DPositionPartsBatch:
                 "batch_segs" : ("IMAGE",),
                 "batch_handimgs" : ("IMAGE",),
                 "margin" : ("INT", {"default": 15, "min": 0 }),
-                "left_hand" : ("BOOLEAN", {"default": True}),
-                "right_hand" : ("BOOLEAN", {"default": True}),
-                "head" : ("BOOLEAN", {"default": False}),
-                "hair" : ("BOOLEAN", {"default": False}),
-                "left_leg" : ("BOOLEAN", {"default": False}),
-                "right_leg" : ("BOOLEAN", {"default": False}),
+                 "right_leg": ("BOOLEAN", {"default": False}),
+                "right_hand": ("BOOLEAN", {"default": True}),
+                "head": ("BOOLEAN", {"default": False}),
+                "hair": ("BOOLEAN", {"default": False}),
+                "left_shoe" : ("BOOLEAN", {"default": False}),
+                "bag" : ("BOOLEAN", {"default": False}),
+                "background" : ("BOOLEAN", {"default": False}),
+                "dress" : ("BOOLEAN", {"default": False}),
+                "left_leg": ("BOOLEAN", {"default": False}),
+                "right_shoe" : ("BOOLEAN", {"default": False}),
+                "left_hand": ("BOOLEAN", {"default": True}),
+                "upper_garment" : ("BOOLEAN", {"default": False}),
+                "lower_garment" : ("BOOLEAN", {"default": False}),
+                "belt" : ("BOOLEAN", {"default": False}),
+                "skirt" : ("BOOLEAN", {"default": False}),
+                "hat" : ("BOOLEAN", {"default": False}),
+                "sunglasses" : ("BOOLEAN", {"default": False}),
+                "scarf" : ("BOOLEAN", {"default": False}),
             },
         }
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, batch_images, batch_segs, batch_handimgs, margin, left_hand, right_hand, head, hair, left_leg, right_leg):
+    def main(self, batch_images, batch_segs, batch_handimgs, margin,right_leg,right_hand, head, hair, left_shoe,bag,background,dress,left_leg,right_shoe,left_hand, upper_garment,lower_garment,belt,skirt,hat,sunglasses,scarf):
         import cv2
         import numpy as np
         import torch
@@ -428,18 +440,44 @@ class TRI3DPositionPartsBatch:
             cv2_seg = tensor_to_cv2_img(seg)
 
             color_code_list = []
-            if left_hand:
-                color_code_list.append([64,128,128])
+            #################ATR MAPPING#################
+            if right_leg:
+                color_code_list.append([192,0,128])
             if right_hand:
                 color_code_list.append([192,128,128])
             if head:
                 color_code_list.append([192,128,0])
             if hair:
                 color_code_list.append([0,128,0])
-            if left_leg:
+            if left_shoe:
                 color_code_list.append([192,0,0])
-            if right_leg:
+            if bag:
+                color_code_list.append([0,64,0])
+            if background:
+                color_code_list.append([0,0,0])
+            if dress:
+                color_code_list.append([128,128,128])
+            if left_leg:
+                color_code_list.append([64,0,128])
+            if right_shoe:
                 color_code_list.append([64,128,0])
+            if left_hand:
+                color_code_list.append([64,128,128])
+            if upper_garment:
+                color_code_list.append([0,0,128])
+            if lower_garment:
+                color_code_list.append([0,128,128])
+            if belt:
+                color_code_list.append([64,0,0])
+            if skirt:
+                color_code_list.append([128,0,128])
+            if hat:
+                color_code_list.append([128,0,0])
+            if sunglasses:
+                color_code_list.append([128,128,0])
+            if scarf:
+                color_code_list.append([128,64,0])
+
 
             positions = bounded_image_points(cv2_seg, color_code_list, cv2_image)
 
