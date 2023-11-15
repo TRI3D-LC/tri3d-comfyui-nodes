@@ -185,7 +185,7 @@ class TRI3DExtractPartsBatch:
                 "scarf" : ("BOOLEAN", {"default": False}),
             },
         }
-    RETURN_TYPES = ("IMAGE",)
+    RETURN_TYPES = ("IMAGE","IMAGE",)
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
