@@ -163,20 +163,33 @@ class TRI3DExtractPartsBatch:
             "required": {
                 "batch_images": ("IMAGE",),
                 "batch_segs" : ("IMAGE",),
+                "batch_secondaries" : ("IMAGE",),
                 "margin" : ("INT", {"default": 15, "min": 0 }),
-                "left_hand" : ("BOOLEAN", {"default": True}),
-                "right_hand" : ("BOOLEAN", {"default": True}),
-                "head" : ("BOOLEAN", {"default": False}),
-                "hair" : ("BOOLEAN", {"default": False}),
-                "left_leg" : ("BOOLEAN", {"default": False}),
-                "right_leg" : ("BOOLEAN", {"default": False}),
+                "right_leg": ("BOOLEAN", {"default": False}),
+                "right_hand": ("BOOLEAN", {"default": True}),
+                "head": ("BOOLEAN", {"default": False}),
+                "hair": ("BOOLEAN", {"default": False}),
+                "left_shoe" : ("BOOLEAN", {"default": False}),
+                "bag" : ("BOOLEAN", {"default": False}),
+                "background" : ("BOOLEAN", {"default": False}),
+                "dress" : ("BOOLEAN", {"default": False}),
+                "left_leg": ("BOOLEAN", {"default": False}),
+                "right_shoe" : ("BOOLEAN", {"default": False}),
+                "left_hand": ("BOOLEAN", {"default": True}),
+                "upper_garment" : ("BOOLEAN", {"default": False}),
+                "lower_garment" : ("BOOLEAN", {"default": False}),
+                "belt" : ("BOOLEAN", {"default": False}),
+                "skirt" : ("BOOLEAN", {"default": False}),
+                "hat" : ("BOOLEAN", {"default": False}),
+                "sunglasses" : ("BOOLEAN", {"default": False}),
+                "scarf" : ("BOOLEAN", {"default": False}),
             },
         }
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, batch_images, batch_segs, margin, left_hand, right_hand, head, hair, left_leg, right_leg):
+    def main(self, batch_images, batch_segs, batch_secondaries, margin, right_leg,right_hand, head, hair, left_shoe,bag,background,dress,left_leg,right_shoe,left_hand, upper_garment,lower_garment,belt,skirt,hat,sunglasses,scarf):
         import cv2
         import numpy as np
         import torch
@@ -244,29 +257,58 @@ class TRI3DExtractPartsBatch:
 
         batch_results = []
         images = []
+        secondaries = []
 
         for i in range(batch_images.shape[0]):
             image = batch_images[i]
             seg = batch_segs[i]
             
             cv2_image = tensor_to_cv2_img(image)
+            cv2_secondary = tensor_to_cv2_img(batch_secondaries[i])
             cv2_seg = tensor_to_cv2_img(seg)
 
             color_code_list = []
-            if left_hand:
-                color_code_list.append([64,128,128])
+            #################ATR MAPPING#################
+            if right_leg:
+                color_code_list.append([192,0,128])
             if right_hand:
                 color_code_list.append([192,128,128])
             if head:
                 color_code_list.append([192,128,0])
             if hair:
                 color_code_list.append([0,128,0])
-            if left_leg:
+            if left_shoe:
                 color_code_list.append([192,0,0])
-            if right_leg:
+            if bag:
+                color_code_list.append([0,64,0])
+            if background:
+                color_code_list.append([0,0,0])
+            if dress:
+                color_code_list.append([128,128,128])
+            if left_leg:
+                color_code_list.append([64,0,128])
+            if right_shoe:
                 color_code_list.append([64,128,0])
+            if left_hand:
+                color_code_list.append([64,128,128])
+            if upper_garment:
+                color_code_list.append([0,0,128])
+            if lower_garment:
+                color_code_list.append([0,128,128])
+            if belt:
+                color_code_list.append([64,0,0])
+            if skirt:
+                color_code_list.append([128,0,128])
+            if hat:
+                color_code_list.append([128,0,0])
+            if sunglasses:
+                color_code_list.append([128,128,0])
+            if scarf:
+                color_code_list.append([128,64,0])
+
 
             bimage = bounded_image(cv2_seg, color_code_list, cv2_image)
+            bsecondary = bounded_image(cv2_seg, color_code_list, cv2_secondary)
             
             # Handle case when bimage is None to avoid error during conversion to tensor
             if bimage is not None:
@@ -275,20 +317,35 @@ class TRI3DExtractPartsBatch:
                 black_img = np.zeros_like(cv2_image)
                 images.append(black_img)
 
+            if bsecondary is not None:
+                secondaries.append(bsecondary)
+            else:
+                black_img = np.zeros_like(cv2_secondary)
+                secondaries.append(black_img)
+
         # Get max height and width
         max_height = max(img.shape[0] for img in images)
         max_width = max(img.shape[1] for img in images)
 
         batch_results = []
+        batch_secondaries = []
 
         for img in images:
             # Resize the image to max height and width
             resized_img = cv2.resize(img, (max_width, max_height), interpolation=cv2.INTER_AREA)
             tensor_img = cv2_img_to_tensor(resized_img)
             batch_results.append(tensor_img.squeeze(0))
+        
+        for sec in secondaries:
+            # Resize the image to max height and width
+            resized_sec = cv2.resize(sec, (max_width, max_height), interpolation=cv2.INTER_AREA)
+            tensor_sec = cv2_img_to_tensor(resized_sec)
+            batch_secondaries.append(tensor_sec.squeeze(0))
+
         batch_results = torch.stack(batch_results)
+        batch_secondaries = torch.stack(batch_secondaries)
         print(batch_results.shape,"batch_results.shape")
-        return (batch_results,)
+        return (batch_results,batch_secondaries)
 
 class TRI3DPositionPartsBatch:
     def __init__(self):
