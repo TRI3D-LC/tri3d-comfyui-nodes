@@ -392,11 +392,14 @@ class TRI3DPositionPartsBatch:
 
             positions = bounded_image_points(cv2_seg, color_code_list, cv2_image)
 
-            cv2_handimg = tensor_to_cv2_img(handimg)
-            cv2_handimg = cv2.resize(cv2_handimg, (positions[2], positions[3]), interpolation=cv2.INTER_NEAREST)
+            try:
+                cv2_handimg = tensor_to_cv2_img(handimg)
+                cv2_handimg = cv2.resize(cv2_handimg, (positions[2], positions[3]), interpolation=cv2.INTER_NEAREST)
 
-            cv2_image[positions[1]:positions[1]+positions[3], positions[0]:positions[0]+positions[2]] = cv2_handimg
-
+                cv2_image[positions[1]:positions[1]+positions[3], positions[0]:positions[0]+positions[2]] = cv2_handimg
+            except Exception as e:
+                print(e)
+                pass
             b_tensor_img = cv2_img_to_tensor(cv2_image)
             batch_results.append(b_tensor_img.squeeze(0))
 
