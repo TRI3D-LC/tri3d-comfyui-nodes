@@ -1,4 +1,4 @@
-#v0.0.1
+#v1.1.0
 class TRI3DATRParseBatch:
     def __init__(self):
         pass    
