@@ -73,6 +73,63 @@ class TRI3DATRParseBatch:
         return (batch_results,)
 
 
+
+class TRI3DSAMExtract:
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": 
+                    {"images": ("IMAGE", ),
+                     "filename_prefix": ("STRING", {"default": "ComfyUI"})},
+                "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
+                }
+
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "save_images"
+
+    OUTPUT_NODE = True
+
+    CATEGORY = "image"
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "images": ("IMAGE",),
+                "embeddings_output_path": ("STRING", {"default": "ComfyUI"}),
+            },
+        }
+    RETURN_TYPES = ()
+    FUNCTION = "main"
+    CATEGORY = "TRI3D"
+
+    def main(self, images,embeddings_output_path):
+        import cv2
+        import numpy as np
+        import torch
+        import os
+        import shutil
+
+        def tensor_to_cv2_img(tensor, remove_alpha=False):
+            i = 255. * tensor.cpu().numpy()  # This will give us (H, W, C)
+            img = np.clip(i, 0, 255).astype(np.uint8)
+            return img
+
+        def cv2_img_to_tensor(img):
+            img = img.astype(np.float32) / 255.0
+            img = torch.from_numpy(img)[None,]
+            return img
+
+        for i in range(images.shape[0]):
+            cv2_image = tensor_to_cv2_img(images[i])
+            cv2.imwrite(embeddings_output_path + "__" + str(i) + ".png", cv2_image)
+
+
+        return (images,)
+
+
 class TRI3DExtractPartsBatch:
     def __init__(self):
         pass
@@ -808,7 +865,8 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-position-parts-batch": TRI3DPositionPartsBatch,
     "tri3d-swap-pixels": TRI3DSwapPixels,
     "tri3d-skin-feathered-padded-mask": TRI3DSkinFeatheredPaddedMask,
-    "tri3d-interaction-canny": TRI3DInteractionCanny
+    "tri3d-interaction-canny": TRI3DInteractionCanny,
+    "tri3d-sam-extract": TRI3DSAMExtract,
 
 }
 
@@ -821,5 +879,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-position-parts-batch": "Position Parts Batch" + " v" + VERSION,
     "tri3d-swap-pixels": "Swap Pixels by Mask" + " v" + VERSION,
     "tri3d-skin-feathered-padded-mask": "Skin Feathered Padded Mask" + " v" + VERSION,
-    "tri3d-interaction-canny": "Garment Skin Interaction Canny" + " v" + VERSION
+    "tri3d-interaction-canny": "Garment Skin Interaction Canny" + " v" + VERSION,
+    "tri3d-sam-extract": "SAM Extract" + " v" + VERSION,
 }
