@@ -1,8 +1,8 @@
 # v1.1.0
-import cv2
+import cv2, json, os, math
 import numpy as np
 import torch
-
+import comfy.model_management as model_management
 
 class TRI3DATRParseBatch:
     def __init__(self):
@@ -798,6 +798,147 @@ class TRI3DInteractionCanny:
         print(batch_results.shape, "batch_results.shape")
         return (batch_results, )
 
+class TRI3DDWPose_Preprocessor:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": { 
+                "images": ("IMAGE", ),
+                "detect_hand": (["enable", "disable"], {"default": "enable"}),
+                "detect_body": (["enable", "disable"], {"default": "enable"}),
+                "detect_face": (["enable", "disable"], {"default": "enable"}),
+                "filename_prefix": ("STRING", {"default": "dwpose/keypoints"})
+            }
+        }
+    RETURN_TYPES = ("IMAGE","STRING")
+    FUNCTION = "estimate_pose"
+    CATEGORY = "TRI3D"
+
+    def estimate_pose(self, images, detect_hand, detect_body, detect_face, **kwargs):
+        from .dwpose import DwposeDetector
+
+        detect_hand = detect_hand == "enable"
+        detect_body = detect_body == "enable"
+        detect_face = detect_face == "enable"
+
+        DWPOSE_MODEL_NAME = "yzd-v/DWPose"
+        annotator_ckpts_path = "dwpose/ckpts"
+        
+        model = DwposeDetector.from_pretrained(DWPOSE_MODEL_NAME, cache_dir=annotator_ckpts_path).to(model_management.get_torch_device())
+        # out = common_annotator_call(model, image, include_hand=detect_hand, include_face=detect_face, include_body=detect_body)
+        out_image_list = []
+        out_dict_list = []
+        out_dir_list = []
+        for i, image in enumerate(images):
+            H, W, C = image.shape
+            np_image = np.asarray(image * 255., dtype=np.uint8) 
+            np_result, pose_dict = model(np_image, output_type="np", include_hand=detect_hand, include_face=detect_face, include_body=detect_body)
+            save_file_dir = os.path.join(kwargs['filename_prefix'], f"keypoints_{str(i)}.json")
+            json.dump(pose_dict, open(save_file_dir, 'w'))
+            np_result = cv2.resize(np_result, (W, H), interpolation=cv2.INTER_AREA)
+            out_image_list.append(torch.from_numpy(np_result.astype(np.float32) / 255.0))
+            out_dict_list.append(pose_dict)
+            out_dir_list.append(save_file_dir)
+
+        out_image = torch.stack(out_image_list, dim=0)
+        del model
+
+        return (out_image, save_file_dir)
+
+class TRI3DPosetoImage:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": { 
+                "pose_json_file": ("STRING", {"default": "dwpose/keypoints"})
+            }
+        }
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "main"
+    CATEGORY = "TRI3D"
+    
+    def main(self, pose_json_file):
+        from .dwpose import comfy_utils
+
+        pose = json.load(open(pose_json_file))
+        height = pose['height']
+        width = pose['width']
+        keypoints = pose['keypoints']
+        
+        canvas = np.zeros(shape=(height, width, 3), dtype=np.uint8)
+        canvas = comfy_utils.draw_bodypose(canvas, keypoints)
+        canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+        return (canvas, )
+
+class TRI3DPoseAdaption:
+    
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": { 
+                "input_pose_json_file": ("STRING", {"default": "dwpose/keypoints"}),
+                "ref_pose_json_file": ("STRING", {"default": "dwpose/keypoints"})
+            }
+        }
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "main"
+    CATEGORY = "TRI3D"
+    
+    def main(self, input_pose_json_file, ref_pose_json_file):
+        from .dwpose import comfy_utils
+        
+        input_pose = json.load(open(input_pose_json_file))
+        input_height = input_pose['height']
+        input_width = input_pose['width']
+        input_keypoints = input_pose['keypoints']
+
+        ref_pose = json.load(open(ref_pose_json_file))
+        ref_height = ref_pose['height']
+        ref_width = ref_pose['width']
+        ref_keypoints = ref_pose['keypoints']
+        
+        #Hands
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 2, 3)      # rotate left elbow
+
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 3, 4)      #rotate left wrist
+        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 3, 3, 4) #scaling w.r.t to elbow to wrist ratio of ref pose
+
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 5, 6)      #rotate right elbow
+
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 6, 7)      #rotate right wrist
+        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 5, 6, 6, 7)    #scaling w.r.t to elbow to wrist ratio of ref pose
+
+        #legs
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 8, 9)      #rotate left knee
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 9, 10)     #rotate left foot
+        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 8, 9, 9, 10)    #scaling w.r.t to knee to foot ratio of ref pose
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 11, 12)     #rotate right knee
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 12, 13)    #rotate right foot
+        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 11, 12, 12, 13)    #scaling w.r.t to knee to foot ratio of ref pose
+
+        #face
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 1, 0)      #rotate nose
+
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0, 14)      #rotate left eye
+        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 0, 14)        #scaling w.r.t to neck len to eye_nose len ratio of ref pose
+
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0, 15)      #rotate right eye
+        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 0, 15)        #scaling w.r.t to neck len to eye_nose len ratio of ref pose
+
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 14, 16)        #rotate left ear
+        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 14, 16)        #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 15,17)        #rotate right ear
+        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 15, 17)        #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+
+        canvas = np.zeros(shape=(input_height, input_width, 3), dtype=np.uint8)
+        canvas = comfy_utils.draw_bodypose(canvas, input_keypoints)
+        canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+        return (canvas, )
+    
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
@@ -808,11 +949,13 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-position-parts-batch": TRI3DPositionPartsBatch,
     "tri3d-swap-pixels": TRI3DSwapPixels,
     "tri3d-skin-feathered-padded-mask": TRI3DSkinFeatheredPaddedMask,
-    "tri3d-interaction-canny": TRI3DInteractionCanny
-
+    "tri3d-interaction-canny": TRI3DInteractionCanny,
+    "tri3d-dwpose": TRI3DDWPose_Preprocessor,
+    "tri3d-pose-to-image": TRI3DPosetoImage,
+    "tri3d-pose-adaption": TRI3DPoseAdaption
 }
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
@@ -821,5 +964,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-position-parts-batch": "Position Parts Batch" + " v" + VERSION,
     "tri3d-swap-pixels": "Swap Pixels by Mask" + " v" + VERSION,
     "tri3d-skin-feathered-padded-mask": "Skin Feathered Padded Mask" + " v" + VERSION,
-    "tri3d-interaction-canny": "Garment Skin Interaction Canny" + " v" + VERSION
+    "tri3d-interaction-canny": "Garment Skin Interaction Canny" + " v" + VERSION,
+    "tri3d-dwpose": "DWPose" + " v" + VERSION,
+    "tri3d-pose-to-image": "Pose to Image" + " v" + VERSION,
+    "tri3d-pose-adaption": "Pose Adaption" + " v" + VERSION
 }
