@@ -3,6 +3,7 @@ import cv2, json, os, math
 import numpy as np
 import torch
 import comfy.model_management as model_management
+import folder_paths
 
 
 class TRI3DATRParseBatch:
@@ -1123,6 +1124,45 @@ class TRI3DPoseJSONtoImage:
 ################################################################################################################################
 
 
+class TRI3DPoseJSONFiletoImage:
+
+    @classmethod
+    def INPUT_TYPES(s):
+        input_dir = folder_paths.get_input_directory()
+        files = [
+            f for f in os.listdir(input_dir)
+            if os.path.isfile(os.path.join(input_dir, f))
+        ]
+        return {
+            "required": {
+                "json": (sorted(files), {
+                    "json_upload": True
+                })
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE", )
+    FUNCTION = "main"
+    CATEGORY = "TRI3D"
+
+    def main(self, json):
+        from .dwpose import comfy_utils
+        json_path = folder_paths.get_annotated_filepath(json)
+        pose = json.load(open(json_path))
+        height = pose['height']
+        width = pose['width']
+        keypoints = pose['keypoints']
+        canvas = np.zeros(shape=(height, width, 3), dtype=np.uint8)
+        canvas = comfy_utils.draw_bodypose(canvas, keypoints)
+        canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
+            None,
+        ]
+        return (canvas, )
+
+
+################################################################################################################################
+
+
 class TRI3DPoseAdaption:
 
     def __init__(self):
@@ -1242,6 +1282,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-dwpose": TRI3DDWPose_Preprocessor,
     "tri3d-pose-to-image": TRI3DPosetoImage,
     "tri3d-pose-json-to-image": TRI3DPoseJSONtoImage,
+    "tri3d-pose-json-file-to-image": TRI3DPoseJSONFiletoImage,
     "tri3d-pose-adaption": TRI3DPoseAdaption
 }
 
@@ -1260,5 +1301,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-dwpose": "DWPose" + " v" + VERSION,
     "tri3d-pose-to-image": "Pose to Image" + " v" + VERSION,
     "tri3d-pose-json-to-image": "Pose JSON to Image" + " v" + VERSION,
+    "tri3d-pose-json-file-to-image": "Pose JSON file to Image" + " v" + VERSION,
     "tri3d-pose-adaption": "Pose Adaption" + " v" + VERSION
 }
