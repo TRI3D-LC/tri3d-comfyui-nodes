@@ -1,0 +1,653 @@
+{
+  "last_node_id": 374,
+  "last_link_id": 634,
+  "nodes": [
+    {
+      "id": 359,
+      "type": "LoadImage",
+      "pos": [
+        65,
+        582
+      ],
+      "size": {
+        "0": 226.13575744628906,
+        "1": 324.4261474609375
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            622
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "51UPgw610mS._UL1500_.jpg",
+        "image"
+      ]
+    },
+    {
+      "id": 363,
+      "type": "tri3d-dwpose",
+      "pos": [
+        312,
+        584
+      ],
+      "size": {
+        "0": 315,
+        "1": 150
+      },
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 622
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            625
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            626
+          ],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "tri3d-dwpose"
+      },
+      "widgets_values": [
+        "disable",
+        "enable",
+        "disable",
+        "C:\\tri3d\\pose_library\\testing\\Database\\wetransfer_reference-images_2023-12-22_0952\\Reference Images"
+      ]
+    },
+    {
+      "id": 362,
+      "type": "tri3d-dwpose",
+      "pos": [
+        316,
+        41
+      ],
+      "size": {
+        "0": 315,
+        "1": 150
+      },
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 621
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            624
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            623
+          ],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "tri3d-dwpose"
+      },
+      "widgets_values": [
+        "disable",
+        "enable",
+        "disable",
+        "C:\\tri3d\\pose_library\\testing\\Database\\Ram Pose Library Experiment-20231222T104635Z-001\\Ram Pose Library Experiment"
+      ]
+    },
+    {
+      "id": 364,
+      "type": "tri3d-pose-adaption",
+      "pos": [
+        813,
+        215
+      ],
+      "size": {
+        "0": 315,
+        "1": 82
+      },
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "input_pose_json_file",
+          "type": "STRING",
+          "link": 623,
+          "widget": {
+            "name": "input_pose_json_file"
+          }
+        },
+        {
+          "name": "ref_pose_json_file",
+          "type": "STRING",
+          "link": 626,
+          "widget": {
+            "name": "ref_pose_json_file"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            627
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "BOOLEAN",
+          "type": "BOOLEAN",
+          "links": [
+            628
+          ],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "tri3d-pose-adaption"
+      },
+      "widgets_values": [
+        "dwpose/keypoints",
+        "dwpose/keypoints"
+      ]
+    },
+    {
+      "id": 369,
+      "type": "Bool",
+      "pos": [
+        1180,
+        97
+      ],
+      "size": {
+        "0": 315,
+        "1": 58
+      },
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "BOOLEAN",
+          "type": "BOOLEAN",
+          "links": [
+            629
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Bool"
+      },
+      "widgets_values": [
+        true
+      ]
+    },
+    {
+      "id": 373,
+      "type": "String",
+      "pos": [
+        1182,
+        321
+      ],
+      "size": {
+        "0": 315,
+        "1": 58
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            633
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "String"
+      },
+      "widgets_values": [
+        "Similar torso"
+      ]
+    },
+    {
+      "id": 367,
+      "type": "If ANY execute A else B",
+      "pos": [
+        1563,
+        104
+      ],
+      "size": {
+        "0": 210,
+        "1": 66
+      },
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "ANY",
+          "type": "*",
+          "link": 632
+        },
+        {
+          "name": "IF_TRUE",
+          "type": "*",
+          "link": 633
+        },
+        {
+          "name": "IF_FALSE",
+          "type": "*",
+          "link": 634
+        }
+      ],
+      "outputs": [
+        {
+          "name": "?",
+          "type": "*",
+          "links": [
+            630
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "If ANY execute A else B"
+      }
+    },
+    {
+      "id": 374,
+      "type": "String",
+      "pos": [
+        1552,
+        228
+      ],
+      "size": {
+        "0": 315,
+        "1": 58
+      },
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            634
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "String"
+      },
+      "widgets_values": [
+        "Torso Varies"
+      ]
+    },
+    {
+      "id": 370,
+      "type": "String debug print",
+      "pos": [
+        1884,
+        111
+      ],
+      "size": {
+        "0": 315,
+        "1": 82
+      },
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "Text",
+          "type": "STRING",
+          "link": 630,
+          "widget": {
+            "name": "Text"
+          }
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "String debug print"
+      },
+      "widgets_values": [
+        "",
+        ""
+      ]
+    },
+    {
+      "id": 354,
+      "type": "LoadImage",
+      "pos": [
+        52,
+        58
+      ],
+      "size": {
+        "0": 226.13575744628906,
+        "1": 324.4261474609375
+      },
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            621
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "IMG_4004 (1).JPG",
+        "image"
+      ]
+    },
+    {
+      "id": 365,
+      "type": "PreviewImage",
+      "pos": [
+        1145,
+        480
+      ],
+      "size": [
+        149.35110778808598,
+        262.25815277099616
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 627
+        }
+      ],
+      "title": "Adapted pose",
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 361,
+      "type": "PreviewImage",
+      "pos": [
+        902,
+        490
+      ],
+      "size": [
+        218.34772119443278,
+        243.36020149672322
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 625
+        }
+      ],
+      "title": "Reference pose",
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 358,
+      "type": "PreviewImage",
+      "pos": [
+        673,
+        474
+      ],
+      "size": [
+        196.2071950612974,
+        278.0957336425781
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 624
+        }
+      ],
+      "title": "Mannequin Pose",
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 368,
+      "type": "Compare",
+      "pos": [
+        1182,
+        194
+      ],
+      "size": {
+        "0": 315,
+        "1": 78
+      },
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "a",
+          "type": "*",
+          "link": 628
+        },
+        {
+          "name": "b",
+          "type": "*",
+          "link": 629,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "B",
+          "type": "BOOLEAN",
+          "links": [
+            632
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Compare"
+      },
+      "widgets_values": [
+        "a == b"
+      ]
+    }
+  ],
+  "links": [
+    [
+      621,
+      354,
+      0,
+      362,
+      0,
+      "IMAGE"
+    ],
+    [
+      622,
+      359,
+      0,
+      363,
+      0,
+      "IMAGE"
+    ],
+    [
+      623,
+      362,
+      1,
+      364,
+      0,
+      "STRING"
+    ],
+    [
+      624,
+      362,
+      0,
+      358,
+      0,
+      "IMAGE"
+    ],
+    [
+      625,
+      363,
+      0,
+      361,
+      0,
+      "IMAGE"
+    ],
+    [
+      626,
+      363,
+      1,
+      364,
+      1,
+      "STRING"
+    ],
+    [
+      627,
+      364,
+      0,
+      365,
+      0,
+      "IMAGE"
+    ],
+    [
+      628,
+      364,
+      1,
+      368,
+      0,
+      "*"
+    ],
+    [
+      629,
+      369,
+      0,
+      368,
+      1,
+      "*"
+    ],
+    [
+      630,
+      367,
+      0,
+      370,
+      0,
+      "STRING"
+    ],
+    [
+      632,
+      368,
+      0,
+      367,
+      0,
+      "*"
+    ],
+    [
+      633,
+      373,
+      0,
+      367,
+      1,
+      "*"
+    ],
+    [
+      634,
+      374,
+      0,
+      367,
+      2,
+      "*"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

@@ -2,7 +2,10 @@
 import cv2, json, os, math
 import numpy as np
 import torch
+import hashlib
 import comfy.model_management as model_management
+import folder_paths
+from PIL import Image, ImageOps
 
 class TRI3DATRParseBatch:
     def __init__(self):
@@ -883,7 +886,7 @@ class TRI3DPoseAdaption:
                 "ref_pose_json_file": ("STRING", {"default": "dwpose/keypoints"})
             }
         }
-    RETURN_TYPES = ("IMAGE",)
+    RETURN_TYPES = ("IMAGE","BOOLEAN")
     FUNCTION = "main"
     CATEGORY = "TRI3D"
     
@@ -894,12 +897,26 @@ class TRI3DPoseAdaption:
         input_height = input_pose['height']
         input_width = input_pose['width']
         input_keypoints = input_pose['keypoints']
+        canvas = np.zeros(shape=(input_height, input_width, 3), dtype=np.uint8)
 
         ref_pose = json.load(open(ref_pose_json_file))
         ref_height = ref_pose['height']
         ref_width = ref_pose['width']
         ref_keypoints = ref_pose['keypoints']
         
+        #check torso similarity
+        ls_angle_1, rs_angle_1, torso_angle_1 = comfy_utils.get_torso_angles(input_keypoints)
+        ls_angle_2, rs_angle_2, torso_angle_2 = comfy_utils.get_torso_angles(ref_keypoints)
+
+        ls_angle_diff = abs(ls_angle_2 - ls_angle_1)
+        rs_angle_diff = abs(rs_angle_2 - rs_angle_1)
+        torso_angle_diff = abs(torso_angle_2 - torso_angle_1)
+
+        similar_torso = False if (ls_angle_diff >= 3) | (rs_angle_diff >= 3) | (torso_angle_diff >= 5) else True
+
+        if similar_torso == False:
+            canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+            return (canvas, similar_torso)
         #Hands
         input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 2, 3)      # rotate left elbow
 
@@ -920,7 +937,18 @@ class TRI3DPoseAdaption:
         input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 11, 12, 12, 13)    #scaling w.r.t to knee to foot ratio of ref pose
 
         #face
+        face_points = input_keypoints[14:]
+        nose = input_keypoints[0]
+
         input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 1, 0)      #rotate nose
+
+        #changing face points to w.r.t to new nose point after rotation
+        x_off = input_keypoints[0][0] - nose[0]
+        y_off = input_keypoints[0][1] - nose[1]
+        for i in range(4):
+            new_x = face_points[i][0]+x_off
+            new_y = face_points[i][1]+y_off
+            input_keypoints[i+14] = [new_x, new_y]
 
         input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0, 14)      #rotate left eye
         input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 0, 14)        #scaling w.r.t to neck len to eye_nose len ratio of ref pose
@@ -934,11 +962,61 @@ class TRI3DPoseAdaption:
         input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 15,17)        #rotate right ear
         input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 15, 17)        #scaling w.r.t to neck len to ear_nose len ratio of ref pose
 
-        canvas = np.zeros(shape=(input_height, input_width, 3), dtype=np.uint8)
         canvas = comfy_utils.draw_bodypose(canvas, input_keypoints)
         canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
-        return (canvas, )
+        return (canvas, similar_torso)
     
+class TRI3DLoadPoseJson:
+    @classmethod
+    def INPUT_TYPES(s):
+        input_dir = folder_paths.get_input_directory()
+        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
+        return {"required":
+                    {"image": (sorted(files), {"upload": True})},
+                }
+
+    CATEGORY = "TRI3D"
+
+    RETURN_TYPES = ("IMAGE", )
+    FUNCTION = "load_image"
+    def load_image(self, image):
+        # image_path = folder_paths.get_annotated_filepath(image)
+        # i = Image.open(image_path)
+        # i = ImageOps.exif_transpose(i)
+        # image = i.convert("RGB")
+        if image.endswith('.json'):
+            # with open(image) as open:
+            pose = json.load(open(image))
+            height = pose['height']
+            width = pose['width']
+            keypoints = pose['keypoints']
+            
+            canvas = np.zeros(shape=(height, width, 3), dtype=np.uint8)
+            canvas = comfy_utils.draw_bodypose(canvas, keypoints)
+            canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+        else:
+            canvas =  np.zeros(shape=(height, width, 3), dtype=np.uint8)
+        # if 'A' in i.getbands():
+        #     mask = np.array(i.getchannel('A')).astype(np.float32) / 255.0
+        #     mask = 1. - torch.from_numpy(mask)
+        # else:
+        #     mask = torch.zeros((64,64), dtype=torch.float32, device="cpu")
+        return (canvas, )
+
+    # @classmethod
+    # def IS_CHANGED(s, image):
+    #     image_path = folder_paths.get_annotated_filepath(image)
+    #     m = hashlib.sha256()
+    #     with open(image_path, 'rb') as f:
+    #         m.update(f.read())
+    #     return m.digest().hex()
+
+    # @classmethod
+    # def VALIDATE_INPUTS(s, image):
+    #     if not folder_paths.exists_annotated_filepath(image):
+    #         return "Invalid image file: {}".format(image)
+
+    #     return True
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
@@ -952,10 +1030,11 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-interaction-canny": TRI3DInteractionCanny,
     "tri3d-dwpose": TRI3DDWPose_Preprocessor,
     "tri3d-pose-to-image": TRI3DPosetoImage,
-    "tri3d-pose-adaption": TRI3DPoseAdaption
+    "tri3d-pose-adaption": TRI3DPoseAdaption,
+    "tri3d-load-pose-json": TRI3DLoadPoseJson
 }
 
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
@@ -967,5 +1046,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-interaction-canny": "Garment Skin Interaction Canny" + " v" + VERSION,
     "tri3d-dwpose": "DWPose" + " v" + VERSION,
     "tri3d-pose-to-image": "Pose to Image" + " v" + VERSION,
-    "tri3d-pose-adaption": "Pose Adaption" + " v" + VERSION
+    "tri3d-pose-adaption": "Pose Adaption" + " v" + VERSION,
+    "tri3d-load-pose-json": "Load Pose Json" + " v" + VERSION
 }

@@ -87,11 +87,37 @@ def scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, point1_
     src_targ_ref_ratio = src_targ_len / src_ref_len                  #src targ to ref ratio
     dest_targ_ref_ratio = dest_targ_len / dest_ref_len            #dest targ to ref ratio
 
-    scale = src_targ_ref_ratio - dest_targ_ref_ratio
+    scale = src_targ_ref_ratio / dest_targ_ref_ratio
 
-    x4_scaled = x4 + abs(x4-x3) * scale
-    y4_scaled = y4 + abs(y4-y3) * scale
+    x4_scaled = x3 + (x4-x3) * scale
+    y4_scaled = y3 + (y4-y3) * scale
     
     dest_keypoints[point2_idx] = [x4_scaled, y4_scaled]
     
     return dest_keypoints
+
+def get_torso_angles(keypoints):
+    """
+    Function to get torso angles
+    """
+    #left shoulder angle with x axis
+    a,b = keypoints[2],keypoints[1]
+    angle_radians = math.tan((a[1]-b[1])/(a[0]-b[0]))
+    ls_angle = abs(math.degrees(angle_radians))
+    
+    #right shoulder angle with x axis
+    a,b = keypoints[5],keypoints[1]
+    angle_radians = math.tan((a[1]-b[1])/(a[0]-b[0]))
+    rs_angle = abs(math.degrees(angle_radians))
+    
+    #getting bisector of torso and getting angle with y_axis
+    a,b,c = keypoints[8], keypoints[1], keypoints[11]
+
+    #torso bisector
+    bi = [int((a[0]+c[0])/2), int((a[1]+c[1])/2)]
+
+    #calculatng angle with y axis
+    angle_radians = math.atan((bi[1]-b[1])/(bi[0]-b[0]))
+    torso_angle = 90 - abs(math.degrees(angle_radians))
+
+    return ls_angle, rs_angle, torso_angle
