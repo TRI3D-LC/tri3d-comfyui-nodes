@@ -5,3 +5,5 @@ venv
 .DS_Store
 checkpoints/
 checkpoint/
+
+dwpose/keypoints/
