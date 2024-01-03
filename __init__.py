@@ -916,7 +916,7 @@ class TRI3DPoseAdaption:
         rs_angle_diff = abs(rs_angle_2 - rs_angle_1)
         torso_angle_diff = abs(torso_angle_2 - torso_angle_1)
 
-        similar_torso = False if (ls_angle_diff >= 3) | (rs_angle_diff >= 3) | (torso_angle_diff >= 5) else True
+        similar_torso = False if (ls_angle_diff >= 5) | (rs_angle_diff >= 5) | (torso_angle_diff >= 5) else True
 
         if similar_torso == False:
             canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
