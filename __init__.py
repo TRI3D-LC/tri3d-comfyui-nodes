@@ -810,7 +810,7 @@ class TRI3DDWPose_Preprocessor:
                 "detect_hand": (["enable", "disable"], {"default": "enable"}),
                 "detect_body": (["enable", "disable"], {"default": "enable"}),
                 "detect_face": (["enable", "disable"], {"default": "enable"}),
-                "filename_prefix": ("STRING", {"default": "dwpose/keypoints"})
+                "filename_path": ("STRING", {"default": "dwpose/keypoints/input.json"})
             }
         }
     RETURN_TYPES = ("IMAGE","STRING")
@@ -836,19 +836,20 @@ class TRI3DDWPose_Preprocessor:
             H, W, C = image.shape
             np_image = np.asarray(image * 255., dtype=np.uint8) 
             np_result, pose_dict = model(np_image, output_type="np", include_hand=detect_hand, include_face=detect_face, include_body=detect_body)
-            save_file_dir = os.path.join(kwargs['filename_prefix'], f"keypoints_{str(i)}.json")
-            json.dump(pose_dict, open(save_file_dir, 'w'))
+            save_file_path = kwargs['filename_path']
+            json.dump(pose_dict, open(save_file_path, 'w'))
             np_result = cv2.resize(np_result, (W, H), interpolation=cv2.INTER_AREA)
             out_image_list.append(torch.from_numpy(np_result.astype(np.float32) / 255.0))
             out_dict_list.append(pose_dict)
-            out_dir_list.append(save_file_dir)
+            out_dir_list.append(save_file_path)
 
         out_image = torch.stack(out_image_list, dim=0)
         del model
 
-        return (out_image, save_file_dir)
+        return (out_image, save_file_path)
 
 class TRI3DPosetoImage:
+
     @classmethod
     def INPUT_TYPES(s):
         return {
