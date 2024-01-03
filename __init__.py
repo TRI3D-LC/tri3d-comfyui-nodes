@@ -817,6 +817,8 @@ class TRI3DDWPose_Preprocessor:
     FUNCTION = "estimate_pose"
     CATEGORY = "TRI3D"
 
+    
+
     def estimate_pose(self, images, detect_hand, detect_body, detect_face, **kwargs):
         from .dwpose import DwposeDetector
 
@@ -836,7 +838,8 @@ class TRI3DDWPose_Preprocessor:
             H, W, C = image.shape
             np_image = np.asarray(image * 255., dtype=np.uint8) 
             np_result, pose_dict = model(np_image, output_type="np", include_hand=detect_hand, include_face=detect_face, include_body=detect_body)
-            save_file_path = kwargs['filename_path']
+            cur_file_dir = os.path.dirname(os.path.realpath(__file__))
+            save_file_path = os.path.join(cur_file_dir,kwargs['filename_path'])
             json.dump(pose_dict, open(save_file_path, 'w'))
             np_result = cv2.resize(np_result, (W, H), interpolation=cv2.INTER_AREA)
             out_image_list.append(torch.from_numpy(np_result.astype(np.float32) / 255.0))
