@@ -1335,8 +1335,13 @@ class FloatToImage:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "value": ("FLOAT", )
-            },
+                "value": ("FLOAT", {
+                    "default": 0.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01
+                })
+            }
         }
 
     CATEGORY = "TRI3D"
@@ -1371,7 +1376,7 @@ class FloatToImage:
             image = cv2.imread(path_file_image_output, cv2.IMREAD_COLOR)
 
             import os
-            os.unlink(path_file_image_output)
+            # os.unlink(path_file_image_output)
 
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             return image
@@ -1382,7 +1387,10 @@ class FloatToImage:
             import torch
             image = image.astype(dtype=np.float32)
             image /= 255.0
-            image = torch.tensor(image)
+            image = torch.from_numpy(image)[
+                None,
+            ]
+            image = image.unsqueeze(0)
             return image
 
         image = render_float(float_input=value)
