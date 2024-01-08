@@ -1,6 +1,6 @@
 import cv2, os, math, json
 import numpy as np
-
+import matplotlib
 
 def draw_bodypose(canvas: np.ndarray, keypoints: list) -> np.ndarray:
 
@@ -44,6 +44,35 @@ def draw_bodypose(canvas: np.ndarray, keypoints: list) -> np.ndarray:
         cv2.circle(canvas, (int(x), int(y)), 4, color, thickness=-1)
     return canvas
 
+def draw_handpose(canvas: np.ndarray, keypoints: list) -> np.ndarray:
+    
+    H, W, _ = canvas.shape
+
+    edges = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [0, 9], [9, 10], \
+             [10, 11], [11, 12], [0, 13], [13, 14], [14, 15], [15, 16], [0, 17], [17, 18], [18, 19], [19, 20]]
+
+    for ie, (e1, e2) in enumerate(edges):
+        k1 = keypoints[e1]
+        k2 = keypoints[e2]
+        if k1 is None or k2 is None:
+            continue
+      
+        x1 = int(k1[0])
+        y1 = int(k1[1])
+        x2 = int(k2[0])
+        y2 = int(k2[1])
+        
+        cv2.line(canvas, (x1, y1), (x2, y2), matplotlib.colors.hsv_to_rgb([ie / float(len(edges)), 1.0, 1.0]) * 255, thickness=2)
+
+    for keypoint in keypoints:
+        if keypoint is None:
+            continue
+
+        x, y = keypoint[0], keypoint[1]
+        x = int(x)
+        y = int(y)
+        cv2.circle(canvas, (x, y), 4, (0, 0, 255), thickness=-1)
+    return canvas
 
 def rotate(src_keypoints, dest_keypoints, point1_idx, point2_idx):
 
@@ -96,6 +125,97 @@ def scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, point1_
     
     return dest_keypoints
 
+def scale_hand(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, starting_idx):
+    
+    """
+        scales all 20 hand lines for the given reference wrist length
+    """
+
+    rotate(src_keypoints, dest_keypoints, 0+starting_idx, 1+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 0+starting_idx, 1+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 0+starting_idx, 5+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 0+starting_idx, 5+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 0+starting_idx, 9+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 0+starting_idx, 9+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 0+starting_idx, 13+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 0+starting_idx, 13+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 0+starting_idx, 17+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 0+starting_idx, 17+starting_idx)
+    
+    rotate(src_keypoints, dest_keypoints, 1+starting_idx, 2+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 1+starting_idx, 2+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 2+starting_idx, 3+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 2+starting_idx, 3+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 3+starting_idx, 4+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 3+starting_idx, 4+starting_idx)
+    
+    rotate(src_keypoints, dest_keypoints, 5+starting_idx, 6+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 5+starting_idx, 6+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 6+starting_idx, 7+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 6+starting_idx, 7+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 7+starting_idx, 8+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 7+starting_idx, 8+starting_idx)
+   
+    rotate(src_keypoints, dest_keypoints, 9+starting_idx, 10+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 9+starting_idx, 10+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 10+starting_idx, 11+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 10+starting_idx, 11+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 11+starting_idx, 12+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 11+starting_idx, 12+starting_idx)
+    
+    rotate(src_keypoints, dest_keypoints, 13+starting_idx, 14+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 13+starting_idx, 14+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 14+starting_idx, 15+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 14+starting_idx, 15+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 15+starting_idx, 16+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 15+starting_idx, 16+starting_idx)
+    
+    rotate(src_keypoints, dest_keypoints, 17+starting_idx, 18+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 17+starting_idx, 18+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 18+starting_idx, 19+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 18+starting_idx, 19+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 19+starting_idx, 20+starting_idx)
+    scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, 19+starting_idx, 20+starting_idx)
+    
+    return dest_keypoints
+
+def rotate_hand(src_keypoints, dest_keypoints, starting_idx):
+    
+    """
+        scales all 20 hand lines for the given reference wrist length
+        src_keypoints: ref keypoints
+        dest_keypoints: mannequin keypoints
+        starting_idx: starting index of hand
+    """
+
+    rotate(src_keypoints, dest_keypoints, 0+starting_idx, 1+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 0+starting_idx, 5+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 0+starting_idx, 9+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 0+starting_idx, 13+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 0+starting_idx, 17+starting_idx)
+    
+    rotate(src_keypoints, dest_keypoints, 1+starting_idx, 2+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 2+starting_idx, 3+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 3+starting_idx, 4+starting_idx)
+    
+    rotate(src_keypoints, dest_keypoints, 5+starting_idx, 6+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 6+starting_idx, 7+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 7+starting_idx, 8+starting_idx)
+   
+    rotate(src_keypoints, dest_keypoints, 9+starting_idx, 10+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 10+starting_idx, 11+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 11+starting_idx, 12+starting_idx)
+    
+    rotate(src_keypoints, dest_keypoints, 13+starting_idx, 14+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 14+starting_idx, 15+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 15+starting_idx, 16+starting_idx)
+    
+    rotate(src_keypoints, dest_keypoints, 17+starting_idx, 18+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 18+starting_idx, 19+starting_idx)
+    rotate(src_keypoints, dest_keypoints, 19+starting_idx, 20+starting_idx)
+    
+    return dest_keypoints
+
 def get_torso_angles(keypoints):
     """
     Function to get torso angles
@@ -117,7 +237,31 @@ def get_torso_angles(keypoints):
     bi = [int((a[0]+c[0])/2), int((a[1]+c[1])/2)]
 
     #calculatng angle with y axis
-    angle_radians = math.atan((bi[1]-b[1])/(bi[0]-b[0]))
+    angle_radians = math.atan2((bi[1]-b[1]),(bi[0]-b[0]))
     torso_angle = 90 - abs(math.degrees(angle_radians))
 
     return ls_angle, rs_angle, torso_angle
+
+def move(prev_point, new_point, dependent_points):
+    """e.g if wrist is moved then rest of the hand points also be moved by same offset where """
+    
+    x_off = new_point[0] - prev_point[0]
+    y_off = (new_point[1] - prev_point[1])
+    
+    for i in range(len(dependent_points)):
+        if dependent_points[i] == [-1,-1]: continue
+        dependent_points[i] = [dependent_points[i][0]+x_off, dependent_points[i][1]+y_off]
+            
+    return dependent_points
+
+def switch_to_backpose(input_keypoints, input_width):
+    """for the given straight pose flip horizontally """
+
+    for i in range(len(input_keypoints)):
+        if i in [0,14,15]:
+            input_keypoints[i] = [-1, -1]
+            continue
+        x,y = input_keypoints[i]
+        input_keypoints[i] = [input_width - x, y]
+
+    return input_keypoints

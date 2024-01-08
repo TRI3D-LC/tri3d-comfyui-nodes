@@ -1,0 +1,220 @@
+{
+  "last_node_id": 423,
+  "last_link_id": 674,
+  "nodes": [
+    {
+      "id": 394,
+      "type": "tri3d-back-pose-adaption",
+      "pos": [
+        2654,
+        -135
+      ],
+      "size": {
+        "0": 315,
+        "1": 150
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            658
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "BOOLEAN",
+          "type": "BOOLEAN",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "tri3d-back-pose-adaption"
+      },
+      "widgets_values": [
+        "C:\\tri3d\\pose_library\\testing\\Database\\dump_folder2\\mannequin.json",
+        "C:\\tri3d\\pose_library\\testing\\backpose\\backpose.json",
+        "front_pose",
+        "normal_back_pose"
+      ]
+    },
+    {
+      "id": 391,
+      "type": "tri3d-pose-to-image",
+      "pos": [
+        2984,
+        -266
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            656
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "tri3d-pose-to-image"
+      },
+      "widgets_values": [
+        "C:\\tri3d\\pose_library\\testing\\Database\\dump_folder2\\mannequin.json"
+      ]
+    },
+    {
+      "id": 393,
+      "type": "tri3d-pose-to-image",
+      "pos": [
+        3206,
+        -269
+      ],
+      "size": [
+        228.55314621582056,
+        58
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            657
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "tri3d-pose-to-image"
+      },
+      "widgets_values": [
+        "C:\\tri3d\\pose_library\\testing\\backpose\\backpose.json"
+      ]
+    },
+    {
+      "id": 390,
+      "type": "PreviewImage",
+      "pos": [
+        2997,
+        -175
+      ],
+      "size": {
+        "0": 210,
+        "1": 246
+      },
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 656
+        }
+      ],
+      "title": "Mannequin pose",
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 395,
+      "type": "PreviewImage",
+      "pos": [
+        3430,
+        -180
+      ],
+      "size": {
+        "0": 170.9424591064453,
+        "1": 246
+      },
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 658
+        }
+      ],
+      "title": "adapted pose",
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 392,
+      "type": "PreviewImage",
+      "pos": [
+        3213,
+        -172
+      ],
+      "size": {
+        "0": 210,
+        "1": 246
+      },
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 657
+        }
+      ],
+      "title": "ref backpose",
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
+    }
+  ],
+  "links": [
+    [
+      656,
+      391,
+      0,
+      390,
+      0,
+      "IMAGE"
+    ],
+    [
+      657,
+      393,
+      0,
+      392,
+      0,
+      "IMAGE"
+    ],
+    [
+      658,
+      394,
+      0,
+      395,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}
