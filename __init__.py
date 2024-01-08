@@ -1291,7 +1291,7 @@ class TRI3DLoadPoseJson:
     #     return True
 
 
-class FaceRecognise:
+class TRI3DFaceRecognise:
 
     @classmethod
     def INPUT_TYPES(s):
@@ -1342,7 +1342,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-pose-to-image": TRI3DPosetoImage,
     "tri3d-pose-adaption": TRI3DPoseAdaption,
     "tri3d-load-pose-json": TRI3DLoadPoseJson,
-    "tri3d-face-recognise": FaceRecognise,
+    "tri3d-face-recognise": TRI3DFaceRecognise,
 }
 
 VERSION = "1.5.0"
