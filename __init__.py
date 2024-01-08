@@ -1355,7 +1355,7 @@ class FloatToImage:
             import matplotlib.pyplot as plt
 
             fig = plt.figure(
-                figsize=(6, 2))  # Dimensions of figsize are in inches
+                figsize=(10, 4))  # Dimensions of figsize are in inches
 
             text = fig.text(
                 x=0.5,  # x-coordinate to place the text
