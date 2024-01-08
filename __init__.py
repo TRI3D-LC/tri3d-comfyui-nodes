@@ -7,7 +7,9 @@ import comfy.model_management as model_management
 import folder_paths
 from PIL import Image, ImageOps
 
+
 class TRI3DATRParseBatch:
+
     def __init__(self):
         pass
 
@@ -15,10 +17,11 @@ class TRI3DATRParseBatch:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "images": ("IMAGE",),
+                "images": ("IMAGE", ),
             },
         }
-    RETURN_TYPES = ("IMAGE",)
+
+    RETURN_TYPES = ("IMAGE", )
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
@@ -36,7 +39,9 @@ class TRI3DATRParseBatch:
 
         def cv2_img_to_tensor(img):
             img = img.astype(np.float32) / 255.0
-            img = torch.from_numpy(img)[None,]
+            img = torch.from_numpy(img)[
+                None,
+            ]
             return img
 
         ATR_PATH = 'custom_nodes/tri3d-comfyui-nodes/atr_node/'
@@ -60,7 +65,8 @@ class TRI3DATRParseBatch:
         cwd = os.getcwd()
         os.chdir(ATR_PATH)
         os.system(
-            "python simple_extractor.py --dataset atr --model-restore checkpoints/atr.pth --input-dir input --output-dir output")
+            "python simple_extractor.py --dataset atr --model-restore checkpoints/atr.pth --input-dir input --output-dir output"
+        )
         os.chdir(cwd)
 
         # Collect and return the results
@@ -73,10 +79,11 @@ class TRI3DATRParseBatch:
 
         batch_results = torch.stack(batch_results)
 
-        return (batch_results,)
+        return (batch_results, )
 
 
 class TRI3DExtractPartsBatch:
+
     def __init__(self):
         pass
 
@@ -84,35 +91,81 @@ class TRI3DExtractPartsBatch:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "batch_images": ("IMAGE",),
-                "batch_segs": ("IMAGE",),
-                "batch_secondaries": ("IMAGE",),
-                "margin": ("INT", {"default": 15, "min": 0}),
-                "right_leg": ("BOOLEAN", {"default": False}),
-                "right_hand": ("BOOLEAN", {"default": True}),
-                "head": ("BOOLEAN", {"default": False}),
-                "hair": ("BOOLEAN", {"default": False}),
-                "left_shoe": ("BOOLEAN", {"default": False}),
-                "bag": ("BOOLEAN", {"default": False}),
-                "background": ("BOOLEAN", {"default": False}),
-                "dress": ("BOOLEAN", {"default": False}),
-                "left_leg": ("BOOLEAN", {"default": False}),
-                "right_shoe": ("BOOLEAN", {"default": False}),
-                "left_hand": ("BOOLEAN", {"default": True}),
-                "upper_garment": ("BOOLEAN", {"default": False}),
-                "lower_garment": ("BOOLEAN", {"default": False}),
-                "belt": ("BOOLEAN", {"default": False}),
-                "skirt": ("BOOLEAN", {"default": False}),
-                "hat": ("BOOLEAN", {"default": False}),
-                "sunglasses": ("BOOLEAN", {"default": False}),
-                "scarf": ("BOOLEAN", {"default": False}),
+                "batch_images": ("IMAGE", ),
+                "batch_segs": ("IMAGE", ),
+                "batch_secondaries": ("IMAGE", ),
+                "margin": ("INT", {
+                    "default": 15,
+                    "min": 0
+                }),
+                "right_leg": ("BOOLEAN", {
+                    "default": False
+                }),
+                "right_hand": ("BOOLEAN", {
+                    "default": True
+                }),
+                "head": ("BOOLEAN", {
+                    "default": False
+                }),
+                "hair": ("BOOLEAN", {
+                    "default": False
+                }),
+                "left_shoe": ("BOOLEAN", {
+                    "default": False
+                }),
+                "bag": ("BOOLEAN", {
+                    "default": False
+                }),
+                "background": ("BOOLEAN", {
+                    "default": False
+                }),
+                "dress": ("BOOLEAN", {
+                    "default": False
+                }),
+                "left_leg": ("BOOLEAN", {
+                    "default": False
+                }),
+                "right_shoe": ("BOOLEAN", {
+                    "default": False
+                }),
+                "left_hand": ("BOOLEAN", {
+                    "default": True
+                }),
+                "upper_garment": ("BOOLEAN", {
+                    "default": False
+                }),
+                "lower_garment": ("BOOLEAN", {
+                    "default": False
+                }),
+                "belt": ("BOOLEAN", {
+                    "default": False
+                }),
+                "skirt": ("BOOLEAN", {
+                    "default": False
+                }),
+                "hat": ("BOOLEAN", {
+                    "default": False
+                }),
+                "sunglasses": ("BOOLEAN", {
+                    "default": False
+                }),
+                "scarf": ("BOOLEAN", {
+                    "default": False
+                }),
             },
         }
-    RETURN_TYPES = ("IMAGE", "IMAGE",)
+
+    RETURN_TYPES = (
+        "IMAGE",
+        "IMAGE",
+    )
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, batch_images, batch_segs, batch_secondaries, margin, right_leg, right_hand, head, hair, left_shoe, bag, background, dress, left_leg, right_shoe, left_hand, upper_garment, lower_garment, belt, skirt, hat, sunglasses, scarf):
+    def main(self, batch_images, batch_segs, batch_secondaries, margin,
+             right_leg, right_hand, head, hair, left_shoe, bag, background,
+             dress, left_leg, right_shoe, left_hand, upper_garment,
+             lower_garment, belt, skirt, hat, sunglasses, scarf):
         import cv2
         import numpy as np
         import torch
@@ -125,8 +178,9 @@ class TRI3DExtractPartsBatch:
             reshaped = segm.reshape(-1, segm.shape[-1])
 
             # Find unique vectors and their counts
-            unique_vectors, counts = np.unique(
-                reshaped, axis=0, return_counts=True)
+            unique_vectors, counts = np.unique(reshaped,
+                                               axis=0,
+                                               return_counts=True)
             segment_counts = list(zip(unique_vectors, counts))
             pprint(segment_counts)
             return segment_counts
@@ -135,8 +189,9 @@ class TRI3DExtractPartsBatch:
             import cv2
             import numpy as np
             # Create a mask for hands
-            seg_img = cv2.resize(
-                seg_img, (input_img.shape[1], input_img.shape[0]), interpolation=cv2.INTER_NEAREST)
+            seg_img = cv2.resize(seg_img,
+                                 (input_img.shape[1], input_img.shape[0]),
+                                 interpolation=cv2.INTER_NEAREST)
             hand_mask = np.zeros_like(seg_img[:, :, 0])
             for color in color_code_list:
                 lowerb = np.array(color, dtype=np.uint8)
@@ -145,8 +200,8 @@ class TRI3DExtractPartsBatch:
                 hand_mask = cv2.bitwise_or(hand_mask, temp_mask)
 
             # Find contours to get the bounding box of the hands
-            contours, _ = cv2.findContours(
-                hand_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, _ = cv2.findContours(hand_mask, cv2.RETR_EXTERNAL,
+                                           cv2.CHAIN_APPROX_SIMPLE)
 
             # If no contours were found, just return None
             if not contours:
@@ -160,13 +215,13 @@ class TRI3DExtractPartsBatch:
             x = max(x - margin, 0)
             y = max(y - margin, 0)
             # Ensure width does not exceed image boundary
-            w = min(w + 2*margin, input_img.shape[1] - x)
+            w = min(w + 2 * margin, input_img.shape[1] - x)
             # Ensure height does not exceed image boundary
-            h = min(h + 2*margin, input_img.shape[0] - y)
+            h = min(h + 2 * margin, input_img.shape[0] - y)
             print(x, y, w, h, "x,y,w,h")
             print(input_img.shape, "input_img.shape")
             # Extract the region from the original image that contains both hands
-            hand_region = input_img[y:y+h, x:x+w]
+            hand_region = input_img[y:y + h, x:x + w]
 
             return hand_region
 
@@ -178,7 +233,9 @@ class TRI3DExtractPartsBatch:
 
         def cv2_img_to_tensor(img):
             img = img.astype(np.float32) / 255.0
-            img = torch.from_numpy(img)[None,]
+            img = torch.from_numpy(img)[
+                None,
+            ]
             return img
 
         batch_results = []
@@ -241,8 +298,8 @@ class TRI3DExtractPartsBatch:
             else:
                 num_channels = cv2_image.shape[2] if len(
                     cv2_image.shape) > 2 else 1
-                black_img = np.zeros(
-                    (10, 10, num_channels), dtype=cv2_image.dtype)
+                black_img = np.zeros((10, 10, num_channels),
+                                     dtype=cv2_image.dtype)
                 images.append(black_img)
 
             if bsecondary is not None:
@@ -250,8 +307,8 @@ class TRI3DExtractPartsBatch:
             else:
                 num_channels = cv2_image.shape[2] if len(
                     cv2_image.shape) > 2 else 1
-                black_img = np.zeros(
-                    (10, 10, num_channels), dtype=cv2_image.dtype)
+                black_img = np.zeros((10, 10, num_channels),
+                                     dtype=cv2_image.dtype)
                 secondaries.append(black_img)
 
         # Get max height and width
@@ -263,15 +320,15 @@ class TRI3DExtractPartsBatch:
 
         for img in images:
             # Resize the image to max height and width
-            resized_img = cv2.resize(
-                img, (max_width, max_height), interpolation=cv2.INTER_AREA)
+            resized_img = cv2.resize(img, (max_width, max_height),
+                                     interpolation=cv2.INTER_AREA)
             tensor_img = cv2_img_to_tensor(resized_img)
             batch_results.append(tensor_img.squeeze(0))
 
         for sec in secondaries:
             # Resize the image to max height and width
-            resized_sec = cv2.resize(
-                sec, (max_width, max_height), interpolation=cv2.INTER_AREA)
+            resized_sec = cv2.resize(sec, (max_width, max_height),
+                                     interpolation=cv2.INTER_AREA)
             tensor_sec = cv2_img_to_tensor(resized_sec)
             batch_secondaries.append(tensor_sec.squeeze(0))
 
@@ -282,6 +339,7 @@ class TRI3DExtractPartsBatch:
 
 
 class TRI3DPositionPartsBatch:
+
     def __init__(self):
         pass
 
@@ -289,35 +347,78 @@ class TRI3DPositionPartsBatch:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "batch_images": ("IMAGE",),
-                "batch_segs": ("IMAGE",),
-                "batch_handimgs": ("IMAGE",),
-                "margin": ("INT", {"default": 15, "min": 0}),
-                "right_leg": ("BOOLEAN", {"default": False}),
-                "right_hand": ("BOOLEAN", {"default": True}),
-                "head": ("BOOLEAN", {"default": False}),
-                "hair": ("BOOLEAN", {"default": False}),
-                "left_shoe": ("BOOLEAN", {"default": False}),
-                "bag": ("BOOLEAN", {"default": False}),
-                "background": ("BOOLEAN", {"default": False}),
-                "dress": ("BOOLEAN", {"default": False}),
-                "left_leg": ("BOOLEAN", {"default": False}),
-                "right_shoe": ("BOOLEAN", {"default": False}),
-                "left_hand": ("BOOLEAN", {"default": True}),
-                "upper_garment": ("BOOLEAN", {"default": False}),
-                "lower_garment": ("BOOLEAN", {"default": False}),
-                "belt": ("BOOLEAN", {"default": False}),
-                "skirt": ("BOOLEAN", {"default": False}),
-                "hat": ("BOOLEAN", {"default": False}),
-                "sunglasses": ("BOOLEAN", {"default": False}),
-                "scarf": ("BOOLEAN", {"default": False}),
+                "batch_images": ("IMAGE", ),
+                "batch_segs": ("IMAGE", ),
+                "batch_handimgs": ("IMAGE", ),
+                "margin": ("INT", {
+                    "default": 15,
+                    "min": 0
+                }),
+                "right_leg": ("BOOLEAN", {
+                    "default": False
+                }),
+                "right_hand": ("BOOLEAN", {
+                    "default": True
+                }),
+                "head": ("BOOLEAN", {
+                    "default": False
+                }),
+                "hair": ("BOOLEAN", {
+                    "default": False
+                }),
+                "left_shoe": ("BOOLEAN", {
+                    "default": False
+                }),
+                "bag": ("BOOLEAN", {
+                    "default": False
+                }),
+                "background": ("BOOLEAN", {
+                    "default": False
+                }),
+                "dress": ("BOOLEAN", {
+                    "default": False
+                }),
+                "left_leg": ("BOOLEAN", {
+                    "default": False
+                }),
+                "right_shoe": ("BOOLEAN", {
+                    "default": False
+                }),
+                "left_hand": ("BOOLEAN", {
+                    "default": True
+                }),
+                "upper_garment": ("BOOLEAN", {
+                    "default": False
+                }),
+                "lower_garment": ("BOOLEAN", {
+                    "default": False
+                }),
+                "belt": ("BOOLEAN", {
+                    "default": False
+                }),
+                "skirt": ("BOOLEAN", {
+                    "default": False
+                }),
+                "hat": ("BOOLEAN", {
+                    "default": False
+                }),
+                "sunglasses": ("BOOLEAN", {
+                    "default": False
+                }),
+                "scarf": ("BOOLEAN", {
+                    "default": False
+                }),
             },
         }
-    RETURN_TYPES = ("IMAGE",)
+
+    RETURN_TYPES = ("IMAGE", )
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, batch_images, batch_segs, batch_handimgs, margin, right_leg, right_hand, head, hair, left_shoe, bag, background, dress, left_leg, right_shoe, left_hand, upper_garment, lower_garment, belt, skirt, hat, sunglasses, scarf):
+    def main(self, batch_images, batch_segs, batch_handimgs, margin, right_leg,
+             right_hand, head, hair, left_shoe, bag, background, dress,
+             left_leg, right_shoe, left_hand, upper_garment, lower_garment,
+             belt, skirt, hat, sunglasses, scarf):
         import cv2
         import numpy as np
         import torch
@@ -327,8 +428,9 @@ class TRI3DPositionPartsBatch:
             import cv2
             import numpy as np
             # Create a mask for hands
-            seg_img = cv2.resize(
-                seg_img, (input_img.shape[1], input_img.shape[0]), interpolation=cv2.INTER_NEAREST)
+            seg_img = cv2.resize(seg_img,
+                                 (input_img.shape[1], input_img.shape[0]),
+                                 interpolation=cv2.INTER_NEAREST)
             hand_mask = np.zeros_like(seg_img[:, :, 0])
             for color in color_code_list:
                 lowerb = np.array(color, dtype=np.uint8)
@@ -337,8 +439,8 @@ class TRI3DPositionPartsBatch:
                 hand_mask = cv2.bitwise_or(hand_mask, temp_mask)
 
             # Find contours to get the bounding box of the hands
-            contours, _ = cv2.findContours(
-                hand_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, _ = cv2.findContours(hand_mask, cv2.RETR_EXTERNAL,
+                                           cv2.CHAIN_APPROX_SIMPLE)
 
             # If no contours were found, just return None
             if not contours:
@@ -350,9 +452,9 @@ class TRI3DPositionPartsBatch:
             x = max(x - margin, 0)
             y = max(y - margin, 0)
             # Ensure width does not exceed image boundary
-            w = min(w + 2*margin, input_img.shape[1] - x)
+            w = min(w + 2 * margin, input_img.shape[1] - x)
             # Ensure height does not exceed image boundary
-            h = min(h + 2*margin, input_img.shape[0] - y)
+            h = min(h + 2 * margin, input_img.shape[0] - y)
 
             return (x, y, w, h)
 
@@ -364,7 +466,9 @@ class TRI3DPositionPartsBatch:
 
         def cv2_img_to_tensor(img):
             img = img.astype(np.float32) / 255.0
-            img = torch.from_numpy(img)[None,]
+            img = torch.from_numpy(img)[
+                None,
+            ]
             return img
 
         batch_results = []
@@ -416,16 +520,18 @@ class TRI3DPositionPartsBatch:
             if scarf:
                 color_code_list.append([128, 64, 0])
 
-            positions = bounded_image_points(
-                cv2_seg, color_code_list, cv2_image)
+            positions = bounded_image_points(cv2_seg, color_code_list,
+                                             cv2_image)
 
             try:
                 cv2_handimg = tensor_to_cv2_img(handimg)
-                cv2_handimg = cv2.resize(
-                    cv2_handimg, (positions[2], positions[3]), interpolation=cv2.INTER_NEAREST)
+                cv2_handimg = cv2.resize(cv2_handimg,
+                                         (positions[2], positions[3]),
+                                         interpolation=cv2.INTER_NEAREST)
 
-                cv2_image[positions[1]:positions[1]+positions[3],
-                          positions[0]:positions[0]+positions[2]] = cv2_handimg
+                cv2_image[positions[1]:positions[1] + positions[3],
+                          positions[0]:positions[0] +
+                          positions[2]] = cv2_handimg
             except Exception as e:
                 print(e)
                 pass
@@ -434,10 +540,11 @@ class TRI3DPositionPartsBatch:
 
         batch_results = torch.stack(batch_results)
 
-        return (batch_results,)
+        return (batch_results, )
 
 
 class TRI3DSwapPixels:
+
     def __init__(self):
         pass
 
@@ -445,14 +552,17 @@ class TRI3DSwapPixels:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "from_image": ("IMAGE",),
+                "from_image": ("IMAGE", ),
                 # "garment_mask": ("IMAGE",),
-                "to_image": ("IMAGE",),
-                "to_mask": ("IMAGE",),
-                "swap_masked": ("BOOLEAN", {"default": False})
+                "to_image": ("IMAGE", ),
+                "to_mask": ("IMAGE", ),
+                "swap_masked": ("BOOLEAN", {
+                    "default": False
+                })
             },
         }
-    RETURN_TYPES = ("IMAGE",)
+
+    RETURN_TYPES = ("IMAGE", )
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
@@ -469,7 +579,9 @@ class TRI3DSwapPixels:
 
         def cv2_img_to_tensor(img):
             img = img.astype(np.float32) / 255.0
-            img = torch.from_numpy(img)[None,]
+            img = torch.from_numpy(img)[
+                None,
+            ]
             return img
 
         to_image = tensor_to_cv2_img(to_image)[0]
@@ -494,10 +606,11 @@ class TRI3DSwapPixels:
         # result_image = np.expand_dims(result_image, axis=0)
         # print(result_image.shape)
         result_image = cv2_img_to_tensor(result_image)
-        return (result_image,)
+        return (result_image, )
 
 
 class TRI3DExtractPartsBatch2:
+
     def __init__(self):
         pass
 
@@ -505,35 +618,78 @@ class TRI3DExtractPartsBatch2:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "batch_images": ("IMAGE",),
-                "batch_segs": ("IMAGE",),
-                "batch_secondaries": ("IMAGE",),
-                "margin": ("INT", {"default": 15, "min": 0}),
-                "right_leg": ("BOOLEAN", {"default": False}),
-                "right_hand": ("BOOLEAN", {"default": True}),
-                "head": ("BOOLEAN", {"default": False}),
-                "hair": ("BOOLEAN", {"default": False}),
-                "left_shoe": ("BOOLEAN", {"default": False}),
-                "bag": ("BOOLEAN", {"default": False}),
-                "background": ("BOOLEAN", {"default": False}),
-                "dress": ("BOOLEAN", {"default": False}),
-                "left_leg": ("BOOLEAN", {"default": False}),
-                "right_shoe": ("BOOLEAN", {"default": False}),
-                "left_hand": ("BOOLEAN", {"default": True}),
-                "upper_garment": ("BOOLEAN", {"default": False}),
-                "lower_garment": ("BOOLEAN", {"default": False}),
-                "belt": ("BOOLEAN", {"default": False}),
-                "skirt": ("BOOLEAN", {"default": False}),
-                "hat": ("BOOLEAN", {"default": False}),
-                "sunglasses": ("BOOLEAN", {"default": False}),
-                "scarf": ("BOOLEAN", {"default": False}),
+                "batch_images": ("IMAGE", ),
+                "batch_segs": ("IMAGE", ),
+                "batch_secondaries": ("IMAGE", ),
+                "margin": ("INT", {
+                    "default": 15,
+                    "min": 0
+                }),
+                "right_leg": ("BOOLEAN", {
+                    "default": False
+                }),
+                "right_hand": ("BOOLEAN", {
+                    "default": True
+                }),
+                "head": ("BOOLEAN", {
+                    "default": False
+                }),
+                "hair": ("BOOLEAN", {
+                    "default": False
+                }),
+                "left_shoe": ("BOOLEAN", {
+                    "default": False
+                }),
+                "bag": ("BOOLEAN", {
+                    "default": False
+                }),
+                "background": ("BOOLEAN", {
+                    "default": False
+                }),
+                "dress": ("BOOLEAN", {
+                    "default": False
+                }),
+                "left_leg": ("BOOLEAN", {
+                    "default": False
+                }),
+                "right_shoe": ("BOOLEAN", {
+                    "default": False
+                }),
+                "left_hand": ("BOOLEAN", {
+                    "default": True
+                }),
+                "upper_garment": ("BOOLEAN", {
+                    "default": False
+                }),
+                "lower_garment": ("BOOLEAN", {
+                    "default": False
+                }),
+                "belt": ("BOOLEAN", {
+                    "default": False
+                }),
+                "skirt": ("BOOLEAN", {
+                    "default": False
+                }),
+                "hat": ("BOOLEAN", {
+                    "default": False
+                }),
+                "sunglasses": ("BOOLEAN", {
+                    "default": False
+                }),
+                "scarf": ("BOOLEAN", {
+                    "default": False
+                }),
             },
         }
+
     RETURN_TYPES = ("IMAGE", "IMAGE")
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, batch_images, batch_segs, batch_secondaries, margin, right_leg, right_hand, head, hair, left_shoe, bag, background, dress, left_leg, right_shoe, left_hand, upper_garment, lower_garment, belt, skirt, hat, sunglasses, scarf):
+    def main(self, batch_images, batch_segs, batch_secondaries, margin,
+             right_leg, right_hand, head, hair, left_shoe, bag, background,
+             dress, left_leg, right_shoe, left_hand, upper_garment,
+             lower_garment, belt, skirt, hat, sunglasses, scarf):
         import cv2
         import numpy as np
         import torch
@@ -547,7 +703,9 @@ class TRI3DExtractPartsBatch2:
 
         def cv2_img_to_tensor(img):
             img = img.astype(np.float32) / 255.0
-            img = torch.from_numpy(img)[None,]
+            img = torch.from_numpy(img)[
+                None,
+            ]
             return img
 
         batch_results = []
@@ -606,7 +764,7 @@ class TRI3DExtractPartsBatch2:
                 idx = np.where(np.all(cv2_seg == color, axis=-1))
                 mask[idx] = 1
 
-            images.append(mask*cv2_image)
+            images.append(mask * cv2_image)
             mask = np.where(mask == 0, 255, 0)
             secondaries.append(mask)
             # print(mask.shape)
@@ -620,8 +778,8 @@ class TRI3DExtractPartsBatch2:
 
         for img in images:
             # Resize the image to max height and width
-            resized_img = cv2.resize(
-                img, (max_width, max_height), interpolation=cv2.INTER_AREA)
+            resized_img = cv2.resize(img, (max_width, max_height),
+                                     interpolation=cv2.INTER_AREA)
             # print(img.shape, "before tensor_img.shape")
             tensor_img = cv2_img_to_tensor(resized_img)
             # print(tensor_img.shape, "tensor_img.shape")
@@ -629,8 +787,8 @@ class TRI3DExtractPartsBatch2:
 
         for sec in secondaries:
             # Resize the image to max height and width
-            resized_sec = cv2.resize(
-                sec, (max_width, max_height), interpolation=cv2.INTER_AREA)
+            resized_sec = cv2.resize(sec, (max_width, max_height),
+                                     interpolation=cv2.INTER_AREA)
             tensor_sec = cv2_img_to_tensor(resized_sec)
             batch_secondaries.append(tensor_sec.squeeze(0))
 
@@ -641,6 +799,7 @@ class TRI3DExtractPartsBatch2:
 
 
 class TRI3DSkinFeatheredPaddedMask:
+
     def __init__(self):
         pass
 
@@ -648,12 +807,19 @@ class TRI3DSkinFeatheredPaddedMask:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "garment_masks": ("IMAGE",),
-                "first_pass_masks": ("IMAGE",),
-                "padding_margin": ("INT", {"default": 20, "min": 0},)
+                "garment_masks": ("IMAGE", ),
+                "first_pass_masks": ("IMAGE", ),
+                "padding_margin": (
+                    "INT",
+                    {
+                        "default": 20,
+                        "min": 0
+                    },
+                )
             },
         }
-    RETURN_TYPES = ("IMAGE",)
+
+    RETURN_TYPES = ("IMAGE", )
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
@@ -671,7 +837,9 @@ class TRI3DSkinFeatheredPaddedMask:
 
         def cv2_img_to_tensor(img):
             img = img.astype(np.float32) / 255.0
-            img = torch.from_numpy(img)[None,]
+            img = torch.from_numpy(img)[
+                None,
+            ]
             return img
 
         results = []
@@ -686,16 +854,20 @@ class TRI3DSkinFeatheredPaddedMask:
             garment_mask = cv2.resize(garment_mask, (w, h))
 
             garment_mask = np.where(garment_mask == 0, 1, 0).astype("bool")
-            first_pass_mask = np.where(
-                first_pass_mask == 0, 1, 0).astype('bool')
+            first_pass_mask = np.where(first_pass_mask == 0, 1,
+                                       0).astype('bool')
 
-            fp_dilate = cv2.dilate(first_pass_mask.astype("uint8"), np.ones(
-                (padding_margin, padding_margin), np.uint8), iterations=1)
-            og_dilate = cv2.dilate(garment_mask.astype(
-                "uint8"), np.ones((30, 30), np.uint8), iterations=1)
-            fp_erode = cv2.erode(first_pass_mask.astype(
-                "uint8"), np.ones((25, 25), np.uint8), iterations=1)
-            result = (fp_dilate ^ fp_erode)*og_dilate
+            fp_dilate = cv2.dilate(first_pass_mask.astype("uint8"),
+                                   np.ones((padding_margin, padding_margin),
+                                           np.uint8),
+                                   iterations=1)
+            og_dilate = cv2.dilate(garment_mask.astype("uint8"),
+                                   np.ones((30, 30), np.uint8),
+                                   iterations=1)
+            fp_erode = cv2.erode(first_pass_mask.astype("uint8"),
+                                 np.ones((25, 25), np.uint8),
+                                 iterations=1)
+            result = (fp_dilate ^ fp_erode) * og_dilate
 
             result = np.where(result == 0, 0, 255)
             results.append(result)
@@ -709,8 +881,8 @@ class TRI3DSkinFeatheredPaddedMask:
 
         for img in results:
             # Resize the image to max height and width
-            resized_img = cv2.resize(
-                img, (max_width, max_height), interpolation=cv2.INTER_AREA)
+            resized_img = cv2.resize(img, (max_width, max_height),
+                                     interpolation=cv2.INTER_AREA)
             # print(img.shape, "before tensor_img.shape")
             tensor_img = cv2_img_to_tensor(resized_img)
             # print(tensor_img.shape, "tensor_img.shape")
@@ -722,6 +894,7 @@ class TRI3DSkinFeatheredPaddedMask:
 
 
 class TRI3DInteractionCanny:
+
     def __init__(self):
         pass
 
@@ -729,18 +902,32 @@ class TRI3DInteractionCanny:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "garment_masks": ("IMAGE",),
-                "first_pass_images": ("IMAGE",),
-                "first_pass_masks": ("IMAGE",),
-                "lower_threshold": ("INT", {"default": 80, "min": 0},),
-                "higher_threshold": ("INT", {"default": 240, "min": 0},)
+                "garment_masks": ("IMAGE", ),
+                "first_pass_images": ("IMAGE", ),
+                "first_pass_masks": ("IMAGE", ),
+                "lower_threshold": (
+                    "INT",
+                    {
+                        "default": 80,
+                        "min": 0
+                    },
+                ),
+                "higher_threshold": (
+                    "INT",
+                    {
+                        "default": 240,
+                        "min": 0
+                    },
+                )
             },
         }
-    RETURN_TYPES = ("IMAGE",)
+
+    RETURN_TYPES = ("IMAGE", )
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, garment_masks, first_pass_images, first_pass_masks, lower_threshold, higher_threshold):
+    def main(self, garment_masks, first_pass_images, first_pass_masks,
+             lower_threshold, higher_threshold):
         import cv2
         import numpy as np
         import torch
@@ -754,7 +941,9 @@ class TRI3DInteractionCanny:
 
         def cv2_img_to_tensor(img):
             img = img.astype(np.float32) / 255.0
-            img = torch.from_numpy(img)[None,]
+            img = torch.from_numpy(img)[
+                None,
+            ]
             return img
 
         results = []
@@ -769,16 +958,16 @@ class TRI3DInteractionCanny:
             garment_mask = cv2.resize(garment_mask, (w, h))
 
             garment_mask = np.where(garment_mask == 0, 1, 0).astype("bool")
-            first_pass_mask = np.where(
-                first_pass_mask == 0, 1, 0).astype('bool')
+            first_pass_mask = np.where(first_pass_mask == 0, 1,
+                                       0).astype('bool')
 
-            canny = cv2.Canny(first_pass_image,
-                              lower_threshold, higher_threshold)
+            canny = cv2.Canny(first_pass_image, lower_threshold,
+                              higher_threshold)
             canny = np.dstack((canny, canny, canny))
 
-            result = (garment_mask*first_pass_mask).astype("uint8")
+            result = (garment_mask * first_pass_mask).astype("uint8")
 
-            result = result*canny
+            result = result * canny
             results.append(result)
             # print(mask.shape)
 
@@ -790,8 +979,8 @@ class TRI3DInteractionCanny:
 
         for img in results:
             # Resize the image to max height and width
-            resized_img = cv2.resize(
-                img, (max_width, max_height), interpolation=cv2.INTER_AREA)
+            resized_img = cv2.resize(img, (max_width, max_height),
+                                     interpolation=cv2.INTER_AREA)
             # print(img.shape, "before tensor_img.shape")
             tensor_img = cv2_img_to_tensor(resized_img)
             # print(tensor_img.shape, "tensor_img.shape")
@@ -801,25 +990,35 @@ class TRI3DInteractionCanny:
         print(batch_results.shape, "batch_results.shape")
         return (batch_results, )
 
+
 class TRI3DDWPose_Preprocessor:
+
     @classmethod
     def INPUT_TYPES(s):
         return {
-            "required": { 
+            "required": {
                 "images": ("IMAGE", ),
-                "detect_hand": (["enable", "disable"], {"default": "enable"}),
-                "detect_body": (["enable", "disable"], {"default": "enable"}),
-                "detect_face": (["enable", "disable"], {"default": "enable"}),
-                "filename_path": ("STRING", {"default": "dwpose/keypoints/input.json"})
+                "detect_hand": (["enable", "disable"], {
+                    "default": "enable"
+                }),
+                "detect_body": (["enable", "disable"], {
+                    "default": "enable"
+                }),
+                "detect_face": (["enable", "disable"], {
+                    "default": "enable"
+                }),
+                "filename_path": ("STRING", {
+                    "default": "dwpose/keypoints/input.json"
+                })
             }
         }
-    RETURN_TYPES = ("IMAGE","STRING")
+
+    RETURN_TYPES = ("IMAGE", "STRING")
     FUNCTION = "estimate_pose"
     CATEGORY = "TRI3D"
 
-    
-
-    def estimate_pose(self, images, detect_hand, detect_body, detect_face, **kwargs):
+    def estimate_pose(self, images, detect_hand, detect_body, detect_face,
+                      **kwargs):
         from .dwpose import DwposeDetector
 
         detect_hand = detect_hand == "enable"
@@ -828,21 +1027,30 @@ class TRI3DDWPose_Preprocessor:
 
         DWPOSE_MODEL_NAME = "yzd-v/DWPose"
         annotator_ckpts_path = "dwpose/ckpts"
-        
-        model = DwposeDetector.from_pretrained(DWPOSE_MODEL_NAME, cache_dir=annotator_ckpts_path).to(model_management.get_torch_device())
+
+        model = DwposeDetector.from_pretrained(
+            DWPOSE_MODEL_NAME, cache_dir=annotator_ckpts_path).to(
+                model_management.get_torch_device())
         # out = common_annotator_call(model, image, include_hand=detect_hand, include_face=detect_face, include_body=detect_body)
         out_image_list = []
         out_dict_list = []
         out_dir_list = []
         for i, image in enumerate(images):
             H, W, C = image.shape
-            np_image = np.asarray(image * 255., dtype=np.uint8) 
-            np_result, pose_dict = model(np_image, output_type="np", include_hand=detect_hand, include_face=detect_face, include_body=detect_body)
+            np_image = np.asarray(image * 255., dtype=np.uint8)
+            np_result, pose_dict = model(np_image,
+                                         output_type="np",
+                                         include_hand=detect_hand,
+                                         include_face=detect_face,
+                                         include_body=detect_body)
             cur_file_dir = os.path.dirname(os.path.realpath(__file__))
-            save_file_path = os.path.join(cur_file_dir,kwargs['filename_path'])
+            save_file_path = os.path.join(cur_file_dir,
+                                          kwargs['filename_path'])
             json.dump(pose_dict, open(save_file_path, 'w'))
-            np_result = cv2.resize(np_result, (W, H), interpolation=cv2.INTER_AREA)
-            out_image_list.append(torch.from_numpy(np_result.astype(np.float32) / 255.0))
+            np_result = cv2.resize(np_result, (W, H),
+                                   interpolation=cv2.INTER_AREA)
+            out_image_list.append(
+                torch.from_numpy(np_result.astype(np.float32) / 255.0))
             out_dict_list.append(pose_dict)
             out_dir_list.append(save_file_path)
 
@@ -851,19 +1059,23 @@ class TRI3DDWPose_Preprocessor:
 
         return (out_image, save_file_path)
 
+
 class TRI3DPosetoImage:
 
     @classmethod
     def INPUT_TYPES(s):
         return {
-            "required": { 
-                "pose_json_file": ("STRING", {"default": "dwpose/keypoints"})
+            "required": {
+                "pose_json_file": ("STRING", {
+                    "default": "dwpose/keypoints"
+                })
             }
         }
-    RETURN_TYPES = ("IMAGE",)
+
+    RETURN_TYPES = ("IMAGE", )
     FUNCTION = "main"
     CATEGORY = "TRI3D"
-    
+
     def main(self, pose_json_file):
         from .dwpose import comfy_utils
 
@@ -871,32 +1083,40 @@ class TRI3DPosetoImage:
         height = pose['height']
         width = pose['width']
         keypoints = pose['keypoints']
-        
+
         canvas = np.zeros(shape=(height, width, 3), dtype=np.uint8)
         canvas = comfy_utils.draw_bodypose(canvas, keypoints)
-        canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+        canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
+            None,
+        ]
         return (canvas, )
 
+
 class TRI3DPoseAdaption:
-    
+
     def __init__(self):
         pass
-    
+
     @classmethod
     def INPUT_TYPES(s):
         return {
-            "required": { 
-                "input_pose_json_file": ("STRING", {"default": "dwpose/keypoints"}),
-                "ref_pose_json_file": ("STRING", {"default": "dwpose/keypoints"})
+            "required": {
+                "input_pose_json_file": ("STRING", {
+                    "default": "dwpose/keypoints"
+                }),
+                "ref_pose_json_file": ("STRING", {
+                    "default": "dwpose/keypoints"
+                })
             }
         }
-    RETURN_TYPES = ("IMAGE","BOOLEAN")
+
+    RETURN_TYPES = ("IMAGE", "BOOLEAN")
     FUNCTION = "main"
     CATEGORY = "TRI3D"
-    
+
     def main(self, input_pose_json_file, ref_pose_json_file):
         from .dwpose import comfy_utils
-        
+
         input_pose = json.load(open(input_pose_json_file))
         input_height = input_pose['height']
         input_width = input_pose['width']
@@ -907,82 +1127,128 @@ class TRI3DPoseAdaption:
         ref_height = ref_pose['height']
         ref_width = ref_pose['width']
         ref_keypoints = ref_pose['keypoints']
-        
+
         #check torso similarity
-        ls_angle_1, rs_angle_1, torso_angle_1 = comfy_utils.get_torso_angles(input_keypoints)
-        ls_angle_2, rs_angle_2, torso_angle_2 = comfy_utils.get_torso_angles(ref_keypoints)
+        ls_angle_1, rs_angle_1, torso_angle_1 = comfy_utils.get_torso_angles(
+            input_keypoints)
+        ls_angle_2, rs_angle_2, torso_angle_2 = comfy_utils.get_torso_angles(
+            ref_keypoints)
 
         ls_angle_diff = abs(ls_angle_2 - ls_angle_1)
         rs_angle_diff = abs(rs_angle_2 - rs_angle_1)
         torso_angle_diff = abs(torso_angle_2 - torso_angle_1)
 
-        similar_torso = False if (ls_angle_diff >= 5) | (rs_angle_diff >= 5) | (torso_angle_diff >= 5) else True
+        similar_torso = False if (ls_angle_diff >= 5) | (
+            rs_angle_diff >= 5) | (torso_angle_diff >= 5) else True
 
         if similar_torso == False:
-            canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+            canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
+                None,
+            ]
             return (canvas, similar_torso)
         #Hands
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 2, 3)      # rotate left elbow
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 2,
+                                             3)  # rotate left elbow
 
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 3, 4)      #rotate left wrist
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 3, 3, 4) #scaling w.r.t to elbow to wrist ratio of ref pose
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 3,
+                                             4)  #rotate left wrist
+        input_keypoints = comfy_utils.scale(
+            ref_keypoints, input_keypoints, 2, 3, 3,
+            4)  #scaling w.r.t to elbow to wrist ratio of ref pose
 
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 5, 6)      #rotate right elbow
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 5,
+                                             6)  #rotate right elbow
 
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 6, 7)      #rotate right wrist
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 5, 6, 6, 7)    #scaling w.r.t to elbow to wrist ratio of ref pose
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 6,
+                                             7)  #rotate right wrist
+        input_keypoints = comfy_utils.scale(
+            ref_keypoints, input_keypoints, 5, 6, 6,
+            7)  #scaling w.r.t to elbow to wrist ratio of ref pose
 
         #legs
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 8, 9)      #rotate left knee
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 9, 10)     #rotate left foot
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 8, 9, 9, 10)    #scaling w.r.t to knee to foot ratio of ref pose
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 11, 12)     #rotate right knee
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 12, 13)    #rotate right foot
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 11, 12, 12, 13)    #scaling w.r.t to knee to foot ratio of ref pose
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 8,
+                                             9)  #rotate left knee
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 9,
+                                             10)  #rotate left foot
+        input_keypoints = comfy_utils.scale(
+            ref_keypoints, input_keypoints, 8, 9, 9,
+            10)  #scaling w.r.t to knee to foot ratio of ref pose
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints,
+                                             11, 12)  #rotate right knee
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints,
+                                             12, 13)  #rotate right foot
+        input_keypoints = comfy_utils.scale(
+            ref_keypoints, input_keypoints, 11, 12, 12,
+            13)  #scaling w.r.t to knee to foot ratio of ref pose
 
         #face
         face_points = input_keypoints[14:]
         nose = input_keypoints[0]
 
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 1, 0)      #rotate nose
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 1,
+                                             0)  #rotate nose
 
         #changing face points to w.r.t to new nose point after rotation
         x_off = input_keypoints[0][0] - nose[0]
         y_off = input_keypoints[0][1] - nose[1]
         for i in range(4):
-            new_x = face_points[i][0]+x_off
-            new_y = face_points[i][1]+y_off
-            input_keypoints[i+14] = [new_x, new_y]
+            new_x = face_points[i][0] + x_off
+            new_y = face_points[i][1] + y_off
+            input_keypoints[i + 14] = [new_x, new_y]
 
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0, 14)      #rotate left eye
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 0, 14)        #scaling w.r.t to neck len to eye_nose len ratio of ref pose
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0,
+                                             14)  #rotate left eye
+        input_keypoints = comfy_utils.scale(
+            ref_keypoints, input_keypoints, 1, 0, 0,
+            14)  #scaling w.r.t to neck len to eye_nose len ratio of ref pose
 
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0, 15)      #rotate right eye
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 0, 15)        #scaling w.r.t to neck len to eye_nose len ratio of ref pose
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0,
+                                             15)  #rotate right eye
+        input_keypoints = comfy_utils.scale(
+            ref_keypoints, input_keypoints, 1, 0, 0,
+            15)  #scaling w.r.t to neck len to eye_nose len ratio of ref pose
 
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 14, 16)        #rotate left ear
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 14, 16)        #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints,
+                                             14, 16)  #rotate left ear
+        input_keypoints = comfy_utils.scale(
+            ref_keypoints, input_keypoints, 1, 0, 14,
+            16)  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
 
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 15,17)        #rotate right ear
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 15, 17)        #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints,
+                                             15, 17)  #rotate right ear
+        input_keypoints = comfy_utils.scale(
+            ref_keypoints, input_keypoints, 1, 0, 15,
+            17)  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
 
         canvas = comfy_utils.draw_bodypose(canvas, input_keypoints)
-        canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+        canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
+            None,
+        ]
         return (canvas, similar_torso)
-    
+
+
 class TRI3DLoadPoseJson:
+
     @classmethod
     def INPUT_TYPES(s):
         input_dir = folder_paths.get_input_directory()
-        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
-        return {"required":
-                    {"image": (sorted(files), {"upload": True})},
-                }
+        files = [
+            f for f in os.listdir(input_dir)
+            if os.path.isfile(os.path.join(input_dir, f))
+        ]
+        return {
+            "required": {
+                "image": (sorted(files), {
+                    "upload": True
+                })
+            },
+        }
 
     CATEGORY = "TRI3D"
 
     RETURN_TYPES = ("IMAGE", )
     FUNCTION = "load_image"
+
     def load_image(self, image):
         # image_path = folder_paths.get_annotated_filepath(image)
         # i = Image.open(image_path)
@@ -994,12 +1260,14 @@ class TRI3DLoadPoseJson:
             height = pose['height']
             width = pose['width']
             keypoints = pose['keypoints']
-            
+
             canvas = np.zeros(shape=(height, width, 3), dtype=np.uint8)
             canvas = comfy_utils.draw_bodypose(canvas, keypoints)
-            canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+            canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
+                None,
+            ]
         else:
-            canvas =  np.zeros(shape=(height, width, 3), dtype=np.uint8)
+            canvas = np.zeros(shape=(height, width, 3), dtype=np.uint8)
         # if 'A' in i.getbands():
         #     mask = np.array(i.getchannel('A')).astype(np.float32) / 255.0
         #     mask = 1. - torch.from_numpy(mask)
@@ -1022,6 +1290,44 @@ class TRI3DLoadPoseJson:
 
     #     return True
 
+
+class FaceRecognise:
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {"image1": ("IMAGE", ), "image2": ("IMAGE", )}}
+
+    RETURN_TYPES = ("FLOAT", )
+    FUNCTION = "encode"
+    CATEGORY = "TRI3D"
+
+    def encode(self, image1, image2):
+        import cv2
+        import numpy as np
+        from insightface.app import FaceAnalysis
+        import math
+
+        image1 = image1.squeeze().cpu().numpy() * 255.0
+        image2 = image2.squeeze().cpu().numpy() * 255.0
+
+        image1 = np.clip(image1, 0, 255).astype(np.uint8)
+        image2 = np.clip(image2, 0, 255).astype(np.uint8)
+
+        app = FaceAnalysis(name='buffalo_l')
+        app.prepare(ctx_id=0, det_size=(640, 640))
+
+        face1 = app.get(image1)
+        face2 = app.get(image2)
+
+        embedding1 = face1[0]['embedding']
+        embedding1 /= math.sqrt(embedding1.dot(embedding1))
+        embedding2 = face2[0]['embedding']
+        embedding2 /= math.sqrt(embedding2.dot(embedding2))
+
+        s = embedding1.dot(embedding2)
+        return ({"overlap (float)": s}, )
+
+
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
@@ -1035,7 +1341,8 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-dwpose": TRI3DDWPose_Preprocessor,
     "tri3d-pose-to-image": TRI3DPosetoImage,
     "tri3d-pose-adaption": TRI3DPoseAdaption,
-    "tri3d-load-pose-json": TRI3DLoadPoseJson
+    "tri3d-load-pose-json": TRI3DLoadPoseJson,
+    "tri3d-face-recognise": FaceRecognise,
 }
 
 VERSION = "1.4.0"
@@ -1046,10 +1353,13 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     'tri3d-extract-parts-batch2': 'Extract Parts Batch 2' + " v" + VERSION,
     "tri3d-position-parts-batch": "Position Parts Batch" + " v" + VERSION,
     "tri3d-swap-pixels": "Swap Pixels by Mask" + " v" + VERSION,
-    "tri3d-skin-feathered-padded-mask": "Skin Feathered Padded Mask" + " v" + VERSION,
-    "tri3d-interaction-canny": "Garment Skin Interaction Canny" + " v" + VERSION,
+    "tri3d-skin-feathered-padded-mask":
+    "Skin Feathered Padded Mask" + " v" + VERSION,
+    "tri3d-interaction-canny":
+    "Garment Skin Interaction Canny" + " v" + VERSION,
     "tri3d-dwpose": "DWPose" + " v" + VERSION,
     "tri3d-pose-to-image": "Pose to Image" + " v" + VERSION,
     "tri3d-pose-adaption": "Pose Adaption" + " v" + VERSION,
-    "tri3d-load-pose-json": "Load Pose Json" + " v" + VERSION
+    "tri3d-load-pose-json": "Load Pose Json" + " v" + VERSION,
+    "tri3d-face-recognise": "Recognise face" + " v" + VERSION,
 }
