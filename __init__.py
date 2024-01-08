@@ -1320,12 +1320,75 @@ class FaceRecognise:
         face2 = app.get(image2)
 
         embedding1 = face1[0]['embedding']
-        embedding1 /= math.sqrt(embedding1.dot(embedding1))
         embedding2 = face2[0]['embedding']
+
+        embedding1 /= math.sqrt(embedding1.dot(embedding1))
         embedding2 /= math.sqrt(embedding2.dot(embedding2))
 
         s = embedding1.dot(embedding2)
         return ({"overlap (float)": s}, )
+
+
+class FloatToImage:
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "value": ("FLOAT", )
+            },
+        }
+
+    CATEGORY = "TRI3D"
+    RETURN_TYPES = ("IMAGE", )
+    FUNCTION = "load_image"
+
+    def load_image(self, value):
+
+        def render_float(float_input):
+            latex_expression = '$' + str(float_input) + '$'
+            import matplotlib.pyplot as plt
+
+            fig = plt.figure(
+                figsize=(6, 2))  # Dimensions of figsize are in inches
+
+            text = fig.text(
+                x=0.5,  # x-coordinate to place the text
+                y=0.5,  # y-coordinate to place the text
+                s=latex_expression,
+                horizontalalignment="center",
+                verticalalignment="center",
+                fontsize=32,
+            )
+
+            import tempfile
+            path_file_image_output = tempfile.NamedTemporaryFile(
+            ).name + '.png'
+
+            plt.savefig(path_file_image_output)
+
+            import cv2
+            image = cv2.imread(path_file_image_output, cv2.IMREAD_COLOR)
+
+            import os
+            os.unlink(path_file_image_output)
+
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            return image
+
+        def to_torch_image(image):
+
+            import numpy as np
+            import torch
+            image = image.astype(dtype=np.float32)
+            image /= 255.0
+            image = torch.tensor(image)
+            return image
+
+        image = render_float(float_input=value)
+        image = to_torch_image(image)
+
+        return image
 
 
 # A dictionary that contains all nodes you want to export with their names
@@ -1343,6 +1406,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-pose-adaption": TRI3DPoseAdaption,
     "tri3d-load-pose-json": TRI3DLoadPoseJson,
     "tri3d-face-recognise": FaceRecognise,
+    "tri3d-float-to-image": FloatToImage,
 }
 
 VERSION = "1.4.0"
@@ -1362,4 +1426,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-pose-adaption": "Pose Adaption" + " v" + VERSION,
     "tri3d-load-pose-json": "Load Pose Json" + " v" + VERSION,
     "tri3d-face-recognise": "Recognise face" + " v" + VERSION,
+    "tri3d-float-to-image": "Render float" + " v" + VERSION,
 }
