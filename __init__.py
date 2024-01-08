@@ -1418,14 +1418,13 @@ class TRI3DBackPoseAdaption:
                 "input_pose_json_file": ("STRING", {"default": "dwpose/keypoints"}),
                 "backpose_json_file": ("STRING", {"default": "dwpose/keypoints"}),
                 "input_pose_type": (["front_pose", "back_pose"], {"default": "back_pose"}),
-                "target_pose_type":(["normal_back_pose", "side_facing_back_pose"], {"default": "normal_back_pose"})
             }
         }
     RETURN_TYPES = ("IMAGE","BOOLEAN")
     FUNCTION = "main"
     CATEGORY = "TRI3D"
     
-    def main(self, input_pose_json_file, backpose_json_file, input_pose_type, target_pose_type):
+    def main(self, input_pose_json_file, backpose_json_file, input_pose_type):
         from .dwpose import comfy_utils
 
         input_pose = json.load(open(input_pose_json_file))
@@ -1509,7 +1508,12 @@ class TRI3DBackPoseAdaption:
         input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 11, 12, 12, 13)    #scaling w.r.t to knee to foot ratio of ref pose
 
         #face
-        if target_pose_type == "normal_back_pose":
+        input_keypoints[14:18] = ref_keypoints[14:18]
+        input_keypoints[0] = ref_keypoints[0]
+
+
+        
+        if input_keypoints[0] == [-1,-1] and input_keypoints[14] == [-1,-1] and input_keypoints[15] == [-1,-1]:
             input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 1, 16)        #rotate left ear
             input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 1, 16)        #scaling w.r.t to neck len to ear_nose len ratio of ref pose
 
@@ -1524,7 +1528,7 @@ class TRI3DBackPoseAdaption:
             input_keypoints[14:18] = comfy_utils.move(prev_nose, input_keypoints[0], input_keypoints[14:18])
 
             if input_keypoints[14] != [-1,-1]: 
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0, 14)      #rotate left eye
+                input_keypoixnts = comfy_utils.rotate(ref_keypoints, input_keypoints, 0, 14)      #rotate left eye
                 input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 0, 14)        #scaling w.r.t to neck len to eye_nose len ratio of ref pose
 
             if input_keypoints[15] != [-1,-1]:
