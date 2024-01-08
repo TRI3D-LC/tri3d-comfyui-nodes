@@ -1265,13 +1265,13 @@ class TRI3DPoseAdaption:
                 canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
                 return (canvas, similar_torso)
 
-            #flip horizontally
-            if input_pose_type == "front_pose":
-                null_indices = [i for i in range(len(ref_keypoints)) if ref_keypoints[i] == [-1,-1]]    
-                
-                for i in null_indices:
-                    input_keypoints[i] = [-1,-1]
+            #Removing the face points if existed
+            null_indices = [i for i in range(len(ref_keypoints)) if ref_keypoints[i] == [-1,-1]]    
+            for i in null_indices:
+                input_keypoints[i] = [-1,-1]
 
+            if input_pose_type == "front_pose":
+                #flip horizontally
                 for i in range(len(input_keypoints)):
                     x,y = input_keypoints[i]
                     if input_keypoints[i] == [-1,-1]: continue
