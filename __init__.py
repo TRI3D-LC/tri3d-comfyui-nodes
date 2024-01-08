@@ -1106,7 +1106,12 @@ class TRI3DPoseAdaption:
                 }),
                 "ref_pose_json_file": ("STRING", {
                     "default": "dwpose/keypoints"
-                })
+                }),
+                "image_angle": (["front", "side", "back"], {"default": "front"}),
+                "target_pose_type":(["normal_back_pose", "side_facing_back_pose"], {"default": "normal_back_pose"})
+                
+
+
             }
         }
 
@@ -1114,121 +1119,243 @@ class TRI3DPoseAdaption:
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, input_pose_json_file, ref_pose_json_file):
+    def main(self, input_pose_json_file, ref_pose_json_file,image_angle, target_pose_type):
         from .dwpose import comfy_utils
 
-        input_pose = json.load(open(input_pose_json_file))
-        input_height = input_pose['height']
-        input_width = input_pose['width']
-        input_keypoints = input_pose['keypoints']
-        canvas = np.zeros(shape=(input_height, input_width, 3), dtype=np.uint8)
+        if image_angle == "front":
 
-        ref_pose = json.load(open(ref_pose_json_file))
-        ref_height = ref_pose['height']
-        ref_width = ref_pose['width']
-        ref_keypoints = ref_pose['keypoints']
+            input_pose = json.load(open(input_pose_json_file))
+            input_height = input_pose['height']
+            input_width = input_pose['width']
+            input_keypoints = input_pose['keypoints']
+            canvas = np.zeros(shape=(input_height, input_width, 3), dtype=np.uint8)
 
-        #check torso similarity
-        ls_angle_1, rs_angle_1, torso_angle_1 = comfy_utils.get_torso_angles(
-            input_keypoints)
-        ls_angle_2, rs_angle_2, torso_angle_2 = comfy_utils.get_torso_angles(
-            ref_keypoints)
+            ref_pose = json.load(open(ref_pose_json_file))
+            ref_height = ref_pose['height']
+            ref_width = ref_pose['width']
+            ref_keypoints = ref_pose['keypoints']
 
-        ls_angle_diff = abs(ls_angle_2 - ls_angle_1)
-        rs_angle_diff = abs(rs_angle_2 - rs_angle_1)
-        torso_angle_diff = abs(torso_angle_2 - torso_angle_1)
+            #check torso similarity
+            ls_angle_1, rs_angle_1, torso_angle_1 = comfy_utils.get_torso_angles(
+                input_keypoints)
+            ls_angle_2, rs_angle_2, torso_angle_2 = comfy_utils.get_torso_angles(
+                ref_keypoints)
 
-        similar_torso = False if (ls_angle_diff >= 5) | (
-            rs_angle_diff >= 5) | (torso_angle_diff >= 5) else True
+            ls_angle_diff = abs(ls_angle_2 - ls_angle_1)
+            rs_angle_diff = abs(rs_angle_2 - rs_angle_1)
+            torso_angle_diff = abs(torso_angle_2 - torso_angle_1)
 
-        if similar_torso == False:
-            canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
-                None,
-            ]
+            similar_torso = False if (ls_angle_diff >= 5) | (
+                rs_angle_diff >= 5) | (torso_angle_diff >= 5) else True
+
+            if similar_torso == False:
+                canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
+                    None,
+                ]
+                return (canvas, similar_torso)
+            
+            #Hands
+            if input_keypoints[4] == [-1,-1]: input_keypoints[4] = ref_keypoints[4]
+            if input_keypoints[7] == [-1,-1]: input_keypoints[7] = ref_keypoints[7]
+            
+            input_keypoints[88:] = ref_keypoints[88:]     #replace hands with reference hands
+
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 2, 3)      # rotate left elbow
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 2, 2, 3) #scaling w.r.t to shoulder to elbow ratio of ref pose
+
+            prev_lw = input_keypoints[4]
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 3, 4)      #rotate left wrist
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 3, 3, 4) #scaling w.r.t to elbow to wrist ratio of ref pose
+
+            #moving to hand ponts to wrist 
+            input_keypoints[109:] = comfy_utils.move(input_keypoints[109], input_keypoints[4], input_keypoints[109:]) 
+            input_keypoints[109:] = comfy_utils.move(ref_keypoints[4], ref_keypoints[109], input_keypoints[109:])
+
+            # input_keypoints = comfy_utils.rotate_hand(ref_keypoints, input_keypoints, 109)    #rotating left hand
+            input_keypoints = comfy_utils.scale_hand(ref_keypoints, input_keypoints, 3, 4, 109)    #scaling left hand w.r.t left wrist
+
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 5, 6)      #rotate right elbow
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 5, 5, 6) #scaling w.r.t to shoulder to elbow ratio of ref pose
+
+            prev_rw = input_keypoints[7]
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 6, 7)      #rotate right wrist
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 5, 6, 6, 7)    #scaling w.r.t to elbow to wrist ratio of ref pose
+
+            #moving hand points to wrist
+            input_keypoints[88:109] = comfy_utils.move(input_keypoints[88], input_keypoints[7], input_keypoints[88:109])
+            input_keypoints[88:109] = comfy_utils.move(ref_keypoints[7], ref_keypoints[88], input_keypoints[88:109])
+
+            # input_keypoints = comfy_utils.rotate_hand(ref_keypoints, input_keypoints, 88)    #rotating right hand
+            input_keypoints = comfy_utils.scale_hand(ref_keypoints, input_keypoints, 6, 7, 88)    #scaling right hand w.r.t right wrist
+
+
+            #legs
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 8, 9)      #rotate left knee
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 8, 8, 9)      #scale left knee
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 9, 10)     #rotate left foot
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 8, 9, 9, 10)    #scaling w.r.t to knee to foot ratio of ref pose
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 11, 12)     #rotate right knee
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 11, 11, 12)      #scale right knee
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 12, 13)    #rotate right foot
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 11, 12, 12, 13)    #scaling w.r.t to knee to foot ratio of ref pose
+
+            #face
+            prev_nose = input_keypoints[0]
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 1, 0)      #rotate nose
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 1, 0)      #scale neck to nose w.r.t to shoulder neck-nose len ratio of ref pose
+            
+            #changing face points to w.r.t to new nose point after rotation
+            input_keypoints[14:18] = comfy_utils.move(prev_nose, input_keypoints[0], input_keypoints[14:18])
+
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0,
+                                                14)  #rotate left eye
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 1, 0, 0,
+                14)  #scaling w.r.t to neck len to eye_nose len ratio of ref pose
+
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0,
+                                                15)  #rotate right eye
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 1, 0, 0,
+                15)  #scaling w.r.t to neck len to eye_nose len ratio of ref pose
+
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints,
+                                                14, 16)  #rotate left ear
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 1, 0, 14,
+                16)  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints,
+                                                15, 17)  #rotate right ear
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 1, 0, 15,
+                17)  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+
+            canvas = comfy_utils.draw_bodypose(canvas, input_keypoints)
+            canvas = comfy_utils.draw_handpose(canvas, input_keypoints[88:109])  #right hand
+            canvas = comfy_utils.draw_handpose(canvas, input_keypoints[109:])  #left hand
+            canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
             return (canvas, similar_torso)
         
-        #Hands
-        if input_keypoints[4] == [-1,-1]: input_keypoints[4] = ref_keypoints[4]
-        if input_keypoints[7] == [-1,-1]: input_keypoints[7] = ref_keypoints[7]
-        
-        input_keypoints[88:] = ref_keypoints[88:]     #replace hands with reference hands
+        if image_angle == "back":
 
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 2, 3)      # rotate left elbow
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 2, 2, 3) #scaling w.r.t to shoulder to elbow ratio of ref pose
+            input_pose = json.load(open(input_pose_json_file))
+            input_height = input_pose['height']
+            input_width = input_pose['width']
+            input_keypoints = input_pose['keypoints']
 
-        prev_lw = input_keypoints[4]
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 3, 4)      #rotate left wrist
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 3, 3, 4) #scaling w.r.t to elbow to wrist ratio of ref pose
+            input_pose_type = comfy_utils.get_input_pose_type(input_keypoints)
+            canvas = np.zeros(shape=(input_height, input_width, 3), dtype=np.uint8)
 
-        #moving to hand ponts to wrist 
-        input_keypoints[109:] = comfy_utils.move(input_keypoints[109], input_keypoints[4], input_keypoints[109:]) 
-        input_keypoints[109:] = comfy_utils.move(ref_keypoints[4], ref_keypoints[109], input_keypoints[109:])
+            ref_pose = json.load(open(ref_pose_json_file))
+            
+            ref_keypoints = ref_pose['keypoints']
+            
+            #check torso similarity
+            ls_angle_1, rs_angle_1, torso_angle_1 = comfy_utils.get_torso_angles(input_keypoints)
+            ls_angle_2, rs_angle_2, torso_angle_2 = comfy_utils.get_torso_angles(ref_keypoints)
 
-        # input_keypoints = comfy_utils.rotate_hand(ref_keypoints, input_keypoints, 109)    #rotating left hand
-        input_keypoints = comfy_utils.scale_hand(ref_keypoints, input_keypoints, 3, 4, 109)    #scaling left hand w.r.t left wrist
+            ls_angle_diff = abs(ls_angle_2 - ls_angle_1)
+            rs_angle_diff = abs(rs_angle_2 - rs_angle_1)
+            torso_angle_diff = abs(torso_angle_2 - torso_angle_1)
 
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 5, 6)      #rotate right elbow
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 5, 5, 6) #scaling w.r.t to shoulder to elbow ratio of ref pose
+            similar_torso = False if (ls_angle_diff >= 5) | (rs_angle_diff >= 5) | (torso_angle_diff >= 5) else True
 
-        prev_rw = input_keypoints[7]
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 6, 7)      #rotate right wrist
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 5, 6, 6, 7)    #scaling w.r.t to elbow to wrist ratio of ref pose
+            if similar_torso == False:
+                canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+                return (canvas, similar_torso)
 
-        #moving hand points to wrist
-        input_keypoints[88:109] = comfy_utils.move(input_keypoints[88], input_keypoints[7], input_keypoints[88:109])
-        input_keypoints[88:109] = comfy_utils.move(ref_keypoints[7], ref_keypoints[88], input_keypoints[88:109])
+            #flip horizontally
+            if input_pose_type == "front_pose":
+                null_indices = [i for i in range(len(ref_keypoints)) if ref_keypoints[i] == [-1,-1]]    
+                
+                for i in null_indices:
+                    input_keypoints[i] = [-1,-1]
 
-        # input_keypoints = comfy_utils.rotate_hand(ref_keypoints, input_keypoints, 88)    #rotating right hand
-        input_keypoints = comfy_utils.scale_hand(ref_keypoints, input_keypoints, 6, 7, 88)    #scaling right hand w.r.t right wrist
+                for i in range(len(input_keypoints)):
+                    x,y = input_keypoints[i]
+                    if input_keypoints[i] == [-1,-1]: continue
+                    input_keypoints[i] = [input_width - x, y]
+            
+            #Hands
+            if input_keypoints[4] == [-1,-1]: input_keypoints[4] = ref_keypoints[4]
+            if input_keypoints[7] == [-1,-1]: input_keypoints[7] = ref_keypoints[7]
+            input_keypoints[88:] = ref_keypoints[88:]     #replace hands with reference hands
 
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 2, 3)      # rotate left elbow
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 2, 2, 3) #scaling w.r.t to shoulder to elbow ratio of ref pose
 
-        #legs
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 8, 9)      #rotate left knee
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 8, 8, 9)      #scale left knee
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 9, 10)     #rotate left foot
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 8, 9, 9, 10)    #scaling w.r.t to knee to foot ratio of ref pose
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 11, 12)     #rotate right knee
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 11, 11, 12)      #scale right knee
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 12, 13)    #rotate right foot
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 11, 12, 12, 13)    #scaling w.r.t to knee to foot ratio of ref pose
+            prev_lw = input_keypoints[4]
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 3, 4)      #rotate left wrist
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 3, 3, 4) #scaling w.r.t to elbow to wrist ratio of ref pose
 
-        #face
-        prev_nose = input_keypoints[0]
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 1, 0)      #rotate nose
-        input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 1, 0)      #scale neck to nose w.r.t to shoulder neck-nose len ratio of ref pose
-        
-        #changing face points to w.r.t to new nose point after rotation
-        input_keypoints[14:18] = comfy_utils.move(prev_nose, input_keypoints[0], input_keypoints[14:18])
+            #moving to hand ponts to wrist 
+            input_keypoints[109:] = comfy_utils.move(input_keypoints[109], input_keypoints[4], input_keypoints[109:]) 
+            input_keypoints[109:] = comfy_utils.move(ref_keypoints[4], ref_keypoints[109], input_keypoints[109:])
 
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0,
-                                             14)  #rotate left eye
-        input_keypoints = comfy_utils.scale(
-            ref_keypoints, input_keypoints, 1, 0, 0,
-            14)  #scaling w.r.t to neck len to eye_nose len ratio of ref pose
+            # input_keypoints = comfy_utils.rotate_hand(ref_keypoints, input_keypoints, 109)    #rotating left hand
+            input_keypoints = comfy_utils.scale_hand(ref_keypoints, input_keypoints, 3, 4, 109)    #scaling left hand w.r.t left wrist
 
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0,
-                                             15)  #rotate right eye
-        input_keypoints = comfy_utils.scale(
-            ref_keypoints, input_keypoints, 1, 0, 0,
-            15)  #scaling w.r.t to neck len to eye_nose len ratio of ref pose
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 5, 6)      #rotate right elbow
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 5, 5, 6) #scaling w.r.t to shoulder to elbow ratio of ref pose
 
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints,
-                                             14, 16)  #rotate left ear
-        input_keypoints = comfy_utils.scale(
-            ref_keypoints, input_keypoints, 1, 0, 14,
-            16)  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+            prev_rw = input_keypoints[7]
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 6, 7)      #rotate right wrist
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 5, 6, 6, 7)    #scaling w.r.t to elbow to wrist ratio of ref pose
 
-        input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints,
-                                             15, 17)  #rotate right ear
-        input_keypoints = comfy_utils.scale(
-            ref_keypoints, input_keypoints, 1, 0, 15,
-            17)  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+            #moving hand points to wrist
+            input_keypoints[88:109] = comfy_utils.move(input_keypoints[88], input_keypoints[7], input_keypoints[88:109])
+            input_keypoints[88:109] = comfy_utils.move(ref_keypoints[7], ref_keypoints[88], input_keypoints[88:109])
 
-        canvas = comfy_utils.draw_bodypose(canvas, input_keypoints)
-        canvas = comfy_utils.draw_handpose(canvas, input_keypoints[88:109])  #right hand
-        canvas = comfy_utils.draw_handpose(canvas, input_keypoints[109:])  #left hand
-        canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
-        return (canvas, similar_torso)
+            # input_keypoints = comfy_utils.rotate_hand(ref_keypoints, input_keypoints, 88)    #rotating right hand
+            input_keypoints = comfy_utils.scale_hand(ref_keypoints, input_keypoints, 6, 7, 88)    #scaling right hand w.r.t right wrist
+
+            #legs
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 8, 9)      #rotate left knee
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 8, 8, 9)      #scale left knee
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 9, 10)     #rotate left foot
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 8, 9, 9, 10)    #scaling w.r.t to knee to foot ratio of ref pose
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 11, 12)     #rotate right knee
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 11, 11, 12)      #scale right knee
+            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 12, 13)    #rotate right foot
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 11, 12, 12, 13)    #scaling w.r.t to knee to foot ratio of ref pose
+
+            #face
+            if target_pose_type == "normal_back_pose":
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 1, 16)        #rotate left ear
+                input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 1, 16)        #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 1,17)        #rotate right ear
+                input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 1, 17)        #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+            else:
+                prev_nose = input_keypoints[0]
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 1, 0)      #rotate nose
+                input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 1, 0)      #scale neck to nose w.r.t to shoulder neck-nose len ratio of ref pose
+                
+                #changing face points to w.r.t to new nose point after rotation
+                input_keypoints[14:18] = comfy_utils.move(prev_nose, input_keypoints[0], input_keypoints[14:18])
+
+                if input_keypoints[14] != [-1,-1]: 
+                    input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0, 14)      #rotate left eye
+                    input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 0, 14)        #scaling w.r.t to neck len to eye_nose len ratio of ref pose
+
+                if input_keypoints[15] != [-1,-1]:
+                    input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0, 15)      #rotate right eye
+                    input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 0, 15)        #scaling w.r.t to neck len to eye_nose len ratio of ref pose
+
+                if input_keypoints[16] != [-1,-1]:
+                    input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 14, 16)        #rotate left ear
+                    input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 14, 16)        #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+
+                if input_keypoints[17] != [-1,-1]:
+                    input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 15,17)        #rotate right ear
+                    input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 15, 17)        #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+
+            canvas = comfy_utils.draw_bodypose(canvas, input_keypoints)
+            canvas = comfy_utils.draw_handpose(canvas, input_keypoints[88:109])  #right hand
+            canvas = comfy_utils.draw_handpose(canvas, input_keypoints[109:])  #left hand
+            canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+            return (canvas, similar_torso)
 
 
 class TRI3DLoadPoseJson:

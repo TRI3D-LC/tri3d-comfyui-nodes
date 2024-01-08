@@ -2,6 +2,16 @@ import cv2, os, math, json
 import numpy as np
 import matplotlib
 
+
+def get_input_pose_type(input_keypoints):
+    left_shoulder_x = input_keypoints[2][0]
+    right_shoulder_x = input_keypoints[5][0]
+
+    if left_shoulder_x - right_shoulder_x < 0:
+        return "front_pose"
+    else:
+        return "back_pose"
+    pass
 def draw_bodypose(canvas: np.ndarray, keypoints: list) -> np.ndarray:
 
     H, W, _ = canvas.shape
