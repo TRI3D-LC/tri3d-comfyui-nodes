@@ -1548,7 +1548,7 @@ NODE_CLASS_MAPPINGS = {
 
 
 
-VERSION = "1.7.0"
+VERSION = "1.7.1"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
