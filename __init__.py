@@ -1107,7 +1107,13 @@ class TRI3DPoseAdaption:
                 "ref_pose_json_file": ("STRING", {
                     "default": "dwpose/keypoints"
                 }),
-                "image_angle": (["front", "side", "back"], {"default": "front"})
+                "image_angle": (["front", "side", "back"], {"default": "front"}),
+                "rotation_threshold": ("FLOAT", {
+                    "default": 5.0,
+                    "min": 0.0,
+                    "max": 15.0,
+                    "step": 0.01
+                })
                 
 
 
@@ -1118,7 +1124,7 @@ class TRI3DPoseAdaption:
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, input_pose_json_file, ref_pose_json_file,image_angle):
+    def main(self, input_pose_json_file, ref_pose_json_file,image_angle,rotation_threshold):
         from .dwpose import comfy_utils
 
         if image_angle == "front":
@@ -1144,8 +1150,9 @@ class TRI3DPoseAdaption:
             rs_angle_diff = abs(rs_angle_2 - rs_angle_1)
             torso_angle_diff = abs(torso_angle_2 - torso_angle_1)
 
-            similar_torso = False if (ls_angle_diff >= 5) | (
-                rs_angle_diff >= 5) | (torso_angle_diff >= 5) else True
+            
+            similar_torso = False if (ls_angle_diff >= rotation_threshold) | (
+                rs_angle_diff >= rotation_threshold) | (torso_angle_diff >= rotation_threshold) else True
 
             if similar_torso == False:
                 canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
