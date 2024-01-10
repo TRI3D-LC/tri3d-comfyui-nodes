@@ -1107,14 +1107,15 @@ class TRI3DPoseAdaption:
                 "ref_pose_json_file": ("STRING", {
                     "default": "dwpose/keypoints"
                 }),
-                "image_angle": (["front", "side", "back"], {"default": "front"}),
+                "image_angle": (["front", "back"], {"default": "front"}),
                 "rotation_threshold": ("FLOAT", {
                     "default": 5.0,
                     "min": 0.0,
                     "max": 15.0,
                     "step": 0.01
-                })
-                
+                }),
+                "garment_category":([" no_sleeve_garment", "half_sleeve_garment", "full_sleeve_garment", \
+                                     "shorts", "trouser"], {"default": " no_sleeve_garment"})
 
 
             }
@@ -1124,7 +1125,7 @@ class TRI3DPoseAdaption:
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, input_pose_json_file, ref_pose_json_file,image_angle,rotation_threshold):
+    def main(self, input_pose_json_file, ref_pose_json_file, image_angle, rotation_threshold, garment_category):
         from .dwpose import comfy_utils
 
         if image_angle == "front":
@@ -1166,11 +1167,13 @@ class TRI3DPoseAdaption:
             
             input_keypoints[88:] = ref_keypoints[88:]     #replace hands with reference hands
 
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 2, 3)      # rotate left elbow
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 2, 2, 3) #scaling w.r.t to shoulder to elbow ratio of ref pose
+            if garment_category not in ["half_sleeve_garment", "full_sleeve_garment"]:
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 2, 3)      # rotate left elbow
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 2, 3) #scaling w.r.t to shoulder to elbow ratio of ref pose
 
             prev_lw = input_keypoints[4]
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 3, 4)      #rotate left wrist
+            if garment_category != "full_sleeve_garment":
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 3, 4)      #rotate left wrist
             input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 3, 3, 4) #scaling w.r.t to elbow to wrist ratio of ref pose
 
             #moving to hand ponts to wrist 
@@ -1180,11 +1183,13 @@ class TRI3DPoseAdaption:
             # input_keypoints = comfy_utils.rotate_hand(ref_keypoints, input_keypoints, 109)    #rotating left hand
             input_keypoints = comfy_utils.scale_hand(ref_keypoints, input_keypoints, 3, 4, 109)    #scaling left hand w.r.t left wrist
 
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 5, 6)      #rotate right elbow
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 5, 5, 6) #scaling w.r.t to shoulder to elbow ratio of ref pose
+            if garment_category not in ["half_sleeve_garment", "full_sleeve_garment"]:            
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 5, 6)      #rotate right elbow
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 5, 6) #scaling w.r.t to shoulder to elbow ratio of ref pose
 
             prev_rw = input_keypoints[7]
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 6, 7)      #rotate right wrist
+            if garment_category != "full_sleeve_garment":
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 6, 7)      #rotate right wrist
             input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 5, 6, 6, 7)    #scaling w.r.t to elbow to wrist ratio of ref pose
 
             #moving hand points to wrist
@@ -1196,13 +1201,20 @@ class TRI3DPoseAdaption:
 
 
             #legs
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 8, 9)      #rotate left knee
+            if garment_category not in ["trouser", "shorts"]:
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 8, 9)      #rotate left knee
             input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 8, 8, 9)      #scale left knee
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 9, 10)     #rotate left foot
+            
+            if garment_category != "trouser":
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 9, 10)     #rotate left foot
             input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 8, 9, 9, 10)    #scaling w.r.t to knee to foot ratio of ref pose
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 11, 12)     #rotate right knee
+            
+            if garment_category not in ["trouser", "shorts"]:
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 11, 12)     #rotate right knee
             input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 11, 11, 12)      #scale right knee
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 12, 13)    #rotate right foot
+            
+            if garment_category != "trouser":
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 12, 13)    #rotate right foot
             input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 11, 12, 12, 13)    #scaling w.r.t to knee to foot ratio of ref pose
 
             #face
@@ -1287,12 +1299,14 @@ class TRI3DPoseAdaption:
             if input_keypoints[4] == [-1,-1]: input_keypoints[4] = ref_keypoints[4]
             if input_keypoints[7] == [-1,-1]: input_keypoints[7] = ref_keypoints[7]
             input_keypoints[88:] = ref_keypoints[88:]     #replace hands with reference hands
-
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 2, 3)      # rotate left elbow
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 2, 2, 3) #scaling w.r.t to shoulder to elbow ratio of ref pose
+            
+            if garment_category not in ["half_sleeve_garment", "full_sleeve_garment"]:
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 2, 3)      # rotate left elbow
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 2, 3) #scaling w.r.t to shoulder to elbow ratio of ref pose
 
             prev_lw = input_keypoints[4]
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 3, 4)      #rotate left wrist
+            if garment_category != "full_sleeve_garment":
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 3, 4)      #rotate left wrist
             input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 3, 3, 4) #scaling w.r.t to elbow to wrist ratio of ref pose
 
             #moving to hand ponts to wrist 
@@ -1302,11 +1316,13 @@ class TRI3DPoseAdaption:
             # input_keypoints = comfy_utils.rotate_hand(ref_keypoints, input_keypoints, 109)    #rotating left hand
             input_keypoints = comfy_utils.scale_hand(ref_keypoints, input_keypoints, 3, 4, 109)    #scaling left hand w.r.t left wrist
 
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 5, 6)      #rotate right elbow
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 5, 5, 6) #scaling w.r.t to shoulder to elbow ratio of ref pose
+            if garment_category not in ["half_sleeve_garment", "full_sleeve_garment"]:
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 5, 6)      #rotate right elbow
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 5, 6) #scaling w.r.t to shoulder to elbow ratio of ref pose
 
             prev_rw = input_keypoints[7]
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 6, 7)      #rotate right wrist
+            if garment_category != "full_sleeve_garment":
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 6, 7)      #rotate right wrist
             input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 5, 6, 6, 7)    #scaling w.r.t to elbow to wrist ratio of ref pose
 
             #moving hand points to wrist
@@ -1317,13 +1333,20 @@ class TRI3DPoseAdaption:
             input_keypoints = comfy_utils.scale_hand(ref_keypoints, input_keypoints, 6, 7, 88)    #scaling right hand w.r.t right wrist
 
             #legs
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 8, 9)      #rotate left knee
+            if garment_category not in ["trouser", "shorts"]:
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 8, 9)      #rotate left knee
             input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 8, 8, 9)      #scale left knee
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 9, 10)     #rotate left foot
+
+            if garment_category != "trouser":
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 9, 10)     #rotate left foot
             input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 8, 9, 9, 10)    #scaling w.r.t to knee to foot ratio of ref pose
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 11, 12)     #rotate right knee
+
+            if garment_category not in ["half_sleeve_garment", "full_sleeve_garment"]:
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 11, 12)     #rotate right knee
             input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 11, 11, 12)      #scale right knee
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 12, 13)    #rotate right foot
+
+            if garment_category != "trouser":
+                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 12, 13)    #rotate right foot
             input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 11, 12, 12, 13)    #scaling w.r.t to knee to foot ratio of ref pose
 
             #face
@@ -1548,7 +1571,7 @@ NODE_CLASS_MAPPINGS = {
 
 
 
-VERSION = "1.7.1"
+VERSION = "1.7.2"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
