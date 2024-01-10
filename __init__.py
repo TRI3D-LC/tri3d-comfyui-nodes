@@ -1812,6 +1812,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-load-pose-json": TRI3DLoadPoseJson,
     "tri3d-face-recognise": TRI3DFaceRecognise,
     "tri3d-float-to-image": FloatToImage,
+    "tri3d-recolor-mask": TRI3D_recolor,
 }
 
 VERSION = "1.7.0"
@@ -1832,4 +1833,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-load-pose-json": "Load Pose Json" + " v" + VERSION,
     "tri3d-face-recognise": "Recognise face" + " v" + VERSION,
     "tri3d-float-to-image": "Render float" + " v" + VERSION,
+    "tri3d-recolor-mask": "Recolor mask" + " v" + VERSION,
 }
