@@ -1717,13 +1717,26 @@ class TRI3D_recolor:
             image = image.unsqueeze(0)
             return image
 
-        return to_torch_image(
-            image=do_recolor(image_1=from_torch_image(image=image_reference),
-                             mask_1=from_torch_image(
-                                 image=image_mask_reference),
-                             image_2=from_torch_image(image=image_recolor),
-                             mask_2=from_torch_image(
-                                 image=image_mask_recolor)))
+        image_reference = from_torch_image(image=image_reference)
+        image_mask_reference = from_torch_image(image=image_mask_reference)[:, :, 0]
+        image_recolor = from_torch_image(image=image_recolor)
+        image_mask_recolor = from_torch_image(image=image_mask_recolor)[:, :, 0]
+
+        # print('#### DEBUG #### ', image_reference.shape)
+        # print('#### DEBUG #### ', image_mask_reference.shape)
+        # print('#### DEBUG #### ', image_recolor.shape)
+        # print('#### DEBUG #### ', image_mask_recolor.shape)
+
+        image_output = do_recolor(image_1=image_reference,
+                                  mask_1=image_mask_reference,
+                                  image_2=image_recolor,
+                                  mask_2=image_mask_recolor)
+
+        # print('#### DEBUG #### ', image_output.shape)
+
+        image_output = to_torch_image(image=image_output)
+
+        return image_output
 
 
 class FloatToImage:
