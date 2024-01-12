@@ -1970,5 +1970,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-face-recognise": "Recognise face" + " v" + VERSION,
     "tri3d-float-to-image": "Render float" + " v" + VERSION,
     "tri3d-recolor-mask": "Recolor mask" + " v" + VERSION,
-    "tri3d-recolor-mask-LAB_space": TRI3D_recolor_LAB,
+    "tri3d-recolor-mask-LAB_space": "Recolor mask" + " v" + VERSION,
 }
