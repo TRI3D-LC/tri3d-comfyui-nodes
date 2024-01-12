@@ -1666,8 +1666,8 @@ class TRI3D_recolor:
                 image_1[:, :, i] *= mask_1
                 image_2[:, :, i] *= mask_2
 
-            image_1 = cv2.cvtColor(image_1, cv2.COLOR_BGR2HSV_FULL)
-            image_2 = cv2.cvtColor(image_2, cv2.COLOR_BGR2HSV_FULL)
+            image_1 = cv2.cvtColor(image_1, cv2.COLOR_BGR2LAB)
+            image_2 = cv2.cvtColor(image_2, cv2.COLOR_BGR2LAB)
 
             image_1 = image_1.astype(dtype=np.float32)
             image_2 = image_2.astype(dtype=np.float32)
@@ -1683,13 +1683,11 @@ class TRI3D_recolor:
                 image_2[:, :, i] = ((
                     (image_2[:, :, i] - mu_2) / sigma_2) * sigma_1) + mu_1
 
-                image_2[:, :, i] *= mask_2
+                # image_2[:, :, i] *= mask_2
 
-            image_2 = image_2.astype(dtype=np.int32)
-            image_2[:, :, 0] %= 255
             image_2 = np.clip(image_2, 0, 255)
             image_2 = image_2.astype(dtype=np.uint8)
-            image_2 = cv2.cvtColor(image_2, cv2.COLOR_HSV2BGR_FULL)
+            image_2 = cv2.cvtColor(image_2, cv2.COLOR_LAB2BGR)
 
             for i in range(3):
 
