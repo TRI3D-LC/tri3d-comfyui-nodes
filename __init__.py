@@ -1685,6 +1685,8 @@ class TRI3D_recolor:
 
                 image_2[:, :, i] *= mask_2
 
+            image_2 = image_2.astype(dtype=np.int32)
+            image_2[:, :, 0] %= 255
             image_2 = np.clip(image_2, 0, 255)
             image_2 = image_2.astype(dtype=np.uint8)
             image_2 = cv2.cvtColor(image_2, cv2.COLOR_HSV2BGR_FULL)
@@ -1718,9 +1720,11 @@ class TRI3D_recolor:
             return image
 
         image_reference = from_torch_image(image=image_reference)
-        image_mask_reference = from_torch_image(image=image_mask_reference)[:, :, 0]
+        image_mask_reference = from_torch_image(
+            image=image_mask_reference)[:, :, 0]
         image_recolor = from_torch_image(image=image_recolor)
-        image_mask_recolor = from_torch_image(image=image_mask_recolor)[:, :, 0]
+        image_mask_recolor = from_torch_image(image=image_mask_recolor)[:, :,
+                                                                        0]
 
         # print('#### DEBUG #### ', image_reference.shape)
         # print('#### DEBUG #### ', image_mask_reference.shape)
