@@ -1255,7 +1255,7 @@ class TRI3DPoseAdaption:
             canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
             return (canvas, similar_torso)
         
-        if image_angle == "back":
+        if 'back' in image_angle:
 
             input_pose = json.load(open(input_pose_json_file))
             input_height = input_pose['height']
@@ -1265,6 +1265,13 @@ class TRI3DPoseAdaption:
             input_pose_type = comfy_utils.get_input_pose_type(input_keypoints)
             canvas = np.zeros(shape=(input_height, input_width, 3), dtype=np.uint8)
 
+            if 'back_fixed' in image_angle:
+                back_pose_dictionary = {
+                    'back_fixed' : 'samples/backpose.json',
+                    'back_fixed_left' : 'samples/left_backpose.json',
+                    'back_fixed_right' : 'samples/right_backpose.json'
+                }
+                ref_pose_json_file = back_pose_dictionary[image_angle]
             ref_pose = json.load(open(ref_pose_json_file))
             
             ref_keypoints = ref_pose['keypoints']
