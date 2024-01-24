@@ -1275,8 +1275,9 @@ class TRI3DPoseAdaption:
                 }
 
 
-                ref_pose_json_file = 'custom_nodes/tri3d-comfyui-nodes/' + back_pose_dictionary[image_angle]
+                ref_pose_json_file = '/custom_nodes/tri3d-comfyui-nodes/' + back_pose_dictionary[image_angle]
             
+            # /home/ubuntu/GITHUB/comfyanonymous/ComfyUI/custom_nodes/tri3d-comfyui-nodes
             print(os.getcwd())
             print(ref_pose_json_file)
             ref_pose = json.load(open(ref_pose_json_file))
