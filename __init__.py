@@ -1101,12 +1101,8 @@ class TRI3DPoseAdaption:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "input_pose_json_file": ("STRING", {
-                    "default": "dwpose/keypoints"
-                }),
-                "ref_pose_json_file": ("STRING", {
-                    "default": "dwpose/keypoints"
-                }),
+                "input_pose_json_file": ("STRING",),
+                "ref_pose_json_file": ("STRING",),
                 "image_angle": (["front", "back","back_fixed","back_fixed_left","back_fixed_right"], {"default": "front"}),
                 "rotation_threshold": ("FLOAT", {
                     "default": 5.0,
@@ -1959,7 +1955,7 @@ NODE_CLASS_MAPPINGS = {
 
 
 
-VERSION = "2.1.0"
+VERSION = "2.1.1"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
