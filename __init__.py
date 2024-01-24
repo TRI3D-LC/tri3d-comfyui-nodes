@@ -1107,7 +1107,7 @@ class TRI3DPoseAdaption:
                 "ref_pose_json_file": ("STRING", {
                     "default": "dwpose/keypoints"
                 }),
-                "image_angle": (["front", "back"], {"default": "front"}),
+                "image_angle": (["front", "back","back_fixed","back_fixed_left","back_fixed_right"], {"default": "front"}),
                 "rotation_threshold": ("FLOAT", {
                     "default": 5.0,
                     "min": 0.0,
