@@ -1271,7 +1271,9 @@ class TRI3DPoseAdaption:
                     'back_fixed_left' : 'samples/left_backpose.json',
                     'back_fixed_right' : 'samples/right_backpose.json'
                 }
-                ref_pose_json_file = back_pose_dictionary[image_angle]
+
+
+                ref_pose_json_file = 'custom_nodes/tri3d-comfyui-nodes/' + back_pose_dictionary[image_angle]
             ref_pose = json.load(open(ref_pose_json_file))
             
             ref_keypoints = ref_pose['keypoints']
