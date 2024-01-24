@@ -1267,15 +1267,15 @@ class TRI3DPoseAdaption:
 
             if 'back_fixed' in image_angle:
 
-                print(ref_pose_json_file)
+                back_pose_dir = '/custom_nodes/tri3d-comfyui-nodes/samples/back_poses/' 
                 back_pose_dictionary = {
-                    'back_fixed' : 'samples/backpose.json',
-                    'back_fixed_left' : 'samples/left_backpose.json',
-                    'back_fixed_right' : 'samples/right_backpose.json'
+                    'back_fixed' : 'backpose.json',
+                    'back_fixed_left' : 'left_backpose.json',
+                    'back_fixed_right' : 'right_backpose.json'
                 }
 
 
-                ref_pose_json_file = '/custom_nodes/tri3d-comfyui-nodes/' + back_pose_dictionary[image_angle]
+                ref_pose_json_file =  back_pose_dir + back_pose_dictionary[image_angle]
             
             # /home/ubuntu/GITHUB/comfyanonymous/ComfyUI/custom_nodes/tri3d-comfyui-nodes
             print(os.getcwd())
