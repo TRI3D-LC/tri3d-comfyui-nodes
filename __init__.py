@@ -1266,6 +1266,8 @@ class TRI3DPoseAdaption:
             canvas = np.zeros(shape=(input_height, input_width, 3), dtype=np.uint8)
 
             if 'back_fixed' in image_angle:
+
+                print(ref_pose_json_file)
                 back_pose_dictionary = {
                     'back_fixed' : 'samples/backpose.json',
                     'back_fixed_left' : 'samples/left_backpose.json',
@@ -1274,6 +1276,9 @@ class TRI3DPoseAdaption:
 
 
                 ref_pose_json_file = 'custom_nodes/tri3d-comfyui-nodes/' + back_pose_dictionary[image_angle]
+            
+            print(os.getcwd())
+            print(ref_pose_json_file)
             ref_pose = json.load(open(ref_pose_json_file))
             
             ref_keypoints = ref_pose['keypoints']
