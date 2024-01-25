@@ -8,6 +8,51 @@ import folder_paths
 from PIL import Image, ImageOps
 
 
+def from_torch_image(image):
+    image = image.squeeze().cpu().numpy() * 255.0
+    image = np.clip(image, 0, 255).astype(np.uint8)
+    return image
+
+
+def to_torch_image(image):
+    image = image.astype(dtype=np.float32)
+    image /= 255.0
+    image = torch.from_numpy(image)[
+        None,
+    ]
+    image = image.unsqueeze(0)
+    return image
+
+
+def get_bounding_box(mask_input):
+    rows = np.any(mask_input, axis=1)
+    cols = np.any(mask_input, axis=0)
+    rmin, rmax = np.where(rows)[0][[0, -1]]
+    cmin, cmax = np.where(cols)[0][[0, -1]]
+    return rmin, cmin, rmax, cmax
+
+
+def extract_box_from_image(image, mask):
+    y_min, x_min, y_max, x_max = get_bounding_box(mask_input=mask)
+    return image[y_min:y_max + 1, x_min:x_max + 1, :]
+
+
+def stitch_back_box_to_image(image_original, mask_original, image_patch):
+    y_min, x_min, y_max, x_max = get_bounding_box(mask_input=mask_original)
+    image_original[y_min:y_max + 1, x_min:x_max + 1] = image_patch
+    return image_original
+
+
+def do_work(image, external_file_name):
+    exec(open(external_file_name, 'r').read())
+    return image
+
+
+def do_work_with_mask(image, mask, external_file_name):
+    exec(open(external_file_name, 'r').read())
+    return image
+
+
 class TRI3DATRParseBatch:
 
     def __init__(self):
@@ -1930,6 +1975,62 @@ class TRI3D_recolor:
 
 
 
+
+class TRI3D_image_mask_2_box:
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE", ),
+                "mask": ("MASK", ),
+            },
+        }
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", )
+    CATEGORY = "HackNode"
+
+    def run(self, image, mask):
+        image = from_torch_image(image)
+        mask = from_torch_image(mask)
+        image = extract_box_from_image(image, mask)
+        image = to_torch_image(image)
+        return image
+
+
+class TRI3D_image_mask_box_2_image:
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE", ),
+                "mask": ("MASK", ),
+                "box": ("IMAGE", ),
+            },
+        }
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", )
+    CATEGORY = "HackNode"
+
+    def run(self, image, mask, box):
+        image = from_torch_image(image)
+        mask = from_torch_image(mask)
+        box = from_torch_image(box)
+        image = stitch_back_box_to_image(image, mask, box)
+        image = to_torch_image(image)
+        return image
+
+
+
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
@@ -1949,13 +2050,11 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-recolor-mask": TRI3D_recolor,
     "tri3d-recolor-mask-LAB_space": TRI3D_recolor_LAB,
     "tri3d-recolor-mask-RGB_space": TRI3D_recolor_RGB,
-
+    "tri3d-image-mask-2-box": TRI3D_image_mask_2_box,
+    "tri3d-image-mask-box-2-image": TRI3D_image_mask_box_2_image,
 }
 
-
-
-
-VERSION = "2.1.2"
+VERSION = "2.2"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
@@ -1976,4 +2075,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-recolor-mask": "Recolor mask HSV space" + " v" + VERSION,
     "tri3d-recolor-mask-LAB_space": "Recolor mask LAB space" + " v" + VERSION,
     "tri3d-recolor-mask-RGB_space": "Recolor mask RGB space" + " v" + VERSION,
+    "tri3d--image-mask-2-box": "Extract box from image" + " v" + VERSION,
+    "tri3d-image-mask-box-2-image": "Stitch box to image" + " v" + VERSION,
 }
