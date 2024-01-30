@@ -2133,5 +2133,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-recolor-mask-RGB_space": "Recolor mask RGB space" + " v" + VERSION,
     "tri3d--image-mask-2-box": "Extract box from image" + " v" + VERSION,
     "tri3d-image-mask-box-2-image": "Stitch box to image" + " v" + VERSION,
-    "tri3d-clipdrop-bgremove-api": "Remove background using clipdrop api" + " v" + VERSION
+    "tri3d-clipdrop-bgremove-api": "RemBG ClipDrop" + " v" + VERSION
 }
