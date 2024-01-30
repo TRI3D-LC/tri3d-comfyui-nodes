@@ -2057,8 +2057,11 @@ class TRI3D_clipdrop_bgremove_api:
         image = from_torch_image(image)
         print(image.shape)
         _, enc_image = cv2.imencode('.jpg', image)
+        from dotenv import load_dotenv
+        load_dotenv()
+        CLIPDROP_API_KEY = os.getenv('CLIPDROP_API_KEY')
 
-        CLIPDROP_API_KEY = os.environ.get('CLIPDROP_API_KEY')
+        # CLIPDROP_API_KEY = os.environ.get('CLIPDROP_API_KEY')
         
         r = requests.post('https://clipdrop-api.co/remove-background/v1',
         files = {
