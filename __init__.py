@@ -2107,7 +2107,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-clipdrop-bgremove-api": TRI3D_clipdrop_bgremove_api
 }
 
-VERSION = "2.2"
+VERSION = "2.3"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
