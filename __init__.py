@@ -1,5 +1,5 @@
 # v1.1.0
-import cv2, json, os, math
+import cv2, json, os, math, pathlib, requests, io
 import numpy as np
 import torch
 import hashlib
@@ -1181,26 +1181,28 @@ class TRI3DPoseAdaption:
             ref_height = ref_pose['height']
             ref_width = ref_pose['width']
             ref_keypoints = ref_pose['keypoints']
+            similar_torso = None
 
             #check torso similarity
-            ls_angle_1, rs_angle_1, torso_angle_1 = comfy_utils.get_torso_angles(
-                input_keypoints)
-            ls_angle_2, rs_angle_2, torso_angle_2 = comfy_utils.get_torso_angles(
-                ref_keypoints)
+            if garment_category not in ["shorts", "trouser"]:
+                ls_angle_1, rs_angle_1, torso_angle_1 = comfy_utils.get_torso_angles(
+                    input_keypoints)
+                ls_angle_2, rs_angle_2, torso_angle_2 = comfy_utils.get_torso_angles(
+                    ref_keypoints)
 
-            ls_angle_diff = abs(ls_angle_2 - ls_angle_1)
-            rs_angle_diff = abs(rs_angle_2 - rs_angle_1)
-            torso_angle_diff = abs(torso_angle_2 - torso_angle_1)
+                ls_angle_diff = abs(ls_angle_2 - ls_angle_1)
+                rs_angle_diff = abs(rs_angle_2 - rs_angle_1)
+                torso_angle_diff = abs(torso_angle_2 - torso_angle_1)
 
-            
-            similar_torso = False if (ls_angle_diff >= rotation_threshold) | (
-                rs_angle_diff >= rotation_threshold) | (torso_angle_diff >= rotation_threshold) else True
+                
+                similar_torso = False if (ls_angle_diff >= rotation_threshold) | (
+                    rs_angle_diff >= rotation_threshold) | (torso_angle_diff >= rotation_threshold) else True
 
-            if similar_torso == False:
-                canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
-                    None,
-                ]
-                return (canvas, similar_torso)
+                if similar_torso == False:
+                    canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
+                        None,
+                    ]
+                    return (canvas, similar_torso)
             
             #Hands
             if input_keypoints[4] == [-1,-1]: input_keypoints[4] = ref_keypoints[4]
@@ -1307,8 +1309,8 @@ class TRI3DPoseAdaption:
             canvas = np.zeros(shape=(input_height, input_width, 3), dtype=np.uint8)
 
             if 'back_fixed' in image_angle:
-
-                back_pose_dir = '/home/ubuntu/GITHUB/comfyanonymous/ComfyUI/' + '/custom_nodes/tri3d-comfyui-nodes/samples/back_poses/' 
+                
+                back_pose_dir = pathlib.Path().resolve() / 'custom_nodes/tri3d-comfyui-nodes/samples/back_poses/' 
                 back_pose_dictionary = {
                     'back_fixed' : 'backpose.json',
                     'back_fixed_left' : 'left_backpose.json',
@@ -1316,40 +1318,45 @@ class TRI3DPoseAdaption:
                 }
 
 
-                ref_pose_json_file =  back_pose_dir + back_pose_dictionary[image_angle]
+                ref_pose_json_file =  back_pose_dir / back_pose_dictionary[image_angle]
             
             # /home/ubuntu/GITHUB/comfyanonymous/ComfyUI/custom_nodes/tri3d-comfyui-nodes
-            print(os.getcwd())
             print(ref_pose_json_file)
             ref_pose = json.load(open(ref_pose_json_file))
             
             ref_keypoints = ref_pose['keypoints']
+            similar_torso = None
             
             #check torso similarity
-            ls_angle_1, rs_angle_1, torso_angle_1 = comfy_utils.get_torso_angles(input_keypoints)
-            ls_angle_2, rs_angle_2, torso_angle_2 = comfy_utils.get_torso_angles(ref_keypoints)
+            if garment_category not in ["shorts", "trouser"]:
+                ls_angle_1, rs_angle_1, torso_angle_1 = comfy_utils.get_torso_angles(input_keypoints)
+                ls_angle_2, rs_angle_2, torso_angle_2 = comfy_utils.get_torso_angles(ref_keypoints)
 
-            ls_angle_diff = abs(ls_angle_2 - ls_angle_1)
-            rs_angle_diff = abs(rs_angle_2 - rs_angle_1)
-            torso_angle_diff = abs(torso_angle_2 - torso_angle_1)
+                ls_angle_diff = abs(ls_angle_2 - ls_angle_1)
+                rs_angle_diff = abs(rs_angle_2 - rs_angle_1)
+                torso_angle_diff = abs(torso_angle_2 - torso_angle_1)
 
-            similar_torso = False if (ls_angle_diff >= 5) | (rs_angle_diff >= 5) | (torso_angle_diff >= 5) else True
+                similar_torso = False if (ls_angle_diff >= 5) | (rs_angle_diff >= 5) | (torso_angle_diff >= 5) else True
 
-            if similar_torso == False:
-                canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
-                return (canvas, similar_torso)
+                if similar_torso == False:
+                    canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+                    return (canvas, similar_torso)
 
             #Removing the face points if existed
             null_indices = [i for i in range(len(ref_keypoints)) if ref_keypoints[i] == [-1,-1]]    
             for i in null_indices:
                 input_keypoints[i] = [-1,-1]
+            
+            all_x = [i[0] for i in input_keypoints if i[0] != -1]
+            min_width = min(all_x)
+            max_width = max(all_x)
 
             if input_pose_type == "front_pose":
                 #flip horizontally
                 for i in range(len(input_keypoints)):
                     x,y = input_keypoints[i]
                     if input_keypoints[i] == [-1,-1]: continue
-                    input_keypoints[i] = [input_width - x, y]
+                    input_keypoints[i] = [(max_width - x)+min_width, y]
             
             #Hands
             if input_keypoints[4] == [-1,-1]: input_keypoints[4] = ref_keypoints[4]
@@ -2029,7 +2036,52 @@ class TRI3D_image_mask_box_2_image:
         image = to_torch_image(image)
         return image
 
+class TRI3D_clipdrop_bgremove_api:
 
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE", )
+            },
+        }
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", )
+    CATEGORY = "TRI3D"
+
+    def run(self, image):
+        image = from_torch_image(image)
+        print(image.shape)
+        _, enc_image = cv2.imencode('.jpg', image)
+
+        CLIPDROP_API_KEY = os.environ.get('CLIPDROP_API_KEY')
+        
+        r = requests.post('https://clipdrop-api.co/remove-background/v1',
+        files = {
+            'image_file': ("mannequin.jpg", enc_image.tobytes(), 'image/jpeg'),
+            },
+        headers = { 'x-api-key': CLIPDROP_API_KEY}
+        )
+        if (r.ok):
+            pass
+        else:
+            r.raise_for_status()
+        output = np.array(Image.open(io.BytesIO(r.content)))
+        output = cv2.cvtColor(output, cv2.COLOR_BGRA2RGBA)
+        # print("decoded output",output.shape)
+        # mask = output[:,:,3]
+        # output = output[:,:,0:3]
+        output = torch.from_numpy(output.astype(np.float32)/255.0)[None,]
+        # print("converted image to torch")
+        # print(output.shape)
+        # mask = torch.from_numpy(mask.astype(np.float32)/255.0)[None,]
+        # print("converted mask to torch")
+        # print(mask.shape)
+        return output,
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
@@ -2052,6 +2104,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-recolor-mask-RGB_space": TRI3D_recolor_RGB,
     "tri3d-image-mask-2-box": TRI3D_image_mask_2_box,
     "tri3d-image-mask-box-2-image": TRI3D_image_mask_box_2_image,
+    "tri3d-clipdrop-bgremove-api": TRI3D_clipdrop_bgremove_api
 }
 
 VERSION = "2.2"
@@ -2077,4 +2130,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-recolor-mask-RGB_space": "Recolor mask RGB space" + " v" + VERSION,
     "tri3d--image-mask-2-box": "Extract box from image" + " v" + VERSION,
     "tri3d-image-mask-box-2-image": "Stitch box to image" + " v" + VERSION,
+    "tri3d-clipdrop-bgremove-api": "Remove background using clipdrop api" + " v" + VERSION
 }
