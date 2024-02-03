@@ -2112,155 +2112,6 @@ class TRI3D_clipdrop_bgremove_api:
         # print(mask.shape)
         return output,
 
-class TRI3D_M2M_LOAD_REF_POSE: # load reference pose
-
-    def __init__(self):
-        pass
-
-    @classmethod
-    def INPUT_TYPES(s):
-        input_dir = pathlib.Path().resolve() / 'custom_nodes/tri3d-comfyui-nodes/samples/M2M/models/ref_poses'
-        files = [str(i.name) for i in input_dir.glob('**/*') if i.suffix != '.json' and i.stem[-8:] != '_posemap']
-        return {"required":
-                    {"image": (sorted(files), {"image_upload": True})},
-                }
-
-    FUNCTION = "run"
-    RETURN_TYPES = ("IMAGE", "IMAGE", "STRING", "STRING", "STRING", "STRING")
-    RETURN_NAMES = ("ref_img", "posemap_img", "angle", "gender", "garment_category", "ref_json_file")
-    CATEGORY = "TRI3D"
-
-    def run(self, image):
-        input_dir = pathlib.Path().resolve() / 'custom_nodes/tri3d-comfyui-nodes/samples/M2M/models/ref_poses'
-        ref_img_path = input_dir / image
-        filename = ref_img_path.stem
-        posemap_img_path = ref_img_path.parent / (filename+"_posemap.png")
-        metadata_path = ref_img_path.parent / (filename+"_metadata.json")
-        metadata = json.load(open(metadata_path,'r'))
-        angle = metadata['angle']
-        gender = metadata['gender']
-        garment_category = metadata['garment_category']
-        
-        ref_img = torch.from_numpy(np.array(Image.open(ref_img_path)).astype(np.float32)/255.0)[None,]
-        posemap_img = torch.from_numpy(np.array(Image.open(posemap_img_path)).astype(np.float32)/255.0)[None,]
-        
-        posemap_json_path = str(ref_img_path.parent / (filename+"_posemap.json"))
-        return ref_img, posemap_img, angle, gender, garment_category, posemap_json_path
-
-class TRI3D_M2M_LOAD_Face: 
-
-    def __init__(self):
-        pass
-
-    @classmethod
-    def INPUT_TYPES(s):
-        input_dir = pathlib.Path().resolve() / 'custom_nodes/tri3d-comfyui-nodes/samples/M2M/models/face_for_ipadapter'
-        files = [str(i.name) for i in input_dir.glob('**/*') if i.suffix != '.json']
-        return {"required":
-                    {"image": (sorted(files), {"image_upload": True})},
-                }
-
-    FUNCTION = "run"
-    RETURN_TYPES = ("IMAGE","IMAGE","STRING","STRING")
-    RETURN_NAMES = ("front_face_img", "back_face_img", "front_ethnicity", "back_ethnicity")
-    CATEGORY = "TRI3D"
-
-    def run(self, image):
-        input_dir = pathlib.Path().resolve() / 'custom_nodes/tri3d-comfyui-nodes/samples/M2M/models/face_for_ipadapter'
-        if image.startswith('front'):
-            front_face_img_path = input_dir / image
-            back_face_img_path = input_dir / image.replace('front','back')
-        if image.startswith('back'):
-            back_face_img_path = input_dir / image
-            front_face_img_path = input_dir / image.replace('back','front')
-        
-        front_metadata_path = front_face_img_path.parent / (front_face_img_path.stem +"_metadata.json")
-        back_metadata_path = back_face_img_path.parent / (back_face_img_path.stem +"_metadata.json")
-        front_metadata = json.load(open(front_metadata_path,'r'))
-        back_metadata = json.load(open(back_metadata_path,'r'))
-        front_ethnicity = front_metadata['ethnicity']
-        back_ethnicity = back_metadata['ethnicity']
-
-        front_face_img = torch.from_numpy(np.array(Image.open(front_face_img_path)).astype(np.float32)/255.0)[None,]
-        back_face_img = torch.from_numpy(np.array(Image.open(back_face_img_path)).astype(np.float32)/255.0)[None,]
-        return front_face_img, back_face_img, front_ethnicity, back_ethnicity
-
-class TRI3D_M2M_LOAD_ASSET: 
-
-    def __init__(self):
-        pass
-
-    @classmethod
-    def INPUT_TYPES(s):
-        input_dir = pathlib.Path().resolve() / 'custom_nodes/tri3d-comfyui-nodes/samples/M2M/models/assets_for_ipadapter'
-        files = [str(i.name) for i in input_dir.glob('**/*') if i.suffix != '.json']
-        return {"required":
-                    {"image": (sorted(files), {"image_upload": True})},
-                }
-
-    FUNCTION = "run"
-    RETURN_TYPES = ("IMAGE","STRING","STRING","STRING")
-    RETURN_NAMES = ("asset_img", "upper_garment", "lower_garment", "footwear")
-    CATEGORY = "TRI3D"
-
-    def run(self, image):
-        input_dir = pathlib.Path().resolve() / 'custom_nodes/tri3d-comfyui-nodes/samples/M2M/models/assets_for_ipadapter'
-        asset_img_path = input_dir / image
-        filename = asset_img_path.stem
-        # posemap_img_path = ref_img_path.parent / (filename+"_posemap.png")
-        metadata_path = asset_img_path.parent / (filename+"_metadata.json")
-        metadata = json.load(open(metadata_path,'r'))
-        upper_garment = metadata['upper_garment']
-        lower_garment = metadata['lower_garment']
-        footwear = metadata['footwear']
-        asset_img = torch.from_numpy(np.array(Image.open(asset_img_path)).astype(np.float32)/255.0)[None,]
-        return asset_img, upper_garment, lower_garment, footwear
-
-class TRI3D_M2M_Prompt_Builder:
-    def __init__(self):
-        pass
-
-    @classmethod
-    def INPUT_TYPES(s):
-        return {"required":
-                    {"ethnicity": ("STRING", {'default':"caucassian"} ), "gender":("STRING", {'default':"boy"}), "garment_category":("STRING",{'default':"half_sleeve_garment"}) \
-                     , "angle": ("STRING", {'default':"front"}), "upper_garment":("STRING",{'default':"t-shirt"}), "lower_garment":("STRING",{'default':"blue jeans"}), "footwear":("STRING",{'default':"white sneakers"})},
-                }
-
-    FUNCTION = "run"
-    RETURN_TYPES = ("STRING","STRING")
-    RETURN_NAMES = ("pos_prompt", "neg_prompt")
-    CATEGORY = "TRI3D"
-
-    def run(self, ethnicity, gender, garment_category, angle, upper_garment, lower_garment, footwear):
-        prompts = json.load(open(pathlib.Path().resolve() / "custom_nodes/tri3d-comfyui-nodes/samples/M2M/prompts.json",'r'))
-
-        def replace_keyword(keyword, prompt_keyword, default_value, prompt):
-            if prompt_keyword in prompt:
-                if keyword != "":
-                    prompt = prompt.replace(prompt_keyword, keyword)
-                else:
-                    prompt = prompt.replace(prompt_keyword, default_value)
-            return prompt
-
-        if garment_category in ["no_sleeve_garment", "half_sleeve_garment", "full_sleeve_garment"]:
-            pos_prompt = prompts['shirt']['positive']
-            neg_prompt = prompts['shirt']['negative']
-        elif garment_category == "trouser":
-            pos_prompt = prompts['trouser']['positive']
-            neg_prompt = prompts['trouser']['negative']
-        elif garment_category == "shorts":
-            pos_prompt = prompts['shorts']['positive']
-            neg_prompt = prompts['shorts'][gender]['negative']
-
-        pos_prompt = replace_keyword(upper_garment, "UPPER_GARMENT", "t-shirt", pos_prompt)
-        pos_prompt = replace_keyword(lower_garment, "LOWER_GARMENT", "blue jeans", pos_prompt)
-        pos_prompt = replace_keyword(footwear, "FOOTWEAR", "white sneakers", pos_prompt)
-        pos_prompt = replace_keyword(ethnicity, "ETHNICITY", "caucassian", pos_prompt)
-        pos_prompt = replace_keyword(gender, "GENDER", "boy", pos_prompt)
-
-        return pos_prompt, neg_prompt
-
 class TRI3DPoseProportion:
     
     def __init__(self):
@@ -2377,10 +2228,6 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-image-mask-2-box": TRI3D_image_mask_2_box,
     "tri3d-image-mask-box-2-image": TRI3D_image_mask_box_2_image,
     "tri3d-clipdrop-bgremove-api": TRI3D_clipdrop_bgremove_api,
-    "tri3d-m2m-load-reference-pose": TRI3D_M2M_LOAD_REF_POSE,
-    "tri3d-m2m-load-face": TRI3D_M2M_LOAD_Face,
-    "tri3d-m2m-load-asset": TRI3D_M2M_LOAD_ASSET,
-    "tri3d-m2m_prompt_builder": TRI3D_M2M_Prompt_Builder,
     "tri3d-pose-proportion":TRI3DPoseProportion
 }
 
@@ -2408,9 +2255,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d--image-mask-2-box": "Extract box from image" + " v" + VERSION,
     "tri3d-image-mask-box-2-image": "Stitch box to image" + " v" + VERSION,
     "tri3d-clipdrop-bgremove-api": "RemBG ClipDrop" + " v" + VERSION,
-    "tri3d-m2m-load-reference-pose":"Load m2m ref pose" + "v" + VERSION,
-    "tri3d-m2m-load-face":"Load m2m ref face" + "v" + VERSION,
-    "tri3d-m2m-load-asset": "Load m2m asset" + "v" + VERSION,
-    "tri3d-m2m_prompt_builder": "M2M Prompt Builder" + "v" + VERSION,
     "tri3d-pose-proportion":"Get pose proportion" + "v" + VERSION
 }
