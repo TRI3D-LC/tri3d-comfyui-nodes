@@ -1148,27 +1148,32 @@ class TRI3DPoseAdaption:
             "required": {
                 "input_pose_json_file": ("STRING",{"default" : "dwpose/keypoints/input.json"}),
                 "ref_pose_json_file": ("STRING",{"default" : "dwpose/keypoints/ref-pose.json"}),
-                "image_angle": ("STRING",["front", "back","back_fixed","back_fixed_left","back_fixed_right"], {"default": "front"}),
+                "image_angle": (["front", "back","back_fixed","back_fixed_left","back_fixed_right"], {"default": "front"}),
                 "rotation_threshold": ("FLOAT", {
                     "default": 5.0,
                     "min": 0.0,
                     "max": 15.0,
                     "step": 0.01
                 }),
-                "garment_category":("STRING",["no_sleeve_garment", "half_sleeve_garment", "full_sleeve_garment", \
-                                     "shorts", "trouser"], {"default": "no_sleeve_garment"})
-
-
+                "garment_category":(["no_sleeve_garment", "half_sleeve_garment", "full_sleeve_garment", \
+                                     "shorts", "trouser"], {"default": "no_sleeve_garment"}),
+                "output_save_path": ("STRING",{"default" : "dwpose/keypoints/adapted_pose.json"})
+            },
+            
+            "optional": {
+                "ref_face_pose_json_file": ("STRING",{"default" : ""}),
             }
         }
+        
 
     RETURN_TYPES = ("IMAGE", "BOOLEAN")
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, input_pose_json_file, ref_pose_json_file, image_angle, rotation_threshold, garment_category):
+    def main(self, input_pose_json_file, ref_pose_json_file, image_angle, rotation_threshold, garment_category,output_save_path, ref_face_pose_json_file=""):
         from .dwpose import comfy_utils
-
+        cur_file_dir = os.path.dirname(os.path.realpath(__file__))
+        output_save_path = os.path.join(cur_file_dir, output_save_path)
         if image_angle == "front":
 
             input_pose = json.load(open(input_pose_json_file))
@@ -1181,6 +1186,13 @@ class TRI3DPoseAdaption:
             ref_height = ref_pose['height']
             ref_width = ref_pose['width']
             ref_keypoints = ref_pose['keypoints']
+
+            if ref_face_pose_json_file != "":
+                ref_face_pose = json.load(open(ref_face_pose_json_file))
+                ref_face_height = ref_face_pose['height']
+                ref_face_width = ref_face_pose['width']
+                ref_face_keypoints = ref_face_pose['keypoints']
+                
             similar_torso = None
 
             #check torso similarity
@@ -1204,6 +1216,11 @@ class TRI3DPoseAdaption:
                     ]
                     return (canvas, similar_torso)
             
+
+            #Scaling shoulder of input with respect to shoulder-torso ratio of ref-pose
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 2, 1, 2, ref_torso=True)             #left shoulder
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 5, 1, 5, ref_torso=True)             #right shoulder
+
             #Hands
             if input_keypoints[4] == [-1,-1]: input_keypoints[4] = ref_keypoints[4]
             if input_keypoints[7] == [-1,-1]: input_keypoints[7] = ref_keypoints[7]
@@ -1242,11 +1259,10 @@ class TRI3DPoseAdaption:
             # input_keypoints = comfy_utils.rotate_hand(ref_keypoints, input_keypoints, 88)    #rotating right hand
             input_keypoints = comfy_utils.scale_hand(ref_keypoints, input_keypoints, 6, 7, 88)    #scaling right hand w.r.t right wrist
 
-
             #legs
             if garment_category not in ["trouser", "shorts"]:
                 input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 8, 9)      #rotate left knee
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 8, 8, 9)      #scale left knee
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 8, 8, 9, ref_torso=True)      #scale left knee
             
             if garment_category != "trouser":
                 input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 9, 10)     #rotate left foot
@@ -1254,7 +1270,7 @@ class TRI3DPoseAdaption:
             
             if garment_category not in ["trouser", "shorts"]:
                 input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 11, 12)     #rotate right knee
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 11, 11, 12)      #scale right knee
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 11, 11, 12, ref_torso=True)      #scale right knee
             
             if garment_category != "trouser":
                 input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 12, 13)    #rotate right foot
@@ -1262,40 +1278,48 @@ class TRI3DPoseAdaption:
 
             #face
             prev_nose = input_keypoints[0]
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 1, 0)      #rotate nose
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 1, 0)      #scale neck to nose w.r.t to shoulder neck-nose len ratio of ref pose
-            
+
+            if ref_face_pose_json_file != "":
+                reference = ref_face_keypoints
+            else:
+                reference = ref_keypoints
+
+            input_keypoints = comfy_utils.rotate(reference, input_keypoints, 1, 0)      #rotate nose
+            input_keypoints = comfy_utils.scale(reference, input_keypoints, 2, 5, 1, 0)      #scale neck to nose w.r.t to shoulder neck-nose len ratio of ref pose
+                
             #changing face points to w.r.t to new nose point after rotation
             input_keypoints[14:18] = comfy_utils.move(prev_nose, input_keypoints[0], input_keypoints[14:18])
 
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0,
+            input_keypoints = comfy_utils.rotate(reference, input_keypoints, 0,
                                                 14)  #rotate left eye
             input_keypoints = comfy_utils.scale(
-                ref_keypoints, input_keypoints, 1, 0, 0,
+                reference, input_keypoints, 1, 0, 0,
                 14)  #scaling w.r.t to neck len to eye_nose len ratio of ref pose
 
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0,
+            input_keypoints = comfy_utils.rotate(reference, input_keypoints, 0,
                                                 15)  #rotate right eye
             input_keypoints = comfy_utils.scale(
-                ref_keypoints, input_keypoints, 1, 0, 0,
+                reference, input_keypoints, 1, 0, 0,
                 15)  #scaling w.r.t to neck len to eye_nose len ratio of ref pose
 
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints,
+            input_keypoints = comfy_utils.rotate(reference, input_keypoints,
                                                 14, 16)  #rotate left ear
             input_keypoints = comfy_utils.scale(
-                ref_keypoints, input_keypoints, 1, 0, 14,
+                reference, input_keypoints, 1, 0, 14,
                 16)  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
 
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints,
+            input_keypoints = comfy_utils.rotate(reference, input_keypoints,
                                                 15, 17)  #rotate right ear
             input_keypoints = comfy_utils.scale(
-                ref_keypoints, input_keypoints, 1, 0, 15,
+                reference, input_keypoints, 1, 0, 15,
                 17)  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
 
             canvas = comfy_utils.draw_bodypose(canvas, input_keypoints)
             canvas = comfy_utils.draw_handpose(canvas, input_keypoints[88:109])  #right hand
             canvas = comfy_utils.draw_handpose(canvas, input_keypoints[109:])  #left hand
             canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+            output_posemap = {"height":input_height, "width":input_width, "keypoints":input_keypoints}
+            json.dump(output_posemap, open(output_save_path, 'w'))
             return (canvas, similar_torso)
         
         if 'back' in image_angle:
@@ -1452,6 +1476,8 @@ class TRI3DPoseAdaption:
             canvas = comfy_utils.draw_handpose(canvas, input_keypoints[88:109])  #right hand
             canvas = comfy_utils.draw_handpose(canvas, input_keypoints[109:])  #left hand
             canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+            output_posemap = {"height":input_height, "width":input_width, "keypoints":input_keypoints}
+            json.dump(output_posemap, open(output_save_path, 'w'))
             return (canvas, similar_torso)
 
 
@@ -2235,6 +2261,100 @@ class TRI3D_M2M_Prompt_Builder:
 
         return pos_prompt, neg_prompt
 
+class TRI3DPoseProportion:
+    
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required":
+                    {"pose1_json_file":("STRING",{"default":""}), "pose2_json_file":("STRING",{"default":""}), \
+                     "body_part":(["face", "left_elbow", "right_elbow", "left_wrist", "right_wrist", \
+                                   "left_knee", "right_knee", "left_ankle", "right_ankle"],{"default":"face"})
+                     }
+                }
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("FLOAT","FLOAT")
+    RETURN_NAMES = ("pose1_proportion", "pose2_proportion")
+    CATEGORY = "TRI3D"
+
+    def run(self, pose1_json_file, pose2_json_file, body_part):
+        from .dwpose import comfy_utils
+
+        pose1 = json.load(open(pose1_json_file,'r'))
+        pose2 = json.load(open(pose2_json_file,'r'))
+        
+        pose1_keypoints = pose1['keypoints']
+        pose2_keypoints = pose2['keypoints']
+
+        #Calculate torso 2nd coord
+        pose1_ref_torso_x = int((pose1_keypoints[8][0] + pose1_keypoints[11][0]) / 2)
+        pose1_ref_torso_y = int((pose1_keypoints[8][1] + pose1_keypoints[11][1]) / 2)
+        pose2_ref_torso_x = int((pose2_keypoints[8][0] + pose2_keypoints[11][0]) / 2)
+        pose2_ref_torso_y = int((pose2_keypoints[8][1] + pose2_keypoints[11][1]) / 2)
+
+        if body_part == "face":
+            pose1_ratio = comfy_utils.get_ratio(pose1_keypoints[2][0], pose1_keypoints[2][1], pose1_keypoints[5][0], pose1_keypoints[5][1],                       
+                            pose1_keypoints[16][0], pose1_keypoints[16][1], pose1_keypoints[17][0], pose1_keypoints[17][1])
+
+            pose2_ratio = comfy_utils.get_ratio(pose2_keypoints[2][0], pose2_keypoints[2][1], pose2_keypoints[5][0], pose2_keypoints[5][1],                       
+                            pose2_keypoints[16][0], pose2_keypoints[16][1], pose2_keypoints[17][0], pose2_keypoints[17][1])
+        elif body_part == "left_elbow":
+            pose1_ratio = comfy_utils.get_ratio(pose1_keypoints[2][0], pose1_keypoints[2][1], pose1_keypoints[5][0], pose1_keypoints[5][1],                       
+                            pose1_keypoints[2][0], pose1_keypoints[2][1], pose1_keypoints[3][0], pose1_keypoints[3][1])
+
+            pose2_ratio = comfy_utils.get_ratio(pose2_keypoints[2][0], pose2_keypoints[2][1], pose2_keypoints[5][0], pose2_keypoints[5][1],                       
+                            pose2_keypoints[2][0], pose2_keypoints[2][1], pose2_keypoints[3][0], pose2_keypoints[3][1])
+        elif body_part == "right_elbow":
+            pose1_ratio = comfy_utils.get_ratio(pose1_keypoints[2][0], pose1_keypoints[2][1], pose1_keypoints[5][0], pose1_keypoints[5][1],                       
+                            pose1_keypoints[5][0], pose1_keypoints[5][1], pose1_keypoints[6][0], pose1_keypoints[6][1])
+
+            pose2_ratio = comfy_utils.get_ratio(pose2_keypoints[2][0], pose2_keypoints[2][1], pose2_keypoints[5][0], pose2_keypoints[5][1],                       
+                            pose2_keypoints[5][0], pose2_keypoints[5][1], pose2_keypoints[6][0], pose2_keypoints[6][1])
+        elif body_part == "left_wrist":
+            pose1_ratio = comfy_utils.get_ratio(pose1_keypoints[2][0], pose1_keypoints[2][1], pose1_keypoints[3][0], pose1_keypoints[3][1],                       
+                            pose1_keypoints[3][0], pose1_keypoints[3][1], pose1_keypoints[4][0], pose1_keypoints[4][1])
+
+            pose2_ratio = comfy_utils.get_ratio(pose2_keypoints[2][0], pose2_keypoints[2][1], pose2_keypoints[3][0], pose2_keypoints[3][1],                       
+                            pose2_keypoints[3][0], pose2_keypoints[3][1], pose2_keypoints[4][0], pose2_keypoints[4][1])
+        elif body_part == "right_wrist":
+            pose1_ratio = comfy_utils.get_ratio(pose1_keypoints[5][0], pose1_keypoints[5][1], pose1_keypoints[6][0], pose1_keypoints[6][1],                       
+                            pose1_keypoints[6][0], pose1_keypoints[6][1], pose1_keypoints[7][0], pose1_keypoints[7][1])
+
+            pose2_ratio = comfy_utils.get_ratio(pose2_keypoints[5][0], pose2_keypoints[5][1], pose2_keypoints[6][0], pose2_keypoints[6][1],                       
+                            pose2_keypoints[6][0], pose2_keypoints[6][1], pose2_keypoints[7][0], pose2_keypoints[7][1])
+        elif body_part == "left_knee":
+            pose1_ratio = comfy_utils.get_ratio(pose1_keypoints[1][0], pose1_keypoints[1][1], pose1_ref_torso_x, pose1_ref_torso_y,                       
+                            pose1_keypoints[8][0], pose1_keypoints[8][1], pose1_keypoints[9][0], pose1_keypoints[9][1])
+
+            pose2_ratio = comfy_utils.get_ratio(pose2_keypoints[1][0], pose2_keypoints[1][1], pose2_ref_torso_x, pose2_ref_torso_y,                       
+                            pose2_keypoints[8][0], pose2_keypoints[8][1], pose2_keypoints[9][0], pose2_keypoints[9][1])
+
+        elif body_part == "right_knee":
+            pose1_ratio = comfy_utils.get_ratio(pose1_keypoints[1][0], pose1_keypoints[1][1], pose1_ref_torso_x, pose1_ref_torso_y,                       
+                            pose1_keypoints[11][0], pose1_keypoints[11][1], pose1_keypoints[12][0], pose1_keypoints[12][1])
+
+            pose2_ratio = comfy_utils.get_ratio(pose2_keypoints[1][0], pose2_keypoints[1][1], pose2_ref_torso_x, pose2_ref_torso_y,                       
+                            pose2_keypoints[11][0], pose2_keypoints[11][1], pose2_keypoints[12][0], pose2_keypoints[12][1])
+        
+        elif body_part == "left_ankle":
+            pose1_ratio = comfy_utils.get_ratio(pose1_keypoints[8][0], pose1_keypoints[8][1], pose1_keypoints[9][0], pose1_keypoints[9][1],                       
+                            pose1_keypoints[9][0], pose1_keypoints[9][1], pose1_keypoints[10][0], pose1_keypoints[10][1])
+
+            pose2_ratio = comfy_utils.get_ratio(pose2_keypoints[8][0], pose2_keypoints[8][1], pose2_keypoints[9][0], pose2_keypoints[9][1],                       
+                            pose2_keypoints[9][0], pose2_keypoints[9][1], pose2_keypoints[10][0], pose2_keypoints[10][1])
+
+        elif body_part == "right_ankle":
+            pose1_ratio = comfy_utils.get_ratio(pose1_keypoints[11][0], pose1_keypoints[11][1], pose1_keypoints[12][0], pose1_keypoints[12][1],                       
+                            pose1_keypoints[12][0], pose1_keypoints[12][1], pose1_keypoints[13][0], pose1_keypoints[13][1])
+
+            pose2_ratio = comfy_utils.get_ratio(pose2_keypoints[11][0], pose2_keypoints[11][1], pose2_keypoints[12][0], pose2_keypoints[12][1],                       
+                            pose2_keypoints[12][0], pose2_keypoints[12][1], pose2_keypoints[13][0], pose2_keypoints[13][1])
+        
+        return pose1_ratio, pose2_ratio
+
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
@@ -2260,7 +2380,8 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-m2m-load-reference-pose": TRI3D_M2M_LOAD_REF_POSE,
     "tri3d-m2m-load-face": TRI3D_M2M_LOAD_Face,
     "tri3d-m2m-load-asset": TRI3D_M2M_LOAD_ASSET,
-    "tri3d-m2m_prompt_builder": TRI3D_M2M_Prompt_Builder
+    "tri3d-m2m_prompt_builder": TRI3D_M2M_Prompt_Builder,
+    "tri3d-pose-proportion":TRI3DPoseProportion
 }
 
 VERSION = "2.3"
@@ -2290,5 +2411,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-m2m-load-reference-pose":"Load m2m ref pose" + "v" + VERSION,
     "tri3d-m2m-load-face":"Load m2m ref face" + "v" + VERSION,
     "tri3d-m2m-load-asset": "Load m2m asset" + "v" + VERSION,
-    "tri3d-m2m_prompt_builder": "M2M Prompt Builder" + "v" + VERSION
+    "tri3d-m2m_prompt_builder": "M2M Prompt Builder" + "v" + VERSION,
+    "tri3d-pose-proportion":"Get pose proportion" + "v" + VERSION
 }

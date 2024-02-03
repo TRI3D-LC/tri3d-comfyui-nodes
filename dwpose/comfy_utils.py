@@ -35,7 +35,7 @@ def draw_bodypose(canvas: np.ndarray, keypoints: list) -> np.ndarray:
         keypoint1 = keypoints[k1_index - 1]
         keypoint2 = keypoints[k2_index - 1]
 
-        if -1 in keypoint1 or -1 in keypoint2:
+        if any(i < 0 for i in keypoint1) or any(i < 0 for i in keypoint2):
             continue
 
         Y = np.array([keypoint1[0], keypoint2[0]]) 
@@ -46,8 +46,9 @@ def draw_bodypose(canvas: np.ndarray, keypoints: list) -> np.ndarray:
         angle = math.degrees(math.atan2(X[0] - X[1], Y[0] - Y[1]))
         polygon = cv2.ellipse2Poly((int(mY), int(mX)), (int(length / 2), stickwidth), int(angle), 0, 360, 1)
         cv2.fillConvexPoly(canvas, polygon, [int(float(c) * 0.6) for c in color])
+    
     for i, (keypoint, color) in enumerate(zip(keypoints, colors)):
-        if -1 in keypoint:
+        if any(i < 0 for i in keypoint1):
             continue
         
         x, y = keypoint[0], keypoint[1]
@@ -106,25 +107,38 @@ def rotate(src_keypoints, dest_keypoints, point1_idx, point2_idx):
     
     return dest_keypoints
 
-def scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, point1_idx, point2_idx):
-    ref_x1,ref_y1 = src_keypoints[ref_point1_idx]
-    ref_x2,ref_y2 = src_keypoints[ref_point2_idx]
-    ref_x3,ref_y3 = dest_keypoints[ref_point1_idx]
-    ref_x4,ref_y4 = dest_keypoints[ref_point2_idx]
+def scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, point1_idx, point2_idx, ref_torso=False):
+
+    if ref_torso == True:
+        ref_x1,ref_y1 = src_keypoints[1]
+        ref_x3,ref_y3 = dest_keypoints[1]
+
+        ref_x2 = int((src_keypoints[8][0] + src_keypoints[11][0]) / 2)
+        ref_y2 = int((src_keypoints[8][1] + src_keypoints[11][1]) / 2)
+        ref_x4 = int((dest_keypoints[8][0] + dest_keypoints[11][0]) / 2)
+        ref_y4 = int((dest_keypoints[8][1] + dest_keypoints[11][1]) / 2)
+    else:
+        ref_x1,ref_y1 = src_keypoints[ref_point1_idx]
+        ref_x2,ref_y2 = src_keypoints[ref_point2_idx]
+        ref_x3,ref_y3 = dest_keypoints[ref_point1_idx]
+        ref_x4,ref_y4 = dest_keypoints[ref_point2_idx]
     
     x1,y1 = src_keypoints[point1_idx]
     x2,y2 = src_keypoints[point2_idx]
     x3,y3 = dest_keypoints[point1_idx]
     x4,y4 = dest_keypoints[point2_idx]
     
-    src_ref_len = np.linalg.norm(np.array([ref_x1, ref_y1]) - np.array([ref_x2, ref_y2]))             #src ref part distance
-    dest_ref_len = np.linalg.norm(np.array([ref_x3, ref_y3]) - np.array([ref_x4, ref_y4]))          #dest ref part distance
+    # src_ref_len = np.linalg.norm(np.array([ref_x1, ref_y1]) - np.array([ref_x2, ref_y2]))             #src ref part distance
+    # dest_ref_len = np.linalg.norm(np.array([ref_x3, ref_y3]) - np.array([ref_x4, ref_y4]))          #dest ref part distance
 
-    src_targ_len = np.linalg.norm(np.array([x1, y1]) - np.array([x2, y2]))             #src targ part distance
-    dest_targ_len = np.linalg.norm(np.array([x3, y3]) - np.array([x4,y4]))          #dest targ part distance
+    # src_targ_len = np.linalg.norm(np.array([x1, y1]) - np.array([x2, y2]))             #src targ part distance
+    # dest_targ_len = np.linalg.norm(np.array([x3, y3]) - np.array([x4,y4]))          #dest targ part distance
 
-    src_targ_ref_ratio = src_targ_len / src_ref_len                  #src targ to ref ratio
-    dest_targ_ref_ratio = dest_targ_len / dest_ref_len            #dest targ to ref ratio
+    # src_targ_ref_ratio = src_targ_len / src_ref_len                  #src targ to ref ratio
+    # dest_targ_ref_ratio = dest_targ_len / dest_ref_len            #dest targ to ref ratio
+
+    src_targ_ref_ratio = get_ratio(ref_x1, ref_y1, ref_x2, ref_y2, x1, y1, x2, y2)                #src targ to ref ratio
+    dest_targ_ref_ratio = get_ratio(ref_x3, ref_y3, ref_x4, ref_y4, x3, y3, x4, y4)            #dest targ to ref ratio
 
     scale = src_targ_ref_ratio / dest_targ_ref_ratio
 
@@ -134,6 +148,11 @@ def scale(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, point1_
     dest_keypoints[point2_idx] = [x4_scaled, y4_scaled]
     
     return dest_keypoints
+
+def get_ratio(ref_x1, ref_y1, ref_x2, ref_y2, x1, y1, x2, y2):
+    ref_len = np.linalg.norm(np.array([ref_x1, ref_y1]) - np.array([ref_x2, ref_y2]))             #ref body part length
+    targ_len = np.linalg.norm(np.array([x1, y1]) - np.array([x2, y2]))             #targ body part length
+    return targ_len / ref_len
 
 def scale_hand(src_keypoints, dest_keypoints, ref_point1_idx, ref_point2_idx, starting_idx):
     
@@ -239,7 +258,7 @@ def get_torso_angles(keypoints):
     a,b = keypoints[5],keypoints[1]
     angle_radians = math.tan((a[1]-b[1])/(a[0]-b[0]))
     rs_angle = abs(math.degrees(angle_radians))
-    
+
     #getting bisector of torso and getting angle with y_axis
     a,b,c = keypoints[8], keypoints[1], keypoints[11]
 
