@@ -1259,22 +1259,22 @@ class TRI3DPoseAdaption:
             # input_keypoints = comfy_utils.rotate_hand(ref_keypoints, input_keypoints, 88)    #rotating right hand
             input_keypoints = comfy_utils.scale_hand(ref_keypoints, input_keypoints, 6, 7, 88)    #scaling right hand w.r.t right wrist
 
-            #legs
-            if garment_category not in ["trouser", "shorts"]:
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 8, 9)      #rotate left knee
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 8, 8, 9, ref_torso=True)      #scale left knee
+            # #legs
+            # if garment_category not in ["trouser", "shorts"]:
+            #     input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 8, 9)      #rotate left knee
+            # input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 8, 8, 9, ref_torso=True)      #scale left knee
             
-            if garment_category != "trouser":
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 9, 10)     #rotate left foot
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 8, 9, 9, 10)    #scaling w.r.t to knee to foot ratio of ref pose
+            # if garment_category != "trouser":
+            #     input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 9, 10)     #rotate left foot
+            # input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 8, 9, 9, 10)    #scaling w.r.t to knee to foot ratio of ref pose
             
-            if garment_category not in ["trouser", "shorts"]:
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 11, 12)     #rotate right knee
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 11, 11, 12, ref_torso=True)      #scale right knee
+            # if garment_category not in ["trouser", "shorts"]:
+            #     input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 11, 12)     #rotate right knee
+            # input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 11, 11, 12, ref_torso=True)      #scale right knee
             
-            if garment_category != "trouser":
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 12, 13)    #rotate right foot
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 11, 12, 12, 13)    #scaling w.r.t to knee to foot ratio of ref pose
+            # if garment_category != "trouser":
+            #     input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 12, 13)    #rotate right foot
+            # input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 11, 12, 12, 13)    #scaling w.r.t to knee to foot ratio of ref pose
 
             #face
             prev_nose = input_keypoints[0]
