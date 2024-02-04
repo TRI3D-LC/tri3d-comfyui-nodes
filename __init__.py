@@ -1214,7 +1214,7 @@ class TRI3DPoseAdaption:
                     canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
                         None,
                     ]
-                    return (canvas, similar_torso)
+                    return (canvas, similar_torso, output_save_path)
             
 
             #Scaling shoulder of input with respect to shoulder-torso ratio of ref-pose
@@ -1364,7 +1364,7 @@ class TRI3DPoseAdaption:
 
                 if similar_torso == False:
                     canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
-                    return (canvas, similar_torso)
+                    return (canvas, similar_torso, output_save_path)
 
             #Removing the face points if existed
             null_indices = [i for i in range(len(ref_keypoints)) if ref_keypoints[i] == [-1,-1]]    
