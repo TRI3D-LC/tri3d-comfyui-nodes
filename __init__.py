@@ -1658,7 +1658,7 @@ class StringToImage:
     def load_image(self, value):
 
         def render_float(float_input):
-            latex_expression = '$' + str(float_input) + '$'
+            latex_expression = float_input
             import matplotlib.pyplot as plt
 
             fig = plt.figure(
