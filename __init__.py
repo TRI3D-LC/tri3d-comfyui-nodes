@@ -1658,7 +1658,7 @@ class StringToImage:
     def load_image(self, value):
 
         def render_float(float_input):
-            latex_expression = '$\\text{' + float_input.replace('_', '\\_') + '}$'
+            # latex_expression = '$\\text{' + float_input.replace('_', '\\_') + '}$'
             import matplotlib.pyplot as plt
 
             fig = plt.figure(
@@ -1667,7 +1667,7 @@ class StringToImage:
             text = fig.text(
                 x=0.5,  # x-coordinate to place the text
                 y=0.5,  # y-coordinate to place the text
-                s=latex_expression,
+                s=float_input,
                 horizontalalignment="center",
                 verticalalignment="center",
                 fontsize=32,
