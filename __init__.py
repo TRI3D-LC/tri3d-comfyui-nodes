@@ -2323,9 +2323,9 @@ class TRI3DPoseProportions:
 
         leg_ratio = 0.5*(knee_ratio + ankle_ratio)
 
-        string_output = "Face: " + str(face_ratio) + " Knee: " + str(knee_ratio) + " Ankle: " + str(ankle_ratio) + " Leg: " + str(leg_ratio)
+        string_output = "Face: " + str(face_ratio) + " Leg: " + str(leg_ratio) + "\nKnee: " + str(knee_ratio) + " Ankle: " + str(ankle_ratio) 
 
-        print(pose1_json_file,string_output)
+        print(pose1_json_file.split("/")[-1],string_output)
         return string_output
 
 
