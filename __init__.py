@@ -1637,6 +1637,74 @@ class FloatToImage:
 
         return image
 
+
+
+class StringToImage:
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "value": ("STRING", {
+                    "default": "Hello World",
+                })
+            }
+        }
+
+    CATEGORY = "TRI3D"
+    RETURN_TYPES = ("IMAGE", )
+    FUNCTION = "load_image"
+
+    def load_image(self, value):
+
+        def render_float(float_input):
+            latex_expression = '$' + str(float_input) + '$'
+            import matplotlib.pyplot as plt
+
+            fig = plt.figure(
+                figsize=(10, 4))  # Dimensions of figsize are in inches
+
+            text = fig.text(
+                x=0.5,  # x-coordinate to place the text
+                y=0.5,  # y-coordinate to place the text
+                s=latex_expression,
+                horizontalalignment="center",
+                verticalalignment="center",
+                fontsize=32,
+            )
+
+            import tempfile
+            path_file_image_output = tempfile.NamedTemporaryFile(
+            ).name + '.png'
+
+            plt.savefig(path_file_image_output)
+
+            import cv2
+            image = cv2.imread(path_file_image_output, cv2.IMREAD_COLOR)
+
+            import os
+            # os.unlink(path_file_image_output)
+
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            return image
+
+        def to_torch_image(image):
+
+            import numpy as np
+            import torch
+            image = image.astype(dtype=np.float32)
+            image /= 255.0
+            image = torch.from_numpy(image)[
+                None,
+            ]
+            image = image.unsqueeze(0)
+            return image
+
+        image = render_float(float_input=value)
+        image = to_torch_image(image)
+
+        return image
+
 class TRI3D_recolor_LAB:
 
     @classmethod
@@ -2112,7 +2180,7 @@ class TRI3D_clipdrop_bgremove_api:
         # print(mask.shape)
         return output,
 
-class TRI3DPoseProportion:
+class TRI3DPoseProportionComparison:
     
     def __init__(self):
         pass
@@ -2206,6 +2274,60 @@ class TRI3DPoseProportion:
         
         return pose1_ratio, pose2_ratio
 
+
+
+class TRI3DPoseProportions:
+    
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required":
+                    {"pose1_json_file":("STRING",{"default":""}),
+                     }
+                }
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("proportions")
+    CATEGORY = "TRI3D"
+
+    def run(self, pose1_json_file):
+        from .dwpose import comfy_utils
+
+        pose1 = json.load(open(pose1_json_file,'r'))
+        pose1_keypoints = pose1['keypoints']
+
+        #Calculate torso 2nd coord
+        pose1_ref_torso_x = int((pose1_keypoints[8][0] + pose1_keypoints[11][0]) / 2)
+        pose1_ref_torso_y = int((pose1_keypoints[8][1] + pose1_keypoints[11][1]) / 2)
+        
+        face_ratio = comfy_utils.get_ratio(pose1_keypoints[2][0], pose1_keypoints[2][1], pose1_keypoints[5][0], pose1_keypoints[5][1],                       
+                            pose1_keypoints[16][0], pose1_keypoints[16][1], pose1_keypoints[17][0], pose1_keypoints[17][1])
+
+        
+        
+        left_knee_ratio = comfy_utils.get_ratio(pose1_keypoints[1][0], pose1_keypoints[1][1], pose1_ref_torso_x, pose1_ref_torso_y,                       
+                            pose1_keypoints[8][0], pose1_keypoints[8][1], pose1_keypoints[9][0], pose1_keypoints[9][1])
+        right_knee_ratio = comfy_utils.get_ratio(pose1_keypoints[1][0], pose1_keypoints[1][1], pose1_ref_torso_x, pose1_ref_torso_y,                       
+                            pose1_keypoints[11][0], pose1_keypoints[11][1], pose1_keypoints[12][0], pose1_keypoints[12][1])
+        knee_ratio = 0.5*(left_knee_ratio + right_knee_ratio)
+
+        #ankle ration
+        left_ankle_ratio = comfy_utils.get_ratio(pose1_keypoints[8][0], pose1_keypoints[8][1], pose1_keypoints[9][0], pose1_keypoints[9][1],
+                            pose1_keypoints[9][0], pose1_keypoints[9][1], pose1_keypoints[10][0], pose1_keypoints[10][1])
+        right_ankle_ratio = comfy_utils.get_ratio(pose1_keypoints[11][0], pose1_keypoints[11][1], pose1_keypoints[12][0], pose1_keypoints[12][1],
+                            pose1_keypoints[12][0], pose1_keypoints[12][1], pose1_keypoints[13][0], pose1_keypoints[13][1])
+        ankle_ratio = 0.5*(left_ankle_ratio + right_ankle_ratio)
+
+        leg_ratio = 0.5*(knee_ratio + ankle_ratio)
+
+        string_output = "Face: " + str(face_ratio) + " Knee: " + str(knee_ratio) + " Ankle: " + str(ankle_ratio) + " Leg: " + str(leg_ratio)
+      
+        return string_output
+
+
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
@@ -2222,16 +2344,19 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-load-pose-json": TRI3DLoadPoseJson,
     "tri3d-face-recognise": TRI3DFaceRecognise,
     "tri3d-float-to-image": FloatToImage,
+    "tri3d-string-to-image": StringToImage,
+
     "tri3d-recolor-mask": TRI3D_recolor,
     "tri3d-recolor-mask-LAB_space": TRI3D_recolor_LAB,
     "tri3d-recolor-mask-RGB_space": TRI3D_recolor_RGB,
     "tri3d-image-mask-2-box": TRI3D_image_mask_2_box,
     "tri3d-image-mask-box-2-image": TRI3D_image_mask_box_2_image,
     "tri3d-clipdrop-bgremove-api": TRI3D_clipdrop_bgremove_api,
-    "tri3d-pose-proportion":TRI3DPoseProportion
+    "tri3d-pose-proportion-comparision":TRI3DPoseProportionComparison,
+    "tri3d-pose-proportions":TRI3DPoseProportions
 }
 
-VERSION = "2.3"
+VERSION = "2.3.x"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
@@ -2249,11 +2374,14 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-load-pose-json": "Load Pose Json" + " v" + VERSION,
     "tri3d-face-recognise": "Recognise face" + " v" + VERSION,
     "tri3d-float-to-image": "Render float" + " v" + VERSION,
+    "tri3d-string-to-image": "Render string" + " v" + VERSION,
     "tri3d-recolor-mask": "Recolor mask HSV space" + " v" + VERSION,
     "tri3d-recolor-mask-LAB_space": "Recolor mask LAB space" + " v" + VERSION,
     "tri3d-recolor-mask-RGB_space": "Recolor mask RGB space" + " v" + VERSION,
     "tri3d--image-mask-2-box": "Extract box from image" + " v" + VERSION,
     "tri3d-image-mask-box-2-image": "Stitch box to image" + " v" + VERSION,
     "tri3d-clipdrop-bgremove-api": "RemBG ClipDrop" + " v" + VERSION,
-    "tri3d-pose-proportion":"Get pose proportion" + "v" + VERSION
+    "tri3d-pose-proportion-comparision":"Compare pose proportions" + "v" + VERSION,
+    "tri3d-pose-proportions":"Get pose proportions" + "v" + VERSION,
+
 }
