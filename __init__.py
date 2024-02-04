@@ -1166,7 +1166,7 @@ class TRI3DPoseAdaption:
         }
         
 
-    RETURN_TYPES = ("IMAGE", "BOOLEAN")
+    RETURN_TYPES = ("IMAGE", "BOOLEAN","STRING")
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
@@ -1320,7 +1320,7 @@ class TRI3DPoseAdaption:
             canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
             output_posemap = {"height":input_height, "width":input_width, "keypoints":input_keypoints}
             json.dump(output_posemap, open(output_save_path, 'w'))
-            return (canvas, similar_torso)
+            return (canvas, similar_torso,output_save_path)
         
         if 'back' in image_angle:
 
@@ -1478,7 +1478,7 @@ class TRI3DPoseAdaption:
             canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
             output_posemap = {"height":input_height, "width":input_width, "keypoints":input_keypoints}
             json.dump(output_posemap, open(output_save_path, 'w'))
-            return (canvas, similar_torso)
+            return (canvas, similar_torso, output_save_path)
 
 
 class TRI3DLoadPoseJson:
