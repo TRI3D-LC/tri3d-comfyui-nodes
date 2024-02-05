@@ -2086,6 +2086,70 @@ class TRI3D_clipdrop_bgremove_api:
         # print(mask.shape)
         return output,
 
+class TRI3DAdjustNeck:
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "posemap_json_file_path": ("STRING", {"default": "dwpose/keypoints/input.json"}),
+                "age_group" :(["10-12 yrs"],{"default":"10-12 yrs"}),
+                "save_json_file_path": ("STRING", {"default": "dwpose/keypoints/output.json"})
+            },
+        }
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", "STRING")
+    CATEGORY = "TRI3D"
+
+
+    def run(self, posemap_json_file_path, age_group, save_json_file_path):
+        from .dwpose import comfy_utils
+
+        age_to_ratio = {"10-12 yrs": 0.65}
+        
+        input_pose = json.load(open(posemap_json_file_path))
+        input_height = input_pose['height']
+        input_width = input_pose['width']
+        input_keypoints = input_pose['keypoints']
+
+        ref_x1, ref_y1 = input_keypoints[2]                   #left shoulder
+        ref_x2, ref_y2 = input_keypoints[5]                   #right_shoulder
+
+        x1,y1 = input_keypoints[1]                       #neck
+        x2,y2 = input_keypoints[0]                       #nose
+        prev_nose = input_keypoints[0]
+
+        ref_len = np.linalg.norm(np.array([ref_x1, ref_y1]) - np.array([ref_x2, ref_y2]))             #ref body part length i.e. shoulder length
+        targ_len = np.linalg.norm(np.array([x1, y1]) - np.array([x2, y2]))             #targ body part length i.e. neck length - neck to nose length
+
+        input_targ_ref_len = targ_len / ref_len               #neck to shoulder ratio
+
+        #scale the coords
+        scale = age_to_ratio[age_group] / input_targ_ref_len                
+
+        x2_scaled = x1 + (x2-x1) * scale
+        y2_scaled = y1 + (y2-y1) * scale
+        input_keypoints[0] = [x2_scaled, y2_scaled]
+        
+        #changing face points to w.r.t to new nose point after rotation
+        input_keypoints[14:18] = comfy_utils.move(prev_nose, input_keypoints[0], input_keypoints[14:18])
+
+        canvas = np.zeros(shape=(input_height, input_width, 3), dtype=np.uint8)
+        canvas = comfy_utils.draw_bodypose(canvas, input_keypoints)
+        canvas = comfy_utils.draw_handpose(canvas, input_keypoints[88:109])  #right hand
+        canvas = comfy_utils.draw_handpose(canvas, input_keypoints[109:])  #left hand
+        canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+
+        output_pose = {"heigth":input_height, "width":input_width, "keypoints":input_keypoints}
+        cur_file_dir = os.path.dirname(os.path.realpath(__file__))
+        save_json_file_path = os.path.join(cur_file_dir,
+                                        save_json_file_path)
+        json.dump(output_pose, open(save_json_file_path, 'w'))
+        return (canvas, save_json_file_path)
+
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
@@ -2107,7 +2171,8 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-recolor-mask-RGB_space": TRI3D_recolor_RGB,
     "tri3d-image-mask-2-box": TRI3D_image_mask_2_box,
     "tri3d-image-mask-box-2-image": TRI3D_image_mask_box_2_image,
-    "tri3d-clipdrop-bgremove-api": TRI3D_clipdrop_bgremove_api
+    "tri3d-clipdrop-bgremove-api": TRI3D_clipdrop_bgremove_api,
+    "tri3d-adjust-neck": TRI3DAdjustNeck
 }
 
 VERSION = "2.3"
@@ -2133,5 +2198,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-recolor-mask-RGB_space": "Recolor mask RGB space" + " v" + VERSION,
     "tri3d--image-mask-2-box": "Extract box from image" + " v" + VERSION,
     "tri3d-image-mask-box-2-image": "Stitch box to image" + " v" + VERSION,
-    "tri3d-clipdrop-bgremove-api": "RemBG ClipDrop" + " v" + VERSION
+    "tri3d-clipdrop-bgremove-api": "RemBG ClipDrop" + " v" + VERSION,
+    "tri3d-adjust-neck": "Adjust Neck" + " v" + VERSION
 }
