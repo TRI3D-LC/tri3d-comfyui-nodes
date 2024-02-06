@@ -2150,7 +2150,7 @@ class TRI3DAdjustNeck:
         canvas = comfy_utils.draw_handpose(canvas, input_keypoints[109:])  #left hand
         canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
 
-        output_pose = {"heigth":input_height, "width":input_width, "keypoints":input_keypoints}
+        output_pose = {"height":input_height, "width":input_width, "keypoints":input_keypoints}
         cur_file_dir = os.path.dirname(os.path.realpath(__file__))
         save_json_file_path = os.path.join(cur_file_dir,
                                         save_json_file_path)
