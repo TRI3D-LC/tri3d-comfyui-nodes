@@ -1167,6 +1167,9 @@ class TRI3DPoseAdaption:
     CATEGORY = "TRI3D"
 
     def main(self, input_pose_json_file, ref_pose_json_file, image_angle, rotation_threshold, garment_category):
+
+        print(image_angle, "image_angle")
+        print(garment_category, "garment_category")
         from .dwpose import comfy_utils
 
         if image_angle == "front":
