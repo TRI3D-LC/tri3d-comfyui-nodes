@@ -2095,7 +2095,13 @@ class TRI3DAdjustNeck:
         return {
             "required": {
                 "posemap_json_file_path": ("STRING", {"default": "dwpose/keypoints/input.json"}),
-                "age_group" :(["10-12 yrs"],{"default":"10-12 yrs"}),
+                # "age_group" :(["10-12 yrs"],{"default":"10-12 yrs"}),
+                "neck_should_ratio": ("FLOAT", {
+                    "default": 0.65,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01
+                }),
                 "save_json_file_path": ("STRING", {"default": "dwpose/keypoints/output.json"})
             },
         }
@@ -2105,10 +2111,10 @@ class TRI3DAdjustNeck:
     CATEGORY = "TRI3D"
 
 
-    def run(self, posemap_json_file_path, age_group, save_json_file_path):
+    def run(self, posemap_json_file_path, neck_should_ratio, save_json_file_path):
         from .dwpose import comfy_utils
 
-        age_to_ratio = {"10-12 yrs": 0.65}
+        # age_to_ratio = {"10-12 yrs": 0.65}
         
         input_pose = json.load(open(posemap_json_file_path))
         input_height = input_pose['height']
@@ -2128,7 +2134,8 @@ class TRI3DAdjustNeck:
         input_targ_ref_len = targ_len / ref_len               #neck to shoulder ratio
 
         #scale the coords
-        scale = age_to_ratio[age_group] / input_targ_ref_len                
+        # scale = age_to_ratio[age_group] / input_targ_ref_len                
+        scale = neck_should_ratio / input_targ_ref_len
 
         x2_scaled = x1 + (x2-x1) * scale
         y2_scaled = y1 + (y2-y1) * scale
@@ -2175,7 +2182,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-adjust-neck": TRI3DAdjustNeck
 }
 
-VERSION = "2.3"
+VERSION = "2.4"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
