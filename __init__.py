@@ -2096,7 +2096,7 @@ class TRI3DAdjustNeck:
             "required": {
                 "posemap_json_file_path": ("STRING", {"default": "dwpose/keypoints/input.json"}),
                 # "age_group" :(["10-12 yrs"],{"default":"10-12 yrs"}),
-                "neck_should_ratio": ("FLOAT", {
+                "neck_shoulder_ratio": ("FLOAT", {
                     "default": 0.65,
                     "min": 0.0,
                     "max": 1.0,
@@ -2111,7 +2111,7 @@ class TRI3DAdjustNeck:
     CATEGORY = "TRI3D"
 
 
-    def run(self, posemap_json_file_path, neck_should_ratio, save_json_file_path):
+    def run(self, posemap_json_file_path, neck_shoulder_ratio, save_json_file_path):
         from .dwpose import comfy_utils
 
         # age_to_ratio = {"10-12 yrs": 0.65}
@@ -2132,10 +2132,10 @@ class TRI3DAdjustNeck:
         targ_len = np.linalg.norm(np.array([x1, y1]) - np.array([x2, y2]))             #targ body part length i.e. neck length - neck to nose length
 
         input_targ_ref_len = targ_len / ref_len               #neck to shoulder ratio
-
+        print("neck to shoulder ratio", input_targ_ref_len)
         #scale the coords
         # scale = age_to_ratio[age_group] / input_targ_ref_len                
-        scale = neck_should_ratio / input_targ_ref_len
+        scale = neck_shoulder_ratio / input_targ_ref_len
 
         x2_scaled = x1 + (x2-x1) * scale
         y2_scaled = y1 + (y2-y1) * scale
