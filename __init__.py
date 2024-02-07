@@ -2187,7 +2187,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-adjust-neck": TRI3DAdjustNeck
 }
 
-VERSION = "2.4.1"
+VERSION = "2.4.2"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
