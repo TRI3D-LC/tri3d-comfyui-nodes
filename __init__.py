@@ -1156,7 +1156,7 @@ class TRI3DPoseAdaption:
                     "step": 0.01
                 }),
                 "garment_category":(["no_sleeve_garment", "half_sleeve_garment", "full_sleeve_garment", \
-                                     "shorts", "trouser"], {"default": " no_sleeve_garment"})
+                                     "shorts", "trouser"], {"default": "no_sleeve_garment"})
 
 
             }
