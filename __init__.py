@@ -1148,7 +1148,7 @@ class TRI3DPoseAdaption:
             "required": {
                 "input_pose_json_file": ("STRING",{"default" : "dwpose/keypoints/input.json"}),
                 "ref_pose_json_file": ("STRING",{"default" : "dwpose/keypoints/ref-pose.json"}),
-                "image_angle": (["front", "back","back_fixed","back_fixed_left","back_fixed_right"], {"default": "front"}),
+                "image_angle": (["front", "back","back_fixed_kid","back_fixed","back_fixed_left","back_fixed_right"], {"default": "front"}),
                 "rotation_threshold": ("FLOAT", {
                     "default": 5.0,
                     "min": 0.0,
@@ -1315,6 +1315,7 @@ class TRI3DPoseAdaption:
                 
                 back_pose_dir = pathlib.Path().resolve() / 'custom_nodes/tri3d-comfyui-nodes/samples/back_poses/' 
                 back_pose_dictionary = {
+                    'back_fixed_kid' : 'backpose_kid.json',
                     'back_fixed' : 'backpose.json',
                     'back_fixed_left' : 'left_backpose.json',
                     'back_fixed_right' : 'right_backpose.json'
@@ -2186,7 +2187,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-adjust-neck": TRI3DAdjustNeck
 }
 
-VERSION = "2.4"
+VERSION = "2.4.1"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
