@@ -1615,6 +1615,126 @@ class FloatToImage:
 
         return image
 
+
+
+class TRI3D_recolor_LAB_manual:
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image_input": ("IMAGE", ),
+                "mask_input": ("IMAGE", ),
+                "factor_mean": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
+                "factor_sigma": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", )
+    FUNCTION = "recolor"
+    CATEGORY = "TRI3D"
+
+    def recolor(self, image_input, mask_input, factor_mean, factor_sigma):
+
+        def get_mu_sigma(array_input, mask_input):
+
+            import numpy as np
+            import math
+
+            array_input = array_input.astype(dtype=np.float32).flatten()
+            mask_input = mask_input.flatten()
+
+            sum = np.sum(mask_input)
+            mean = np.sum(array_input * mask_input) / sum
+
+            array_input -= mean
+            array_input *= mask_input
+            sigma = math.sqrt(np.sum(np.square(array_input)) / sum)
+
+            return mean, sigma
+
+        def do_recolor(image, mask, mean, sigma):
+
+            import cv2
+            import numpy as np
+            import math
+
+            image_original = image.copy()
+
+            mask = (mask > 127).astype(dtype=np.uint8)
+
+            sum = np.sum(mask.flatten())
+
+            for i in range(3):
+                image[:, :, i] *= mask
+
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+
+            image = image.astype(dtype=np.float32)
+
+            for i in range(1):
+
+                mu_1, sigma_1 = get_mu_sigma(array_input=image[:, :, i],
+                                             mask_input=mask)
+
+                image[:, :, i] = (((image[:, :, i] - mu_1) / sigma_1) *
+                                  (sigma * sigma_1)) + (mean * mu_1)
+
+            image = np.clip(image, 0, 255)
+            image = image.astype(dtype=np.uint8)
+            image = cv2.cvtColor(image, cv2.COLOR_LAB2BGR)
+
+            for i in range(3):
+
+                image_original[:, :,
+                               i] = (image_original[:, :, i] *
+                                     (1 - mask)) + (image[:, :, i] * mask)
+
+            return image_original
+
+        def from_torch_image(image):
+
+            image = image.squeeze().cpu().numpy() * 255.0
+            image = np.clip(image, 0, 255).astype(np.uint8)
+
+            return image
+
+        def to_torch_image(image):
+
+            import numpy as np
+            import torch
+            image = image.astype(dtype=np.float32)
+            image /= 255.0
+            image = torch.from_numpy(image)[
+                None,
+            ]
+            image = image.unsqueeze(0)
+            return image
+
+        image = from_torch_image(image=image_input)
+
+        mask = from_torch_image(image=mask_input)[:, :, 0]
+
+        image_output = do_recolor(image=image,
+                                  mask=mask,
+                                  mean=factor_mean,
+                                  sigma=factor_sigma)
+
+        image_output = to_torch_image(image=image_output)
+
+        return image_output
+
+
 class TRI3D_recolor_LAB:
 
     @classmethod
@@ -2179,6 +2299,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-face-recognise": TRI3DFaceRecognise,
     "tri3d-float-to-image": FloatToImage,
     "tri3d-recolor-mask": TRI3D_recolor,
+    "tri3d-recolor-mask-LAB_space_manual": TRI3D_recolor_LAB_manual,
     "tri3d-recolor-mask-LAB_space": TRI3D_recolor_LAB,
     "tri3d-recolor-mask-RGB_space": TRI3D_recolor_RGB,
     "tri3d-image-mask-2-box": TRI3D_image_mask_2_box,
@@ -2187,7 +2308,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-adjust-neck": TRI3DAdjustNeck
 }
 
-VERSION = "2.4.2"
+VERSION = "2.5.0"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
@@ -2206,6 +2327,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-face-recognise": "Recognise face" + " v" + VERSION,
     "tri3d-float-to-image": "Render float" + " v" + VERSION,
     "tri3d-recolor-mask": "Recolor mask HSV space" + " v" + VERSION,
+    "tri3d-recolor-mask-LAB_space_manual": "Recolor mask LAB space manual" + " v" + VERSION,
     "tri3d-recolor-mask-LAB_space": "Recolor mask LAB space" + " v" + VERSION,
     "tri3d-recolor-mask-RGB_space": "Recolor mask RGB space" + " v" + VERSION,
     "tri3d--image-mask-2-box": "Extract box from image" + " v" + VERSION,
