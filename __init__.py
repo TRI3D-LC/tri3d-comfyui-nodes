@@ -1745,6 +1745,42 @@ class TRI3D_recolor_LAB:
                 "image_mask_reference": ("IMAGE", ),
                 "image_recolor": ("IMAGE", ),
                 "image_mask_recolor": ("IMAGE", ),
+                "factor_mean_L": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
+                "factor_sigma_L": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
+                "factor_mean_A": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
+                "factor_sigma_A": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
+                "factor_mean_B": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
+                "factor_sigma_B": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
             }
         }
 
@@ -1752,8 +1788,19 @@ class TRI3D_recolor_LAB:
     FUNCTION = "recolor"
     CATEGORY = "TRI3D"
 
-    def recolor(self, image_reference, image_mask_reference, image_recolor,
-                image_mask_recolor):
+    def recolor(
+        self,
+        image_reference,
+        image_mask_reference,
+        image_recolor,
+        image_mask_recolor,
+        factor_mean_L,
+        factor_sigma_L,
+        factor_mean_A,
+        factor_sigma_A,
+        factor_mean_B,
+        factor_sigma_B,
+    ):
 
         def get_mu_sigma(array_input, mask_input):
 
@@ -1796,6 +1843,9 @@ class TRI3D_recolor_LAB:
             image_1 = image_1.astype(dtype=np.float32)
             image_2 = image_2.astype(dtype=np.float32)
 
+            factor_mean = (factor_mean_L, factor_mean_A, factor_mean_B)
+            factor_sigma = (factor_sigma_L, factor_sigma_A, factor_sigma_B)
+
             for i in range(3):
 
                 mu_1, sigma_1 = get_mu_sigma(array_input=image_1[:, :, i],
@@ -1804,8 +1854,9 @@ class TRI3D_recolor_LAB:
                 mu_2, sigma_2 = get_mu_sigma(array_input=image_2[:, :, i],
                                              mask_input=mask_2)
 
-                image_2[:, :, i] = ((
-                    (image_2[:, :, i] - mu_2) / sigma_2) * sigma_1) + mu_1
+                image_2[:, :, i] = (
+                    ((image_2[:, :, i] - mu_2) / sigma_2) *
+                    (sigma_1 * factor_sigma[i])) + (mu_1 * factor_mean[i])
 
             image_2 = np.clip(image_2, 0, 255)
             image_2 = image_2.astype(dtype=np.uint8)
