@@ -1089,8 +1089,7 @@ class TRI3DDWPose_Preprocessor:
                                          include_face=detect_face,
                                          include_body=detect_body)
             cur_file_dir = os.path.dirname(os.path.realpath(__file__))
-            save_file_path = os.path.join(cur_file_dir,
-                                          filename_path)
+            save_file_path = os.path.join(cur_file_dir, filename_path)
             json.dump(pose_dict, open(save_file_path, 'w'))
             np_result = cv2.resize(np_result, (W, H),
                                    interpolation=cv2.INTER_AREA)
@@ -1131,9 +1130,12 @@ class TRI3DPosetoImage:
 
         canvas = np.zeros(shape=(height, width, 3), dtype=np.uint8)
         canvas = comfy_utils.draw_bodypose(canvas, keypoints)
-        canvas = comfy_utils.draw_handpose(canvas, keypoints[88:109])  #right hand
+        canvas = comfy_utils.draw_handpose(canvas,
+                                           keypoints[88:109])  #right hand
         canvas = comfy_utils.draw_handpose(canvas, keypoints[109:])  #left hand
-        canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+        canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
+            None,
+        ]
         return (canvas, )
 
 
@@ -1166,7 +1168,8 @@ class TRI3DPoseAdaption:
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, input_pose_json_file, ref_pose_json_file, image_angle, rotation_threshold, garment_category):
+    def main(self, input_pose_json_file, ref_pose_json_file, image_angle,
+             rotation_threshold, garment_category):
 
         print(image_angle, "image_angle")
         print(garment_category, "garment_category")
@@ -1178,7 +1181,8 @@ class TRI3DPoseAdaption:
             input_height = input_pose['height']
             input_width = input_pose['width']
             input_keypoints = input_pose['keypoints']
-            canvas = np.zeros(shape=(input_height, input_width, 3), dtype=np.uint8)
+            canvas = np.zeros(shape=(input_height, input_width, 3),
+                              dtype=np.uint8)
 
             ref_pose = json.load(open(ref_pose_json_file))
             ref_height = ref_pose['height']
@@ -1197,110 +1201,175 @@ class TRI3DPoseAdaption:
                 rs_angle_diff = abs(rs_angle_2 - rs_angle_1)
                 torso_angle_diff = abs(torso_angle_2 - torso_angle_1)
 
-                
-                similar_torso = False if (ls_angle_diff >= rotation_threshold) | (
-                    rs_angle_diff >= rotation_threshold) | (torso_angle_diff >= rotation_threshold) else True
+                similar_torso = False if (
+                    ls_angle_diff >= rotation_threshold) | (
+                        rs_angle_diff >= rotation_threshold) | (
+                            torso_angle_diff >= rotation_threshold) else True
 
                 if similar_torso == False:
-                    canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
-                        None,
-                    ]
+                    canvas = torch.from_numpy(
+                        canvas.astype(np.float32) / 255.0)[
+                            None,
+                        ]
                     return (canvas, similar_torso)
-            
-            #Hands
-            if input_keypoints[4] == [-1,-1]: input_keypoints[4] = ref_keypoints[4]
-            if input_keypoints[7] == [-1,-1]: input_keypoints[7] = ref_keypoints[7]
-            
-            input_keypoints[88:] = ref_keypoints[88:]     #replace hands with reference hands
 
-            if garment_category not in ["half_sleeve_garment", "full_sleeve_garment"]:
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 2, 3)      # rotate left elbow
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 2, 3) #scaling w.r.t to shoulder to elbow ratio of ref pose
+            #Hands
+            if input_keypoints[4] == [-1, -1]:
+                input_keypoints[4] = ref_keypoints[4]
+            if input_keypoints[7] == [-1, -1]:
+                input_keypoints[7] = ref_keypoints[7]
+
+            input_keypoints[88:] = ref_keypoints[
+                88:]  #replace hands with reference hands
+
+            if garment_category not in [
+                    "half_sleeve_garment", "full_sleeve_garment"
+            ]:
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 2,
+                                                     3)  # rotate left elbow
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 2, 5, 2,
+                3)  #scaling w.r.t to shoulder to elbow ratio of ref pose
 
             prev_lw = input_keypoints[4]
             if garment_category != "full_sleeve_garment":
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 3, 4)      #rotate left wrist
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 3, 3, 4) #scaling w.r.t to elbow to wrist ratio of ref pose
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 3,
+                                                     4)  #rotate left wrist
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 2, 3, 3,
+                4)  #scaling w.r.t to elbow to wrist ratio of ref pose
 
-            #moving to hand ponts to wrist 
-            input_keypoints[109:] = comfy_utils.move(input_keypoints[109], input_keypoints[4], input_keypoints[109:]) 
-            input_keypoints[109:] = comfy_utils.move(ref_keypoints[4], ref_keypoints[109], input_keypoints[109:])
+            #moving to hand ponts to wrist
+            input_keypoints[109:] = comfy_utils.move(input_keypoints[109],
+                                                     input_keypoints[4],
+                                                     input_keypoints[109:])
+            input_keypoints[109:] = comfy_utils.move(ref_keypoints[4],
+                                                     ref_keypoints[109],
+                                                     input_keypoints[109:])
 
             # input_keypoints = comfy_utils.rotate_hand(ref_keypoints, input_keypoints, 109)    #rotating left hand
-            input_keypoints = comfy_utils.scale_hand(ref_keypoints, input_keypoints, 3, 4, 109)    #scaling left hand w.r.t left wrist
+            input_keypoints = comfy_utils.scale_hand(
+                ref_keypoints, input_keypoints, 3, 4,
+                109)  #scaling left hand w.r.t left wrist
 
-            if garment_category not in ["half_sleeve_garment", "full_sleeve_garment"]:            
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 5, 6)      #rotate right elbow
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 5, 6) #scaling w.r.t to shoulder to elbow ratio of ref pose
+            if garment_category not in [
+                    "half_sleeve_garment", "full_sleeve_garment"
+            ]:
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 5,
+                                                     6)  #rotate right elbow
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 2, 5, 5,
+                6)  #scaling w.r.t to shoulder to elbow ratio of ref pose
 
             prev_rw = input_keypoints[7]
             if garment_category != "full_sleeve_garment":
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 6, 7)      #rotate right wrist
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 5, 6, 6, 7)    #scaling w.r.t to elbow to wrist ratio of ref pose
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 6,
+                                                     7)  #rotate right wrist
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 5, 6, 6,
+                7)  #scaling w.r.t to elbow to wrist ratio of ref pose
 
             #moving hand points to wrist
-            input_keypoints[88:109] = comfy_utils.move(input_keypoints[88], input_keypoints[7], input_keypoints[88:109])
-            input_keypoints[88:109] = comfy_utils.move(ref_keypoints[7], ref_keypoints[88], input_keypoints[88:109])
+            input_keypoints[88:109] = comfy_utils.move(input_keypoints[88],
+                                                       input_keypoints[7],
+                                                       input_keypoints[88:109])
+            input_keypoints[88:109] = comfy_utils.move(ref_keypoints[7],
+                                                       ref_keypoints[88],
+                                                       input_keypoints[88:109])
 
             # input_keypoints = comfy_utils.rotate_hand(ref_keypoints, input_keypoints, 88)    #rotating right hand
-            input_keypoints = comfy_utils.scale_hand(ref_keypoints, input_keypoints, 6, 7, 88)    #scaling right hand w.r.t right wrist
-
+            input_keypoints = comfy_utils.scale_hand(
+                ref_keypoints, input_keypoints, 6, 7,
+                88)  #scaling right hand w.r.t right wrist
 
             #legs
             if garment_category not in ["trouser", "shorts"]:
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 8, 9)      #rotate left knee
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 8, 8, 9)      #scale left knee
-            
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 8,
+                                                     9)  #rotate left knee
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints,
+                                                1, 8, 8, 9)  #scale left knee
+
             if garment_category != "trouser":
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 9, 10)     #rotate left foot
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 8, 9, 9, 10)    #scaling w.r.t to knee to foot ratio of ref pose
-            
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 9,
+                                                     10)  #rotate left foot
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 8, 9, 9,
+                10)  #scaling w.r.t to knee to foot ratio of ref pose
+
             if garment_category not in ["trouser", "shorts"]:
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 11, 12)     #rotate right knee
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 11, 11, 12)      #scale right knee
-            
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 11,
+                                                     12)  #rotate right knee
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints,
+                                                1, 11, 11,
+                                                12)  #scale right knee
+
             if garment_category != "trouser":
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 12, 13)    #rotate right foot
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 11, 12, 12, 13)    #scaling w.r.t to knee to foot ratio of ref pose
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 12,
+                                                     13)  #rotate right foot
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 11, 12, 12,
+                13)  #scaling w.r.t to knee to foot ratio of ref pose
 
             #face
             prev_nose = input_keypoints[0]
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 1, 0)      #rotate nose
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 1, 0)      #scale neck to nose w.r.t to shoulder neck-nose len ratio of ref pose
-            
+            input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                 input_keypoints, 1,
+                                                 0)  #rotate nose
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 2, 5, 1, 0
+            )  #scale neck to nose w.r.t to shoulder neck-nose len ratio of ref pose
+
             #changing face points to w.r.t to new nose point after rotation
-            input_keypoints[14:18] = comfy_utils.move(prev_nose, input_keypoints[0], input_keypoints[14:18])
+            input_keypoints[14:18] = comfy_utils.move(prev_nose,
+                                                      input_keypoints[0],
+                                                      input_keypoints[14:18])
 
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0,
-                                                14)  #rotate left eye
+            input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                 input_keypoints, 0,
+                                                 14)  #rotate left eye
             input_keypoints = comfy_utils.scale(
-                ref_keypoints, input_keypoints, 1, 0, 0,
-                14)  #scaling w.r.t to neck len to eye_nose len ratio of ref pose
+                ref_keypoints, input_keypoints, 1, 0, 0, 14
+            )  #scaling w.r.t to neck len to eye_nose len ratio of ref pose
 
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0,
-                                                15)  #rotate right eye
+            input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                 input_keypoints, 0,
+                                                 15)  #rotate right eye
             input_keypoints = comfy_utils.scale(
-                ref_keypoints, input_keypoints, 1, 0, 0,
-                15)  #scaling w.r.t to neck len to eye_nose len ratio of ref pose
+                ref_keypoints, input_keypoints, 1, 0, 0, 15
+            )  #scaling w.r.t to neck len to eye_nose len ratio of ref pose
 
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints,
-                                                14, 16)  #rotate left ear
+            input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                 input_keypoints, 14,
+                                                 16)  #rotate left ear
             input_keypoints = comfy_utils.scale(
-                ref_keypoints, input_keypoints, 1, 0, 14,
-                16)  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+                ref_keypoints, input_keypoints, 1, 0, 14, 16
+            )  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
 
-            input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints,
-                                                15, 17)  #rotate right ear
+            input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                 input_keypoints, 15,
+                                                 17)  #rotate right ear
             input_keypoints = comfy_utils.scale(
-                ref_keypoints, input_keypoints, 1, 0, 15,
-                17)  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+                ref_keypoints, input_keypoints, 1, 0, 15, 17
+            )  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
 
             canvas = comfy_utils.draw_bodypose(canvas, input_keypoints)
-            canvas = comfy_utils.draw_handpose(canvas, input_keypoints[88:109])  #right hand
-            canvas = comfy_utils.draw_handpose(canvas, input_keypoints[109:])  #left hand
-            canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+            canvas = comfy_utils.draw_handpose(
+                canvas, input_keypoints[88:109])  #right hand
+            canvas = comfy_utils.draw_handpose(
+                canvas, input_keypoints[109:])  #left hand
+            canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
+                None,
+            ]
             return (canvas, similar_torso)
-        
+
         if 'back' in image_angle:
 
             input_pose = json.load(open(input_pose_json_file))
@@ -1309,48 +1378,59 @@ class TRI3DPoseAdaption:
             input_keypoints = input_pose['keypoints']
 
             input_pose_type = comfy_utils.get_input_pose_type(input_keypoints)
-            canvas = np.zeros(shape=(input_height, input_width, 3), dtype=np.uint8)
+            canvas = np.zeros(shape=(input_height, input_width, 3),
+                              dtype=np.uint8)
 
             if 'back_fixed' in image_angle:
-                
-                back_pose_dir = pathlib.Path().resolve() / 'custom_nodes/tri3d-comfyui-nodes/samples/back_poses/' 
+
+                back_pose_dir = pathlib.Path().resolve(
+                ) / 'custom_nodes/tri3d-comfyui-nodes/samples/back_poses/'
                 back_pose_dictionary = {
-                    'back_fixed_kid' : 'backpose_kid.json',
-                    'back_fixed' : 'backpose.json',
-                    'back_fixed_left' : 'left_backpose.json',
-                    'back_fixed_right' : 'right_backpose.json'
+                    'back_fixed_kid': 'backpose_kid.json',
+                    'back_fixed': 'backpose.json',
+                    'back_fixed_left': 'left_backpose.json',
+                    'back_fixed_right': 'right_backpose.json'
                 }
 
+                ref_pose_json_file = back_pose_dir / back_pose_dictionary[
+                    image_angle]
 
-                ref_pose_json_file =  back_pose_dir / back_pose_dictionary[image_angle]
-            
             # /home/ubuntu/GITHUB/comfyanonymous/ComfyUI/custom_nodes/tri3d-comfyui-nodes
             print(ref_pose_json_file)
             ref_pose = json.load(open(ref_pose_json_file))
-            
+
             ref_keypoints = ref_pose['keypoints']
             similar_torso = None
-            
+
             #check torso similarity
             if garment_category not in ["shorts", "trouser"]:
-                ls_angle_1, rs_angle_1, torso_angle_1 = comfy_utils.get_torso_angles(input_keypoints)
-                ls_angle_2, rs_angle_2, torso_angle_2 = comfy_utils.get_torso_angles(ref_keypoints)
+                ls_angle_1, rs_angle_1, torso_angle_1 = comfy_utils.get_torso_angles(
+                    input_keypoints)
+                ls_angle_2, rs_angle_2, torso_angle_2 = comfy_utils.get_torso_angles(
+                    ref_keypoints)
 
                 ls_angle_diff = abs(ls_angle_2 - ls_angle_1)
                 rs_angle_diff = abs(rs_angle_2 - rs_angle_1)
                 torso_angle_diff = abs(torso_angle_2 - torso_angle_1)
 
-                similar_torso = False if (ls_angle_diff >= 5) | (rs_angle_diff >= 5) | (torso_angle_diff >= 5) else True
+                similar_torso = False if (ls_angle_diff >= 5) | (
+                    rs_angle_diff >= 5) | (torso_angle_diff >= 5) else True
 
                 if similar_torso == False:
-                    canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+                    canvas = torch.from_numpy(
+                        canvas.astype(np.float32) / 255.0)[
+                            None,
+                        ]
                     return (canvas, similar_torso)
 
             #Removing the face points if existed
-            null_indices = [i for i in range(len(ref_keypoints)) if ref_keypoints[i] == [-1,-1]]    
+            null_indices = [
+                i for i in range(len(ref_keypoints))
+                if ref_keypoints[i] == [-1, -1]
+            ]
             for i in null_indices:
-                input_keypoints[i] = [-1,-1]
-            
+                input_keypoints[i] = [-1, -1]
+
             all_x = [i[0] for i in input_keypoints if i[0] != -1]
             min_width = min(all_x)
             max_width = max(all_x)
@@ -1358,104 +1438,189 @@ class TRI3DPoseAdaption:
             if input_pose_type == "front_pose":
                 #flip horizontally
                 for i in range(len(input_keypoints)):
-                    x,y = input_keypoints[i]
-                    if input_keypoints[i] == [-1,-1]: continue
-                    input_keypoints[i] = [(max_width - x)+min_width, y]
-            
+                    x, y = input_keypoints[i]
+                    if input_keypoints[i] == [-1, -1]: continue
+                    input_keypoints[i] = [(max_width - x) + min_width, y]
+
             #Hands
-            if input_keypoints[4] == [-1,-1]: input_keypoints[4] = ref_keypoints[4]
-            if input_keypoints[7] == [-1,-1]: input_keypoints[7] = ref_keypoints[7]
-            input_keypoints[88:] = ref_keypoints[88:]     #replace hands with reference hands
-            
-            if garment_category not in ["half_sleeve_garment", "full_sleeve_garment"]:
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 2, 3)      # rotate left elbow
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 2, 3) #scaling w.r.t to shoulder to elbow ratio of ref pose
+            if input_keypoints[4] == [-1, -1]:
+                input_keypoints[4] = ref_keypoints[4]
+            if input_keypoints[7] == [-1, -1]:
+                input_keypoints[7] = ref_keypoints[7]
+            input_keypoints[88:] = ref_keypoints[
+                88:]  #replace hands with reference hands
+
+            if garment_category not in [
+                    "half_sleeve_garment", "full_sleeve_garment"
+            ]:
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 2,
+                                                     3)  # rotate left elbow
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 2, 5, 2,
+                3)  #scaling w.r.t to shoulder to elbow ratio of ref pose
 
             prev_lw = input_keypoints[4]
             if garment_category != "full_sleeve_garment":
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 3, 4)      #rotate left wrist
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 3, 3, 4) #scaling w.r.t to elbow to wrist ratio of ref pose
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 3,
+                                                     4)  #rotate left wrist
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 2, 3, 3,
+                4)  #scaling w.r.t to elbow to wrist ratio of ref pose
 
-            #moving to hand ponts to wrist 
-            input_keypoints[109:] = comfy_utils.move(input_keypoints[109], input_keypoints[4], input_keypoints[109:]) 
-            input_keypoints[109:] = comfy_utils.move(ref_keypoints[4], ref_keypoints[109], input_keypoints[109:])
+            #moving to hand ponts to wrist
+            input_keypoints[109:] = comfy_utils.move(input_keypoints[109],
+                                                     input_keypoints[4],
+                                                     input_keypoints[109:])
+            input_keypoints[109:] = comfy_utils.move(ref_keypoints[4],
+                                                     ref_keypoints[109],
+                                                     input_keypoints[109:])
 
             # input_keypoints = comfy_utils.rotate_hand(ref_keypoints, input_keypoints, 109)    #rotating left hand
-            input_keypoints = comfy_utils.scale_hand(ref_keypoints, input_keypoints, 3, 4, 109)    #scaling left hand w.r.t left wrist
+            input_keypoints = comfy_utils.scale_hand(
+                ref_keypoints, input_keypoints, 3, 4,
+                109)  #scaling left hand w.r.t left wrist
 
-            if garment_category not in ["half_sleeve_garment", "full_sleeve_garment"]:
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 5, 6)      #rotate right elbow
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 5, 6) #scaling w.r.t to shoulder to elbow ratio of ref pose
+            if garment_category not in [
+                    "half_sleeve_garment", "full_sleeve_garment"
+            ]:
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 5,
+                                                     6)  #rotate right elbow
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 2, 5, 5,
+                6)  #scaling w.r.t to shoulder to elbow ratio of ref pose
 
             prev_rw = input_keypoints[7]
             if garment_category != "full_sleeve_garment":
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 6, 7)      #rotate right wrist
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 5, 6, 6, 7)    #scaling w.r.t to elbow to wrist ratio of ref pose
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 6,
+                                                     7)  #rotate right wrist
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 5, 6, 6,
+                7)  #scaling w.r.t to elbow to wrist ratio of ref pose
 
             #moving hand points to wrist
-            input_keypoints[88:109] = comfy_utils.move(input_keypoints[88], input_keypoints[7], input_keypoints[88:109])
-            input_keypoints[88:109] = comfy_utils.move(ref_keypoints[7], ref_keypoints[88], input_keypoints[88:109])
+            input_keypoints[88:109] = comfy_utils.move(input_keypoints[88],
+                                                       input_keypoints[7],
+                                                       input_keypoints[88:109])
+            input_keypoints[88:109] = comfy_utils.move(ref_keypoints[7],
+                                                       ref_keypoints[88],
+                                                       input_keypoints[88:109])
 
             # input_keypoints = comfy_utils.rotate_hand(ref_keypoints, input_keypoints, 88)    #rotating right hand
-            input_keypoints = comfy_utils.scale_hand(ref_keypoints, input_keypoints, 6, 7, 88)    #scaling right hand w.r.t right wrist
+            input_keypoints = comfy_utils.scale_hand(
+                ref_keypoints, input_keypoints, 6, 7,
+                88)  #scaling right hand w.r.t right wrist
 
             #legs
             if garment_category not in ["trouser", "shorts"]:
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 8, 9)      #rotate left knee
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 8, 8, 9)      #scale left knee
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 8,
+                                                     9)  #rotate left knee
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints,
+                                                1, 8, 8, 9)  #scale left knee
 
             if garment_category != "trouser":
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 9, 10)     #rotate left foot
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 8, 9, 9, 10)    #scaling w.r.t to knee to foot ratio of ref pose
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 9,
+                                                     10)  #rotate left foot
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 8, 9, 9,
+                10)  #scaling w.r.t to knee to foot ratio of ref pose
 
-            if garment_category not in ["half_sleeve_garment", "full_sleeve_garment"]:
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 11, 12)     #rotate right knee
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 11, 11, 12)      #scale right knee
+            if garment_category not in [
+                    "half_sleeve_garment", "full_sleeve_garment"
+            ]:
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 11,
+                                                     12)  #rotate right knee
+            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints,
+                                                1, 11, 11,
+                                                12)  #scale right knee
 
             if garment_category != "trouser":
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 12, 13)    #rotate right foot
-            input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 11, 12, 12, 13)    #scaling w.r.t to knee to foot ratio of ref pose
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 12,
+                                                     13)  #rotate right foot
+            input_keypoints = comfy_utils.scale(
+                ref_keypoints, input_keypoints, 11, 12, 12,
+                13)  #scaling w.r.t to knee to foot ratio of ref pose
 
             #face
             input_keypoints[14:18] = ref_keypoints[14:18]
             input_keypoints[0] = ref_keypoints[0]
 
+            if input_keypoints[0] == [-1, -1] and input_keypoints[14] == [
+                    -1, -1
+            ] and input_keypoints[15] == [-1, -1]:
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 1,
+                                                     16)  #rotate left ear
+                input_keypoints = comfy_utils.scale(
+                    ref_keypoints, input_keypoints, 2, 5, 1, 16
+                )  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
 
-        
-            if input_keypoints[0] == [-1,-1] and input_keypoints[14] == [-1,-1] and input_keypoints[15] == [-1,-1]:
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 1, 16)        #rotate left ear
-                input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 1, 16)        #scaling w.r.t to neck len to ear_nose len ratio of ref pose
-
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 1,17)        #rotate right ear
-                input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 1, 17)        #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 1,
+                                                     17)  #rotate right ear
+                input_keypoints = comfy_utils.scale(
+                    ref_keypoints, input_keypoints, 2, 5, 1, 17
+                )  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
             else:
                 prev_nose = input_keypoints[0]
-                input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 1, 0)      #rotate nose
-                input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 2, 5, 1, 0)      #scale neck to nose w.r.t to shoulder neck-nose len ratio of ref pose
-                
+                input_keypoints = comfy_utils.rotate(ref_keypoints,
+                                                     input_keypoints, 1,
+                                                     0)  #rotate nose
+                input_keypoints = comfy_utils.scale(
+                    ref_keypoints, input_keypoints, 2, 5, 1, 0
+                )  #scale neck to nose w.r.t to shoulder neck-nose len ratio of ref pose
+
                 #changing face points to w.r.t to new nose point after rotation
-                input_keypoints[14:18] = comfy_utils.move(prev_nose, input_keypoints[0], input_keypoints[14:18])
+                input_keypoints[14:18] = comfy_utils.move(
+                    prev_nose, input_keypoints[0], input_keypoints[14:18])
 
-                if input_keypoints[14] != [-1,-1]: 
-                    input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0, 14)      #rotate left eye
-                    input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 0, 14)        #scaling w.r.t to neck len to eye_nose len ratio of ref pose
+                if input_keypoints[14] != [-1, -1]:
+                    input_keypoints = comfy_utils.rotate(
+                        ref_keypoints, input_keypoints, 0,
+                        14)  #rotate left eye
+                    input_keypoints = comfy_utils.scale(
+                        ref_keypoints, input_keypoints, 1, 0, 0, 14
+                    )  #scaling w.r.t to neck len to eye_nose len ratio of ref pose
 
-                if input_keypoints[15] != [-1,-1]:
-                    input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 0, 15)      #rotate right eye
-                    input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 0, 15)        #scaling w.r.t to neck len to eye_nose len ratio of ref pose
+                if input_keypoints[15] != [-1, -1]:
+                    input_keypoints = comfy_utils.rotate(
+                        ref_keypoints, input_keypoints, 0,
+                        15)  #rotate right eye
+                    input_keypoints = comfy_utils.scale(
+                        ref_keypoints, input_keypoints, 1, 0, 0, 15
+                    )  #scaling w.r.t to neck len to eye_nose len ratio of ref pose
 
-                if input_keypoints[16] != [-1,-1]:
-                    input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 14, 16)        #rotate left ear
-                    input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 14, 16)        #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+                if input_keypoints[16] != [-1, -1]:
+                    input_keypoints = comfy_utils.rotate(
+                        ref_keypoints, input_keypoints, 14,
+                        16)  #rotate left ear
+                    input_keypoints = comfy_utils.scale(
+                        ref_keypoints, input_keypoints, 1, 0, 14, 16
+                    )  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
 
-                if input_keypoints[17] != [-1,-1]:
-                    input_keypoints = comfy_utils.rotate(ref_keypoints, input_keypoints, 15,17)        #rotate right ear
-                    input_keypoints = comfy_utils.scale(ref_keypoints, input_keypoints, 1, 0, 15, 17)        #scaling w.r.t to neck len to ear_nose len ratio of ref pose
+                if input_keypoints[17] != [-1, -1]:
+                    input_keypoints = comfy_utils.rotate(
+                        ref_keypoints, input_keypoints, 15,
+                        17)  #rotate right ear
+                    input_keypoints = comfy_utils.scale(
+                        ref_keypoints, input_keypoints, 1, 0, 15, 17
+                    )  #scaling w.r.t to neck len to ear_nose len ratio of ref pose
 
             canvas = comfy_utils.draw_bodypose(canvas, input_keypoints)
-            canvas = comfy_utils.draw_handpose(canvas, input_keypoints[88:109])  #right hand
-            canvas = comfy_utils.draw_handpose(canvas, input_keypoints[109:])  #left hand
-            canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+            canvas = comfy_utils.draw_handpose(
+                canvas, input_keypoints[88:109])  #right hand
+            canvas = comfy_utils.draw_handpose(
+                canvas, input_keypoints[109:])  #left hand
+            canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
+                None,
+            ]
             return (canvas, similar_torso)
 
 
@@ -1495,9 +1660,13 @@ class TRI3DLoadPoseJson:
 
             canvas = np.zeros(shape=(height, width, 3), dtype=np.uint8)
             canvas = comfy_utils.draw_bodypose(canvas, keypoints)
-            canvas = comfy_utils.draw_handpose(canvas, keypoints[88:109])  #right hand
-            canvas = comfy_utils.draw_handpose(canvas, keypoints[109:])  #left hand
-            canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+            canvas = comfy_utils.draw_handpose(canvas,
+                                               keypoints[88:109])  #right hand
+            canvas = comfy_utils.draw_handpose(canvas,
+                                               keypoints[109:])  #left hand
+            canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
+                None,
+            ]
         else:
             canvas = np.zeros(shape=(height, width, 3), dtype=np.uint8)
         # if 'A' in i.getbands():
@@ -1614,7 +1783,6 @@ class FloatToImage:
         image = to_torch_image(image)
 
         return image
-
 
 
 class TRI3D_recolor_LAB_manual:
@@ -1745,6 +1913,42 @@ class TRI3D_recolor_LAB:
                 "image_mask_reference": ("IMAGE", ),
                 "image_recolor": ("IMAGE", ),
                 "image_mask_recolor": ("IMAGE", ),
+                "factor_mean_L": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
+                "factor_sigma_L": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
+                "factor_mean_A": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
+                "factor_sigma_A": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
+                "factor_mean_B": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
+                "factor_sigma_B": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
             }
         }
 
@@ -1752,8 +1956,19 @@ class TRI3D_recolor_LAB:
     FUNCTION = "recolor"
     CATEGORY = "TRI3D"
 
-    def recolor(self, image_reference, image_mask_reference, image_recolor,
-                image_mask_recolor):
+    def recolor(
+        self,
+        image_reference,
+        image_mask_reference,
+        image_recolor,
+        image_mask_recolor,
+        factor_mean_L,
+        factor_sigma_L,
+        factor_mean_A,
+        factor_sigma_A,
+        factor_mean_B,
+        factor_sigma_B,
+    ):
 
         def get_mu_sigma(array_input, mask_input):
 
@@ -1796,6 +2011,9 @@ class TRI3D_recolor_LAB:
             image_1 = image_1.astype(dtype=np.float32)
             image_2 = image_2.astype(dtype=np.float32)
 
+            factor_mean = (factor_mean_L, factor_mean_A, factor_mean_B)
+            factor_sigma = (factor_sigma_L, factor_sigma_A, factor_sigma_B)
+
             for i in range(3):
 
                 mu_1, sigma_1 = get_mu_sigma(array_input=image_1[:, :, i],
@@ -1804,8 +2022,9 @@ class TRI3D_recolor_LAB:
                 mu_2, sigma_2 = get_mu_sigma(array_input=image_2[:, :, i],
                                              mask_input=mask_2)
 
-                image_2[:, :, i] = ((
-                    (image_2[:, :, i] - mu_2) / sigma_2) * sigma_1) + mu_1
+                image_2[:, :, i] = (
+                    ((image_2[:, :, i] - mu_2) / sigma_2) *
+                    (sigma_1 * factor_sigma[i])) + (mu_1 * factor_mean[i])
 
             image_2 = np.clip(image_2, 0, 255)
             image_2 = image_2.astype(dtype=np.uint8)
@@ -2105,8 +2324,6 @@ class TRI3D_recolor:
         return image_output
 
 
-
-
 class TRI3D_image_mask_2_box:
 
     def __init__(self):
@@ -2160,6 +2377,7 @@ class TRI3D_image_mask_box_2_image:
         image = to_torch_image(image)
         return image
 
+
 class TRI3D_clipdrop_bgremove_api:
 
     def __init__(self):
@@ -2186,13 +2404,14 @@ class TRI3D_clipdrop_bgremove_api:
         CLIPDROP_API_KEY = os.getenv('CLIPDROP_API_KEY')
 
         # CLIPDROP_API_KEY = os.environ.get('CLIPDROP_API_KEY')
-        
+
         r = requests.post('https://clipdrop-api.co/remove-background/v1',
-        files = {
-            'image_file': ("mannequin.jpg", enc_image.tobytes(), 'image/jpeg'),
-            },
-        headers = { 'x-api-key': CLIPDROP_API_KEY}
-        )
+                          files={
+                              'image_file':
+                              ("mannequin.jpg", enc_image.tobytes(),
+                               'image/jpeg'),
+                          },
+                          headers={'x-api-key': CLIPDROP_API_KEY})
         if (r.ok):
             pass
         else:
@@ -2202,7 +2421,9 @@ class TRI3D_clipdrop_bgremove_api:
         # print("decoded output",output.shape)
         # mask = output[:,:,3]
         # output = output[:,:,0:3]
-        output = torch.from_numpy(output.astype(np.float32)/255.0)[None,]
+        output = torch.from_numpy(output.astype(np.float32) / 255.0)[
+            None,
+        ]
         # print("converted image to torch")
         # print(output.shape)
         # mask = torch.from_numpy(mask.astype(np.float32)/255.0)[None,]
@@ -2210,7 +2431,9 @@ class TRI3D_clipdrop_bgremove_api:
         # print(mask.shape)
         return output,
 
+
 class TRI3DAdjustNeck:
+
     def __init__(self):
         pass
 
@@ -2218,7 +2441,10 @@ class TRI3DAdjustNeck:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "posemap_json_file_path": ("STRING", {"default": "dwpose/keypoints/input.json"}),
+                "posemap_json_file_path": ("STRING", {
+                    "default":
+                    "dwpose/keypoints/input.json"
+                }),
                 # "age_group" :(["10-12 yrs"],{"default":"10-12 yrs"}),
                 "neck_shoulder_ratio": ("FLOAT", {
                     "default": 0.7,
@@ -2226,7 +2452,10 @@ class TRI3DAdjustNeck:
                     "max": 1.0,
                     "step": 0.01
                 }),
-                "save_json_file_path": ("STRING", {"default": "dwpose/keypoints/output.json"})
+                "save_json_file_path": ("STRING", {
+                    "default":
+                    "dwpose/keypoints/output.json"
+                })
             },
         }
 
@@ -2234,53 +2463,67 @@ class TRI3DAdjustNeck:
     RETURN_TYPES = ("IMAGE", "STRING")
     CATEGORY = "TRI3D"
 
-
-    def run(self, posemap_json_file_path, neck_shoulder_ratio, save_json_file_path):
+    def run(self, posemap_json_file_path, neck_shoulder_ratio,
+            save_json_file_path):
         from .dwpose import comfy_utils
 
         # age_to_ratio = {"10-12 yrs": 0.65}
-        
+
         input_pose = json.load(open(posemap_json_file_path))
         input_height = input_pose['height']
         input_width = input_pose['width']
         input_keypoints = input_pose['keypoints']
 
-        ref_x1, ref_y1 = input_keypoints[2]                   #left shoulder
-        ref_x2, ref_y2 = input_keypoints[5]                   #right_shoulder
+        ref_x1, ref_y1 = input_keypoints[2]  #left shoulder
+        ref_x2, ref_y2 = input_keypoints[5]  #right_shoulder
 
-        x1,y1 = input_keypoints[1]                       #neck
-        x2,y2 = input_keypoints[0]                       #nose
+        x1, y1 = input_keypoints[1]  #neck
+        x2, y2 = input_keypoints[0]  #nose
         prev_nose = input_keypoints[0]
 
-        ref_len = np.linalg.norm(np.array([ref_x1, ref_y1]) - np.array([ref_x2, ref_y2]))             #ref body part length i.e. shoulder length
-        targ_len = np.linalg.norm(np.array([x1, y1]) - np.array([x2, y2]))             #targ body part length i.e. neck length - neck to nose length
+        ref_len = np.linalg.norm(
+            np.array([ref_x1, ref_y1]) - np.array(
+                [ref_x2, ref_y2]))  #ref body part length i.e. shoulder length
+        targ_len = np.linalg.norm(np.array([x1, y1]) - np.array([
+            x2, y2
+        ]))  #targ body part length i.e. neck length - neck to nose length
 
-        input_targ_ref_len = targ_len / ref_len               #neck to shoulder ratio
+        input_targ_ref_len = targ_len / ref_len  #neck to shoulder ratio
         print("neck to shoulder ratio found", input_targ_ref_len)
         print("neck to shoulder ratio target", neck_shoulder_ratio)
         #scale the coords
-        # scale = age_to_ratio[age_group] / input_targ_ref_len                
+        # scale = age_to_ratio[age_group] / input_targ_ref_len
         scale = neck_shoulder_ratio / input_targ_ref_len
 
-        x2_scaled = x1 + (x2-x1) * scale
-        y2_scaled = y1 + (y2-y1) * scale
+        x2_scaled = x1 + (x2 - x1) * scale
+        y2_scaled = y1 + (y2 - y1) * scale
         input_keypoints[0] = [x2_scaled, y2_scaled]
-        
+
         #changing face points to w.r.t to new nose point after rotation
-        input_keypoints[14:18] = comfy_utils.move(prev_nose, input_keypoints[0], input_keypoints[14:18])
+        input_keypoints[14:18] = comfy_utils.move(prev_nose,
+                                                  input_keypoints[0],
+                                                  input_keypoints[14:18])
 
         canvas = np.zeros(shape=(input_height, input_width, 3), dtype=np.uint8)
         canvas = comfy_utils.draw_bodypose(canvas, input_keypoints)
-        canvas = comfy_utils.draw_handpose(canvas, input_keypoints[88:109])  #right hand
-        canvas = comfy_utils.draw_handpose(canvas, input_keypoints[109:])  #left hand
-        canvas = torch.from_numpy(canvas.astype(np.float32)/255.0)[None,]
+        canvas = comfy_utils.draw_handpose(
+            canvas, input_keypoints[88:109])  #right hand
+        canvas = comfy_utils.draw_handpose(canvas,
+                                           input_keypoints[109:])  #left hand
+        canvas = torch.from_numpy(canvas.astype(np.float32) / 255.0)[
+            None,
+        ]
 
-        output_pose = {"height":input_height, "width":input_width, "keypoints":input_keypoints}
+        output_pose = {
+            "height": input_height,
+            "width": input_width,
+            "keypoints": input_keypoints
+        }
         cur_file_dir = os.path.dirname(os.path.realpath(__file__))
-        save_json_file_path = os.path.join(cur_file_dir,
-                                        save_json_file_path)
+        save_json_file_path = os.path.join(cur_file_dir, save_json_file_path)
         json.dump(output_pose, open(save_json_file_path, 'w'))
         return (canvas, save_json_file_path)
+
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
@@ -2311,27 +2554,46 @@ NODE_CLASS_MAPPINGS = {
 VERSION = "2.5.0"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
-    'tri3d-extract-parts-batch': 'Extract Parts Batch' + " v" + VERSION,
-    'tri3d-extract-parts-batch2': 'Extract Parts Batch 2' + " v" + VERSION,
-    "tri3d-position-parts-batch": "Position Parts Batch" + " v" + VERSION,
-    "tri3d-swap-pixels": "Swap Pixels by Mask" + " v" + VERSION,
+    "tri3d-atr-parse-batch":
+    "ATR Parse Batch" + " v" + VERSION,
+    'tri3d-extract-parts-batch':
+    'Extract Parts Batch' + " v" + VERSION,
+    'tri3d-extract-parts-batch2':
+    'Extract Parts Batch 2' + " v" + VERSION,
+    "tri3d-position-parts-batch":
+    "Position Parts Batch" + " v" + VERSION,
+    "tri3d-swap-pixels":
+    "Swap Pixels by Mask" + " v" + VERSION,
     "tri3d-skin-feathered-padded-mask":
     "Skin Feathered Padded Mask" + " v" + VERSION,
     "tri3d-interaction-canny":
     "Garment Skin Interaction Canny" + " v" + VERSION,
-    "tri3d-dwpose": "DWPose" + " v" + VERSION,
-    "tri3d-pose-to-image": "Pose to Image" + " v" + VERSION,
-    "tri3d-pose-adaption": "Pose Adaption" + " v" + VERSION,
-    "tri3d-load-pose-json": "Load Pose Json" + " v" + VERSION,
-    "tri3d-face-recognise": "Recognise face" + " v" + VERSION,
-    "tri3d-float-to-image": "Render float" + " v" + VERSION,
-    "tri3d-recolor-mask": "Recolor mask HSV space" + " v" + VERSION,
-    "tri3d-recolor-mask-LAB_space_manual": "Recolor mask LAB space manual" + " v" + VERSION,
-    "tri3d-recolor-mask-LAB_space": "Recolor mask LAB space" + " v" + VERSION,
-    "tri3d-recolor-mask-RGB_space": "Recolor mask RGB space" + " v" + VERSION,
-    "tri3d--image-mask-2-box": "Extract box from image" + " v" + VERSION,
-    "tri3d-image-mask-box-2-image": "Stitch box to image" + " v" + VERSION,
-    "tri3d-clipdrop-bgremove-api": "RemBG ClipDrop" + " v" + VERSION,
-    "tri3d-adjust-neck": "Adjust Neck" + " v" + VERSION
+    "tri3d-dwpose":
+    "DWPose" + " v" + VERSION,
+    "tri3d-pose-to-image":
+    "Pose to Image" + " v" + VERSION,
+    "tri3d-pose-adaption":
+    "Pose Adaption" + " v" + VERSION,
+    "tri3d-load-pose-json":
+    "Load Pose Json" + " v" + VERSION,
+    "tri3d-face-recognise":
+    "Recognise face" + " v" + VERSION,
+    "tri3d-float-to-image":
+    "Render float" + " v" + VERSION,
+    "tri3d-recolor-mask":
+    "Recolor mask HSV space" + " v" + VERSION,
+    "tri3d-recolor-mask-LAB_space_manual":
+    "Recolor mask LAB space manual" + " v" + VERSION,
+    "tri3d-recolor-mask-LAB_space":
+    "Recolor mask LAB space" + " v" + VERSION,
+    "tri3d-recolor-mask-RGB_space":
+    "Recolor mask RGB space" + " v" + VERSION,
+    "tri3d--image-mask-2-box":
+    "Extract box from image" + " v" + VERSION,
+    "tri3d-image-mask-box-2-image":
+    "Stitch box to image" + " v" + VERSION,
+    "tri3d-clipdrop-bgremove-api":
+    "RemBG ClipDrop" + " v" + VERSION,
+    "tri3d-adjust-neck":
+    "Adjust Neck" + " v" + VERSION
 }
