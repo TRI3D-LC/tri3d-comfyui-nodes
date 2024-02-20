@@ -2333,6 +2333,51 @@ class TRI3DAdjustNeck:
         json.dump(output_pose, open(save_json_file_path, 'w'))
         return (canvas, save_json_file_path)
 
+
+
+class HistogramEqualization:
+    """
+    This node provides a simple interface to equalize the histogram of the output image.
+    """
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        """
+        Input Types
+        """
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "apply_filter"
+
+    CATEGORY = "Image Processing"
+
+    def apply_filter(self, image, strength):
+
+        # Convert the input image tensor to a PIL Image
+        i = 255. * image.cpu().numpy().squeeze()
+        img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
+
+        # Equalize the histogram of the image
+        equalized_img = ImageOps.equalize(img)
+
+        # Blend the original image with the equalized image based on the strength
+        blended_img = Image.blend(img, equalized_img, alpha=strength)
+
+        # Convert the blended PIL Image back to a tensor
+        blended_image_np = np.array(blended_img).astype(np.float32) / 255.0
+        blended_image_tensor = torch.from_numpy(blended_image_np).unsqueeze(0)
+
+        return (blended_image_tensor,)
+
+
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
@@ -2356,7 +2401,8 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-image-mask-2-box": TRI3D_image_mask_2_box,
     "tri3d-image-mask-box-2-image": TRI3D_image_mask_box_2_image,
     "tri3d-clipdrop-bgremove-api": TRI3D_clipdrop_bgremove_api,
-    "tri3d-adjust-neck": TRI3DAdjustNeck
+    "tri3d-adjust-neck": TRI3DAdjustNeck,
+    "tri3d-HistogramEqualization": HistogramEqualization,
 }
 
 VERSION = "2.6.0"
@@ -2384,5 +2430,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d--image-mask-2-box": "Extract box from image" + " v" + VERSION,
     "tri3d-image-mask-box-2-image": "Stitch box to image" + " v" + VERSION,
     "tri3d-clipdrop-bgremove-api": "RemBG ClipDrop" + " v" + VERSION,
-    "tri3d-adjust-neck": "Adjust Neck" + " v" + VERSION
+    "tri3d-adjust-neck": "Adjust Neck" + " v" + VERSION,
+    "tri3d-HistogramEqualization": "Adjust Neck" + " v" + VERSION,
 }
