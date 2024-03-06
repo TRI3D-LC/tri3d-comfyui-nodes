@@ -2405,7 +2405,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-HistogramEqualization": HistogramEqualization,
 }
 
-VERSION = "2.7.0"
+VERSION = "2.8.0"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
