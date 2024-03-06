@@ -2377,7 +2377,55 @@ class HistogramEqualization:
 
         return (blended_image_tensor,)
 
+class TRI3DCompositeImageSplitter:
+    """
+    This node splits composite (horizontally concatenated) image into half.
+    """
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        """
+        Input Types
+        """
+        return {
+            "required": {
+                "images": ("IMAGE",)
+            },
+        }
 
+    RETURN_TYPES = ("IMAGE","IMAGE")
+    RETURN_NAMES = ("image1","image2")
+    FUNCTION = "main"
+
+    CATEGORY = "TRI3D"
+
+    def main(self, images):
+        
+        def tensor_to_cv2_img(tensor, remove_alpha=False):
+            i = 255. * tensor.cpu().numpy()  # This will give us (H, W, C)
+            img = np.clip(i, 0, 255).astype(np.uint8)
+            return img
+
+        def cv2_img_to_tensor(img):
+            img = img.astype(np.float32) / 255.0
+            img = torch.from_numpy(img)[
+                None,
+            ]
+            return img
+        images1 = []
+        images2 = []
+        for image in images:
+            image = tensor_to_cv2_img(image)
+            h,w,_ = image.shape
+            image1 = image[:,:w//2,:]
+            image2 = image[:,w//2:,:]
+            images1.append(cv2_img_to_tensor(image1).squeeze(0))
+            images2.append(cv2_img_to_tensor(image2).squeeze(0))
+
+        return (torch.stack(images1), torch.stack(images2))
+    
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
@@ -2403,6 +2451,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-clipdrop-bgremove-api": TRI3D_clipdrop_bgremove_api,
     "tri3d-adjust-neck": TRI3DAdjustNeck,
     "tri3d-HistogramEqualization": HistogramEqualization,
+    "tri3d-composite-image-splitter": TRI3DCompositeImageSplitter
 }
 
 VERSION = "2.7.0"
@@ -2432,4 +2481,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-clipdrop-bgremove-api": "RemBG ClipDrop" + " v" + VERSION,
     "tri3d-adjust-neck": "Adjust Neck" + " v" + VERSION,
     "tri3d-HistogramEqualization": "Adjust Neck" + " v" + VERSION,
+    "tri3d-composite-image-splitter": "Composite Image Splitter" + " v" + VERSION
 }
