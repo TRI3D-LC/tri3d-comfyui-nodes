@@ -109,8 +109,12 @@ class TRI3DATRParseBatch:
         # Run the ATR model
         cwd = os.getcwd()
         os.chdir(ATR_PATH)
+        from dotenv import load_dotenv
+        load_dotenv()
+        COMFY_PYTHON_PATH = os.getenv('COMFY_PYTHON_PATH','python')
+        print("python path ", COMFY_PYTHON_PATH)
         os.system(
-            "python simple_extractor.py --dataset atr --model-restore checkpoints/atr.pth --input-dir input --output-dir output"
+            COMFY_PYTHON_PATH + " simple_extractor.py --dataset atr --model-restore checkpoints/atr.pth --input-dir input --output-dir output"
         )
         os.chdir(cwd)
 
