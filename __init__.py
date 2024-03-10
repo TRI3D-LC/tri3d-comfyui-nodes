@@ -1,7 +1,12 @@
 # v1.1.0
-import cv2, json, os, math, pathlib, requests, io
+import os
+import os.path
+custom_nodes_path = os.path.dirname(os.path.abspath(__file__))
+
+import cv2, json, math, pathlib, requests, io, tempfile, subprocess, sys, wget
 import numpy as np
 import torch
+import torch.nn.functional as F
 import hashlib
 import comfy.model_management as model_management
 import folder_paths
@@ -51,6 +56,124 @@ def do_work(image, external_file_name):
 def do_work_with_mask(image, mask, external_file_name):
     exec(open(external_file_name, 'r').read())
     return image
+
+
+def get_path_file_model():
+    import folder_paths
+    from folder_paths import models_dir
+
+    path_file_model = models_dir
+
+    path_file_model = os.path.join(path_file_model, 'inspyrenet')
+
+    path_file_model = os.path.join(path_file_model,
+                                   'InSPyReNet-SwinB-Plus-Ultra.pth')
+
+    return path_file_model
+
+
+def download_model_file(path_file_output=None):
+    if path_file_output is None:
+        path_file_output = get_path_file_model()
+
+    if not os.path.exists(path_file_output):
+
+        file_url = 'https://huggingface.co/hanamizuki-ai/InSPyReNet-SwinB-Plus-Ultra/resolve/main/latest.pth'
+
+        wget.download(file_url, out=path_file_output)
+
+        # r = requests.get(file_url, stream=True)
+        # with open(path_file_output, "wb") as f:
+        #     for chunk in r.iter_content(chunk_size=1 << 24):
+        #         if chunk:
+        #             f.write(chunk)
+
+
+def build_pip_install_cmds(args):
+
+    if "python_embeded" in sys.executable or "python_embedded" in sys.executable:
+
+        return [sys.executable, '-s', '-m', 'pip', 'install'] + args
+
+    else:
+
+        return [sys.executable, '-m', 'pip', 'install'] + args
+
+
+def ensure_package(path_file_model=None):
+
+    if path_file_model is None:
+        path_file_model = get_path_file_model()
+
+    cmds = build_pip_install_cmds(['-r', 'requirements.txt'])
+    subprocess.run(cmds, cwd=custom_nodes_path)
+    download_model_file(path_file_model)
+
+
+def run_transparent_background(path_dir_input,
+                               path_dir_output,
+                               path_file_model=None):
+
+    if path_file_model is None:
+        path_file_model = get_path_file_model()
+
+    command = [
+        'transparent-background', '--source', path_dir_input, '--dest',
+        path_dir_output, '--ckpt', path_file_model
+    ]
+
+    subprocess.run(command)
+
+
+def get_transparent_background(images, path_file_model=None):
+
+    if path_file_model is None:
+        path_file_model = get_path_file_model()
+
+    batch_size = images.shape[0]
+
+    path_dir_input = tempfile.TemporaryDirectory(
+        suffix='.input.dir',
+        prefix='transparent_background.',
+        dir=None,
+        ignore_cleanup_errors=False,
+    )
+
+    path_dir_output = tempfile.TemporaryDirectory(
+        suffix='.output.dir',
+        prefix='transparent_background.',
+        dir=None,
+        ignore_cleanup_errors=False,
+    )
+
+    for i in range(batch_size):
+        path_file_output = os.path.join(path_dir_input.name, str(i) + '.png')
+        cv2.imwrite(path_file_output, images[i])
+
+    run_transparent_background(path_dir_input=path_dir_input.name,
+                               path_dir_output=path_dir_output.name,
+                               path_file_model=path_file_model)
+
+    # remove_list = [
+    #     os.path.join(path_dir_input, i) for i in os.listdir(path_dir_input)
+    # ]
+    # for i in remove_list:
+    #     os.unlink(i)
+    # del remove_list
+
+    images = []
+    for i in range(batch_size):
+        path_file_input = os.path.join(path_dir_output.name,
+                                       str(i) + '_rgba.png')
+        tmp_img = cv2.imread(path_file_input, cv2.IMREAD_UNCHANGED)
+        images.append(tmp_img)
+
+    images = np.array(images)
+
+    path_dir_output.cleanup()
+    path_dir_input.cleanup()
+
+    return images
 
 
 class TRI3DATRParseBatch:
@@ -2430,6 +2553,48 @@ class TRI3DCompositeImageSplitter:
 
         return (torch.stack(images1), torch.stack(images2))
     
+
+class main_transparent_background():
+
+    def from_torch_image(self, image):
+        image = image.cpu().numpy() * 255.0
+        image = np.clip(image, 0, 255).astype(np.uint8)
+        return image
+
+
+    def to_torch_image(self, image):
+        image = image.astype(dtype=np.float32)
+        image /= 255.0
+        image = torch.from_numpy(image)[
+            None,
+        ]
+        return image
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE", ),
+            },
+        }
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", )
+    CATEGORY = "HackNode"
+
+    def run(self, image):
+        image = self.from_torch_image(image)
+        image = get_transparent_background(image)
+        image = self.to_torch_image(image)
+        return image
+
+
+ensure_package()
+
+
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
@@ -2455,7 +2620,8 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-clipdrop-bgremove-api": TRI3D_clipdrop_bgremove_api,
     "tri3d-adjust-neck": TRI3DAdjustNeck,
     "tri3d-HistogramEqualization": HistogramEqualization,
-    "tri3d-composite-image-splitter": TRI3DCompositeImageSplitter
+    "tri3d-composite-image-splitter": TRI3DCompositeImageSplitter,
+    'tri3d-main_transparent_background': main_transparent_background,
 }
 
 VERSION = "2.8.0"
@@ -2485,5 +2651,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-clipdrop-bgremove-api": "RemBG ClipDrop" + " v" + VERSION,
     "tri3d-adjust-neck": "Adjust Neck" + " v" + VERSION,
     "tri3d-HistogramEqualization": "Adjust Neck" + " v" + VERSION,
-    "tri3d-composite-image-splitter": "Composite Image Splitter" + " v" + VERSION
+    "tri3d-composite-image-splitter": "Composite Image Splitter" + " v" + VERSION,
+    'tri3d-main_transparent_background': 'Transparent Background' + " v" + VERSION,
 }
