@@ -4,3 +4,5 @@ pillow
 torch
 torchvision
 gdown
+transparent-background
+wget
