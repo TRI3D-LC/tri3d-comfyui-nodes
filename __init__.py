@@ -58,13 +58,22 @@ def do_work_with_mask(image, mask, external_file_name):
     return image
 
 
+def mkdir_safe(out_path):
+    if type(out_path) == str:
+        if len(out_path) > 0:
+            if not os.path.exists(out_path):
+                os.mkdir(out_path)
+
+
 def get_path_file_model():
     import folder_paths
     from folder_paths import models_dir
 
     path_file_model = models_dir
+    mkdir_safe(out_path=path_file_model)
 
     path_file_model = os.path.join(path_file_model, 'inspyrenet')
+    mkdir_safe(out_path=path_file_model)
 
     path_file_model = os.path.join(path_file_model,
                                    'InSPyReNet-SwinB-Plus-Ultra.pth')
