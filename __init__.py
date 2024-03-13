@@ -88,8 +88,19 @@ def download_model_file(path_file_output=None):
     if not os.path.exists(path_file_output):
 
         file_url = 'https://huggingface.co/hanamizuki-ai/InSPyReNet-SwinB-Plus-Ultra/resolve/main/latest.pth'
+        
+        import requests
 
-        wget.download(file_url, out=path_file_output)
+        def download_file(url, destination):
+            response = requests.get(url, stream=True)
+            with open(destination, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=1024):
+                    if chunk:  # filter out keep-alive chunks
+                        file.write(chunk)
+
+        download_file(file_url, path_file_output)
+
+        # wget.download(file_url, out=path_file_output)
 
         # r = requests.get(file_url, stream=True)
         # with open(path_file_output, "wb") as f:
@@ -2633,7 +2644,7 @@ NODE_CLASS_MAPPINGS = {
     'tri3d-main_transparent_background': main_transparent_background,
 }
 
-VERSION = "2.8.0"
+VERSION = "2.9.0"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
