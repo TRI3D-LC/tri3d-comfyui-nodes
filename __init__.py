@@ -2598,6 +2598,7 @@ class main_transparent_background():
         mask = image[:, :, :, 3]
         image = image[:, :, :, 0:3]
         image = self.to_torch_image(image)
+        mask = self.to_torch_image(mask)
         return (image, mask)
 
 
