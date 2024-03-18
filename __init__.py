@@ -2585,9 +2585,7 @@ class main_transparent_background():
     def to_torch_image(self, image):
         image = image.astype(dtype=np.float32)
         image /= 255.0
-        image = torch.from_numpy(image)[
-            None,
-        ]
+        image = torch.from_numpy(image)
         return image
 
     def __init__(self):
@@ -2602,14 +2600,18 @@ class main_transparent_background():
         }
 
     FUNCTION = "run"
-    RETURN_TYPES = ("IMAGE", )
+    RETURN_TYPES = ("IMAGE", "MASK")
     CATEGORY = "HackNode"
 
     def run(self, image):
         image = self.from_torch_image(image)
         image = get_transparent_background(image)
+        mask = image[:, :, :, 3]
+        image = image[:, :, :, 0:3]
         image = self.to_torch_image(image)
-        return image
+        mask = self.to_torch_image(mask)
+        print('DEBUG', image.shape, mask.shape)
+        return (image, mask)
 
 
 ensure_package()
