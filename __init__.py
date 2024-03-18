@@ -10,7 +10,6 @@ import hashlib
 import comfy.model_management as model_management
 import folder_paths
 from PIL import Image, ImageOps
-
 sys.path.append(tri3d_custom_nodes_path)
 from scaled_paste import main_scaled_paste
 
@@ -128,7 +127,7 @@ def ensure_package(path_file_model=None):
         path_file_model = get_path_file_model()
 
     cmds = build_pip_install_cmds(['-r', 'requirements.txt'])
-    subprocess.run(cmds, cwd=custom_nodes_path)
+    subprocess.run(cmds, cwd=tri3d_custom_nodes_path)
     download_model_file(path_file_model)
 
 
