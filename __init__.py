@@ -11,6 +11,7 @@ import hashlib
 import comfy.model_management as model_management
 import folder_paths
 from PIL import Image, ImageOps
+from scaled_paste import main_scaled_paste
 
 
 def from_torch_image(image):
@@ -2321,7 +2322,7 @@ class TRI3D_image_mask_2_box:
 
     FUNCTION = "run"
     RETURN_TYPES = ("IMAGE", )
-    CATEGORY = "HackNode"
+    CATEGORY = "TRI3D"
 
     def run(self, image, mask):
         image = from_torch_image(image)
@@ -2348,7 +2349,7 @@ class TRI3D_image_mask_box_2_image:
 
     FUNCTION = "run"
     RETURN_TYPES = ("IMAGE", )
-    CATEGORY = "HackNode"
+    CATEGORY = "TRI3D"
 
     def run(self, image, mask, box):
         image = from_torch_image(image)
@@ -2601,7 +2602,7 @@ class main_transparent_background():
 
     FUNCTION = "run"
     RETURN_TYPES = ("IMAGE", "MASK")
-    CATEGORY = "HackNode"
+    CATEGORY = "TRI3D"
 
     def run(self, image):
         image = self.from_torch_image(image)
@@ -2644,6 +2645,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-HistogramEqualization": HistogramEqualization,
     "tri3d-composite-image-splitter": TRI3DCompositeImageSplitter,
     'tri3d-main_transparent_background': main_transparent_background,
+    'tri3d-scaled-paste': main_scaled_paste,
 }
 
 VERSION = "2.9.0"
@@ -2675,4 +2677,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-HistogramEqualization": "Adjust Neck" + " v" + VERSION,
     "tri3d-composite-image-splitter": "Composite Image Splitter" + " v" + VERSION,
     'tri3d-main_transparent_background': 'Transparent Background' + " v" + VERSION,
+    'tri3d-scaled-paste': 'Scaled paste' + " v" + VERSION,
 }
