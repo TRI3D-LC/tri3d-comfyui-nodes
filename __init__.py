@@ -1883,6 +1883,156 @@ class TRI3D_recolor_LAB_manual:
         return image_output
 
 
+
+class TRI3D_reLUM:
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image_reference": ("IMAGE", ),
+                "image_mask_reference": ("IMAGE", ),
+                "image_recolor": ("IMAGE", ),
+                "image_mask_recolor": ("IMAGE", ),
+                "factor_mean_L": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
+                "factor_sigma_L": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", )
+    FUNCTION = "recolor"
+    CATEGORY = "TRI3D"
+
+    def recolor(
+        self,
+        image_reference,
+        image_mask_reference,
+        image_recolor,
+        image_mask_recolor,
+        factor_mean_L,
+        factor_sigma_L,
+    ):
+
+        def get_mu_sigma(array_input, mask_input):
+
+            import numpy as np
+            import math
+
+            array_input = array_input.astype(dtype=np.float32).flatten()
+            mask_input = mask_input.flatten()
+
+            sum = np.sum(mask_input)
+            mean = np.sum(array_input * mask_input) / sum
+
+            array_input -= mean
+            array_input *= mask_input
+            sigma = math.sqrt(np.sum(np.square(array_input)) / sum)
+
+            return mean, sigma
+
+        def do_recolor(image_1, mask_1, image_2, mask_2):
+
+            import cv2
+            import numpy as np
+            import math
+
+            image_2_original = image_2.copy()
+
+            mask_1 = (mask_1 > 127).astype(dtype=np.uint8)
+            mask_2 = (mask_2 > 127).astype(dtype=np.uint8)
+
+            sum_1 = np.sum(mask_1.flatten())
+            sum_2 = np.sum(mask_2.flatten())
+
+            for i in range(3):
+                image_1[:, :, i] *= mask_1
+                image_2[:, :, i] *= mask_2
+
+            image_1 = cv2.cvtColor(image_1, cv2.COLOR_BGR2LAB)
+            image_2 = cv2.cvtColor(image_2, cv2.COLOR_BGR2LAB)
+
+            image_1 = image_1.astype(dtype=np.float32)
+            image_2 = image_2.astype(dtype=np.float32)
+
+            factor_mean = (factor_mean_L, factor_mean_A, factor_mean_B)
+            factor_sigma = (factor_sigma_L, factor_sigma_A, factor_sigma_B)
+
+            for i in range(1):
+
+                mu_1, sigma_1 = get_mu_sigma(array_input=image_1[:, :, i],
+                                             mask_input=mask_1)
+
+                mu_2, sigma_2 = get_mu_sigma(array_input=image_2[:, :, i],
+                                             mask_input=mask_2)
+
+                image_2[:, :, i] = (
+                    ((image_2[:, :, i] - mu_2) / sigma_2) *
+                    (sigma_1 * factor_sigma[i])) + (mu_1 * factor_mean[i])
+
+            image_2 = np.clip(image_2, 0, 255)
+            image_2 = image_2.astype(dtype=np.uint8)
+            image_2 = cv2.cvtColor(image_2, cv2.COLOR_LAB2BGR)
+
+            for i in range(1):
+
+                image_2_original[:, :,
+                                 i] = (image_2_original[:, :, i] *
+                                       (1 - mask_2)) + (image_2[:, :, i] *
+                                                        mask_2)
+
+            return image_2_original
+
+        def from_torch_image(image):
+
+            image = image.squeeze().cpu().numpy() * 255.0
+            image = np.clip(image, 0, 255).astype(np.uint8)
+
+            return image
+
+        def to_torch_image(image):
+
+            import numpy as np
+            import torch
+            image = image.astype(dtype=np.float32)
+            image /= 255.0
+            image = torch.from_numpy(image)[
+                None,
+            ]
+            image = image.unsqueeze(0)
+            return image
+
+        image_reference = from_torch_image(image=image_reference)
+
+        image_mask_reference = from_torch_image(
+            image=image_mask_reference)[:, :, 0]
+
+        image_recolor = from_torch_image(image=image_recolor)
+
+        image_mask_recolor = from_torch_image(image=image_mask_recolor)[:, :,
+                                                                        0]
+
+        image_output = do_recolor(image_1=image_reference,
+                                  mask_1=image_mask_reference,
+                                  image_2=image_recolor,
+                                  mask_2=image_mask_recolor)
+
+        image_output = to_torch_image(image=image_output)
+
+        return image_output
+
+
+
+
 class TRI3D_recolor_LAB:
 
     @classmethod
@@ -2646,6 +2796,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-composite-image-splitter": TRI3DCompositeImageSplitter,
     'tri3d-main_transparent_background': main_transparent_background,
     'tri3d-scaled-paste': main_scaled_paste,
+    'tri3d-luminosity-match': TRI3D_reLUM,
 }
 
 VERSION = "2.9.0"
@@ -2678,4 +2829,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-composite-image-splitter": "Composite Image Splitter" + " v" + VERSION,
     'tri3d-main_transparent_background': 'Transparent Background' + " v" + VERSION,
     'tri3d-scaled-paste': 'Scaled paste' + " v" + VERSION,
+    'tri3d-luminosity-match': 'Luminosity match' + " v" + VERSION,
 }
