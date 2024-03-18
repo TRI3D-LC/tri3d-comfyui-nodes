@@ -1,8 +1,7 @@
 # v1.1.0
 import os
 import os.path
-custom_nodes_path = os.path.dirname(os.path.abspath(__file__))
-
+tri3d_custom_nodes_path = os.path.dirname(os.path.abspath(__file__))
 import cv2, json, math, pathlib, requests, io, tempfile, subprocess, sys, wget
 import numpy as np
 import torch
@@ -11,6 +10,8 @@ import hashlib
 import comfy.model_management as model_management
 import folder_paths
 from PIL import Image, ImageOps
+
+sys.path.append(tri3d_custom_nodes_path)
 from scaled_paste import main_scaled_paste
 
 
