@@ -1964,8 +1964,8 @@ class TRI3D_reLUM:
             image_1 = image_1.astype(dtype=np.float32)
             image_2 = image_2.astype(dtype=np.float32)
 
-            factor_mean = (factor_mean_L, factor_mean_A, factor_mean_B)
-            factor_sigma = (factor_sigma_L, factor_sigma_A, factor_sigma_B)
+            factor_mean = (factor_mean_L,)
+            factor_sigma = (factor_sigma_L,)
 
             for i in range(1):
 
