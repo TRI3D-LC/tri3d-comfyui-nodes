@@ -2799,7 +2799,7 @@ NODE_CLASS_MAPPINGS = {
     'tri3d-luminosity-match': TRI3D_reLUM,
 }
 
-VERSION = "2.9.0"
+VERSION = "2.10.0"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
