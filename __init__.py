@@ -1964,8 +1964,8 @@ class TRI3D_reLUM:
             image_1 = image_1.astype(dtype=np.float32)
             image_2 = image_2.astype(dtype=np.float32)
 
-            factor_mean = (factor_mean_L,)
-            factor_sigma = (factor_sigma_L,)
+            factor_mean = (factor_mean_L, 1, 1)
+            factor_sigma = (factor_sigma_L, 1, 1)
 
             for i in range(1):
 
@@ -1983,7 +1983,7 @@ class TRI3D_reLUM:
             image_2 = image_2.astype(dtype=np.uint8)
             image_2 = cv2.cvtColor(image_2, cv2.COLOR_LAB2BGR)
 
-            for i in range(1):
+            for i in range(3):
 
                 image_2_original[:, :,
                                  i] = (image_2_original[:, :, i] *
