@@ -12,6 +12,7 @@ import folder_paths
 from PIL import Image, ImageOps
 sys.path.append(tri3d_custom_nodes_path)
 from scaled_paste import main_scaled_paste
+from simple_bg_swap import simple_bg_swap
 
 
 def from_torch_image(image):
@@ -99,9 +100,9 @@ def download_model_file(path_file_output=None):
                     if chunk:  # filter out keep-alive chunks
                         file.write(chunk)
 
-        download_file(file_url, path_file_output)
+        # download_file(file_url, path_file_output)
 
-        # wget.download(file_url, out=path_file_output)
+        wget.download(file_url, out=path_file_output)
 
         # r = requests.get(file_url, stream=True)
         # with open(path_file_output, "wb") as f:
@@ -2797,9 +2798,11 @@ NODE_CLASS_MAPPINGS = {
     'tri3d-main_transparent_background': main_transparent_background,
     'tri3d-scaled-paste': main_scaled_paste,
     'tri3d-luminosity-match': TRI3D_reLUM,
+    'tri3d-simple_bg_swap': simple_bg_swap,
+
 }
 
-VERSION = "2.10.0"
+VERSION = "2.9.0"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
@@ -2830,4 +2833,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     'tri3d-main_transparent_background': 'Transparent Background' + " v" + VERSION,
     'tri3d-scaled-paste': 'Scaled paste' + " v" + VERSION,
     'tri3d-luminosity-match': 'Luminosity match' + " v" + VERSION,
+    'tri3d-simple_bg_swap':  'Simple bg swap' + " v" + VERSION,
 }
