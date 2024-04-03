@@ -73,6 +73,8 @@ def do_bg_swap(
     subject_image,
     mask_image,
     threshhold_hist,
+    scale_factor=1.2,
+    height_factor=1.05,
 ):
 
     blank_subject_image = np.zeros(subject_image.shape, dtype=np.uint8)
@@ -96,32 +98,24 @@ def do_bg_swap(
         image_background=bkg_image,
         image_foreground=subject_image,
         mask_foreground=mask_image,
-        scale_factor=1.2,
-        height_factor=1.05,
+        scale_factor=scale_factor,
+        height_factor=height_factor,
     )
 
     luminosity_image = scaled_paste(
         image_background=blank_background_image + 255,
         image_foreground=subject_image,
         mask_foreground=blank_subject_mask,
-        scale_factor=1.2,
-        height_factor=1.05,
-    )
-
-    pasted_mask = scaled_paste(
-        image_background=blank_background_image,
-        image_foreground=blank_subject_image,
-        mask_foreground=blank_subject_mask,
-        scale_factor=1.2,
-        height_factor=1.05,
+        scale_factor=scale_factor,
+        height_factor=height_factor,
     )
 
     final_mask = scaled_paste(
         image_background=blank_background_image,
         image_foreground=mask_image_3channel,
         mask_foreground=mask_image,
-        scale_factor=1.2,
-        height_factor=1.05,
+        scale_factor=scale_factor,
+        height_factor=height_factor,
     )
 
     result_image_lab = cv2.cvtColor(src=result_image, code=cv2.COLOR_BGR2LAB)
@@ -153,6 +147,7 @@ class simple_bg_swap:
 
     @classmethod
     def INPUT_TYPES(s):
+
         return {
             "required": {
                 "bkg_image": ("IMAGE", ),
@@ -168,6 +163,28 @@ class simple_bg_swap:
                         "display":
                         "number"  # Cosmetic only: display as "number" or "slider"
                     }),
+                "scale_factor": (
+                    "FLOAT",
+                    {
+                        "default": 1.2,
+                        "min": 0.0,
+                        "max": 10.0,
+                        "step": 0.01,
+                        "round":
+                        0.001,  #The value represeting the precision to round to, will be set to the step value by default. Can be set to False to disable rounding.
+                        "display": "number"
+                    }),
+                "height_factor": (
+                    "FLOAT",
+                    {
+                        "default": 1.05,
+                        "min": 1.0,
+                        "max": 8.0,
+                        "step": 0.01,
+                        "round":
+                        0.001,  #The value represeting the precision to round to, will be set to the step value by default. Can be set to False to disable rounding.
+                        "display": "number"
+                    }),
             },
         }
 
@@ -176,12 +193,15 @@ class simple_bg_swap:
     FUNCTION = "test"
     CATEGORY = "TRI3D"
 
+
     def test(
         self,
         bkg_image,
         subject_image,
         subject_mask,
         threshhold_hist,
+        scale_factor,
+        height_factor,
     ):
 
         mask_image = subject_mask
@@ -204,6 +224,8 @@ class simple_bg_swap:
                     subject_image[i],
                     mask_image[i],
                     threshhold_hist,
+                    scale_factor,
+                    height_factor,
                 )
 
                 result = to_torch_image(result)
@@ -217,5 +239,4 @@ class simple_bg_swap:
             )
 
         ret = torch.cat(ret, dim=0)
-        print(ret.shape)
         return (ret, )
