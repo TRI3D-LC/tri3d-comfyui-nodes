@@ -118,10 +118,10 @@ def do_bg_swap(
         height_factor=height_factor,
     )
 
-    result_image_lab = cv2.cvtColor(src=result_image, code=cv2.COLOR_BGR2LAB)
+    result_image_lab = cv2.cvtColor(src=result_image, code=cv2.COLOR_RGB2LAB)
 
     luminosity_image_lab = cv2.cvtColor(src=luminosity_image,
-                                        code=cv2.COLOR_BGR2LAB)[:, :, 0]
+                                        code=cv2.COLOR_RGB2LAB)[:, :, 0]
 
     luminosity_image_lab_flip = 255 - luminosity_image_lab
 
@@ -142,7 +142,7 @@ def do_bg_swap(
 
 def find_threshold(image_input, threshold=0.0001):
 
-    image_input_L = cv2.cvtColor(image_input, cv2.COLOR_BGR2LAB)[:, :,
+    image_input_L = cv2.cvtColor(image_input, cv2.COLOR_RGB2LAB)[:, :,
                                                                  0].flatten()
     image_input_L = 255 - image_input_L
 
@@ -326,3 +326,46 @@ class get_threshold_for_bg_swap:
         subject_image = from_torch_image(image=subject_image)
         return (find_threshold(subject_image[0],
                                threshold=gradient_threshold), )
+
+
+class RGB_2_LAB:
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "input_RGB_image": ("IMAGE", ),
+            },
+        }
+
+    RETURN_TYPES = ("MASK", "MASK", "MASK")
+    RETURN_NAMES = ("L", "A", "B")
+
+    FUNCTION = "test"
+
+    #OUTPUT_NODE = False
+
+    CATEGORY = "TRI3D"
+
+    def test(self, input_RGB_image):
+
+        input_RGB_image = from_torch_image(image=input_RGB_image)
+
+        ret_L = []
+        ret_A = []
+        ret_B = []
+
+        for i in range(input_RGB_image.shape[0]):
+            tmp = cv2.cvtColor(input_RGB_image[i], cv2.COLOR_RGB2LAB)
+            ret_L.append(to_torch_image(image=tmp[:, :, 0]))
+            ret_A.append(to_torch_image(image=tmp[:, :, 1]))
+            ret_B.append(to_torch_image(image=tmp[:, :, 2]))
+
+        ret_L = torch.cat(ret_L, dim=0)
+        ret_A = torch.cat(ret_A, dim=0)
+        ret_B = torch.cat(ret_B, dim=0)
+
+        return (ret_L, ret_A, ret_B)

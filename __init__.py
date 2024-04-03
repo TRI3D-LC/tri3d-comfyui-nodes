@@ -12,8 +12,7 @@ import folder_paths
 from PIL import Image, ImageOps
 sys.path.append(tri3d_custom_nodes_path)
 from scaled_paste import main_scaled_paste
-from simple_bg_swap import simple_bg_swap
-from simple_bg_swap import get_threshold_for_bg_swap
+from simple_bg_swap import (simple_bg_swap, get_threshold_for_bg_swap, RGB_2_LAB)
 
 
 def from_torch_image(image):
@@ -2801,6 +2800,7 @@ NODE_CLASS_MAPPINGS = {
     'tri3d-luminosity-match': TRI3D_reLUM,
     'tri3d-simple_bg_swap': simple_bg_swap,
     'tri3d-get_threshold_for_bg_swap': get_threshold_for_bg_swap,
+    'tri3d-RGB_2_LAB': RGB_2_LAB,
 }
 
 VERSION = "2.9.0"
@@ -2836,4 +2836,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     'tri3d-luminosity-match': 'Luminosity match' + " v" + VERSION,
     'tri3d-simple_bg_swap':  'Simple bg swap' + " v" + VERSION,
     'tri3d-get_threshold_for_bg_swap':  'Get threshold for bg swap' + " v" + VERSION,
+    'tri3d-RGB_2_LAB':  'Convert to LAB color space' + " v" + VERSION,
 }
