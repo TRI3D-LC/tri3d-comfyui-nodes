@@ -137,7 +137,7 @@ def do_bg_swap(
                            (1 - (luminosity_image_lab_flip / 255.0))).astype(
                                dtype=np.uint8)
 
-    return result_image
+    return (result_image, luminosity_image_lab_flip)
 
 
 def find_threshold(image_input, threshold=0.0001):
@@ -217,8 +217,16 @@ class simple_bg_swap:
             },
         }
 
-    RETURN_TYPES = ("IMAGE", )
-    RETURN_NAMES = ("output bg swapped image", )
+    RETURN_TYPES = (
+        "IMAGE",
+        "MASK",
+    )
+
+    RETURN_NAMES = (
+        "output bg swapped image",
+        "shadow layer",
+    )
+
     FUNCTION = "test"
     CATEGORY = "TRI3D"
 
@@ -241,13 +249,14 @@ class simple_bg_swap:
         batch_size = bkg_image.shape[0]
 
         ret = []
+        ret_lum = []
 
         if (subject_image.shape[0] == batch_size) and (mask_image.shape[0]
                                                        == batch_size):
 
             for i in range(batch_size):
 
-                result = do_bg_swap(
+                result, luminosity = do_bg_swap(
                     bkg_image[i],
                     subject_image[i],
                     mask_image[i],
@@ -260,6 +269,10 @@ class simple_bg_swap:
                 result = result.unsqueeze(0)
                 ret.append(result)
 
+                luminosity = to_torch_image(luminosity)
+                luminosity = luminosity.unsqueeze(0)
+                ret_lum.append(luminosity)
+
         else:
 
             print(
@@ -267,7 +280,12 @@ class simple_bg_swap:
             )
 
         ret = torch.cat(ret, dim=0)
-        return (ret, )
+        ret_lum = torch.cat(ret_lum, dim=0)
+
+        return (
+            ret,
+            ret_lum,
+        )
 
 
 class get_threshold_for_bg_swap:
