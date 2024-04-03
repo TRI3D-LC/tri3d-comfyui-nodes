@@ -140,6 +140,35 @@ def do_bg_swap(
     return result_image
 
 
+def find_threshold(image_input, threshold=0.0001):
+
+    image_input_L = cv2.cvtColor(image_input, cv2.COLOR_BGR2LAB)[:, :,
+                                                                 0].flatten()
+    image_input_L = 255 - image_input_L
+
+    hist = np.histogram(image_input_L, range(0, 256, 1))
+
+    values = hist[0]
+    values = values.astype(dtype=np.float64)
+    values /= len(image_input_L)
+
+    for i in range(0, values.shape[0], 1):
+
+        lhd = 0
+        rhd = 0
+
+        if i > 0:
+            lhd = values[i] - values[i - 1]
+
+        if i < values.shape[0] - 1:
+            rhd = values[i + 1] - values[i]
+
+        print(lhd, rhd)
+
+        if max(lhd, rhd) > threshold:
+            return i
+
+
 class simple_bg_swap:
 
     def __init__(self):
@@ -193,7 +222,6 @@ class simple_bg_swap:
     FUNCTION = "test"
     CATEGORY = "TRI3D"
 
-
     def test(
         self,
         bkg_image,
@@ -240,3 +268,43 @@ class simple_bg_swap:
 
         ret = torch.cat(ret, dim=0)
         return (ret, )
+
+
+class get_threshold_for_bg_swap:
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "subject_image": ("IMAGE", ),
+                "gradient_threshold": (
+                    "FLOAT",
+                    {
+                        "default": 0.0001,
+                        "min": 0.0,
+                        "max": 1.0,
+                        "step": 0.00001,
+                        "round":
+                        0.000001,  #The value represeting the precision to round to, will be set to the step value by default. Can be set to False to disable rounding.
+                        "display": "number"
+                    }),
+            },
+        }
+
+    RETURN_TYPES = ("INT", )
+    RETURN_NAMES = ("output histogram threshold", )
+    FUNCTION = "test"
+    CATEGORY = "TRI3D"
+
+    def test(
+        self,
+        subject_image,
+        gradient_threshold,
+    ):
+
+        subject_image = from_torch_image(image=subject_image)
+        return (find_threshold(subject_image[0],
+                               threshold=gradient_threshold), )
