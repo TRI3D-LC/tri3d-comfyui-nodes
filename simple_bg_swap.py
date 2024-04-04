@@ -1,10 +1,12 @@
 #!/usr/bin/python3
-import torch
 import cv2
-import numpy as np
+import math
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
 
 
+#!/usr/bin/python3
 def from_torch_image(image):
     image = image.cpu().numpy() * 255.0
     image = np.clip(image, 0, 255).astype(np.uint8)
@@ -15,6 +17,14 @@ def to_torch_image(image):
     image = image.astype(dtype=np.float32)
     image /= 255.0
     image = torch.from_numpy(image)
+    return image
+
+
+def do_custom_threshhold(image, value):
+    image = image.astype(dtype=np.float64)
+    image = 255 * (image - value) / (255 - value)
+    image = np.clip(image, 0, 255)
+    image = image.astype(dtype=np.uint8)
     return image
 
 
@@ -58,14 +68,6 @@ def scaled_paste(
                             (1 - mask_foreground) * image_reference[:, :, i])
 
     return image_background
-
-
-def do_custom_threshhold(image, value):
-    image = image.astype(dtype=np.float64)
-    image = 255 * (image - value) / (255 - value)
-    image = np.clip(image, 0, 255)
-    image = image.astype(dtype=np.uint8)
-    return image
 
 
 def do_bg_swap(
@@ -128,6 +130,8 @@ def do_bg_swap(
     luminosity_image_lab_flip = do_custom_threshhold(
         image=luminosity_image_lab_flip, value=threshhold_hist)
 
+    luminosity_image_lab_flip_full = luminosity_image_lab_flip.copy()
+
     luminosity_image_lab_flip *= 1 - (final_mask[:, :, 0]
                                       > 127.5).astype(dtype=np.uint8)
 
@@ -137,7 +141,7 @@ def do_bg_swap(
                            (1 - (luminosity_image_lab_flip / 255.0))).astype(
                                dtype=np.uint8)
 
-    return (result_image, luminosity_image_lab_flip)
+    return (result_image, luminosity_image_lab_flip_full)
 
 
 def find_threshold(image_input, threshold=0.0001):
@@ -169,6 +173,23 @@ def find_threshold(image_input, threshold=0.0001):
             return i
 
 
+def get_mu_sigma(array_input, mask_input):
+
+    array_input = array_input.astype(dtype=np.float32).flatten()
+    mask_input = mask_input.astype(dtype=np.float32).flatten()
+    mask_input /= 255
+
+    sum = np.sum(mask_input)
+    mean = np.sum(array_input * mask_input) / sum
+
+    array_input -= mean
+    array_input *= mask_input
+    sigma = math.sqrt(np.sum(np.square(array_input)) / sum)
+
+    return mean, sigma
+
+
+#!/usr/bin/python3
 class simple_bg_swap:
 
     def __init__(self):
@@ -176,7 +197,6 @@ class simple_bg_swap:
 
     @classmethod
     def INPUT_TYPES(s):
-
         return {
             "required": {
                 "bkg_image": ("IMAGE", ),
@@ -228,6 +248,9 @@ class simple_bg_swap:
     )
 
     FUNCTION = "test"
+
+    #OUTPUT_NODE = False
+
     CATEGORY = "TRI3D"
 
     def test(
@@ -314,7 +337,11 @@ class get_threshold_for_bg_swap:
 
     RETURN_TYPES = ("INT", )
     RETURN_NAMES = ("output histogram threshold", )
+
     FUNCTION = "test"
+
+    #OUTPUT_NODE = False
+
     CATEGORY = "TRI3D"
 
     def test(
@@ -351,21 +378,242 @@ class RGB_2_LAB:
     CATEGORY = "TRI3D"
 
     def test(self, input_RGB_image):
-
+        print('input_RGB_image.shape', input_RGB_image.shape)
         input_RGB_image = from_torch_image(image=input_RGB_image)
-
         ret_L = []
         ret_A = []
         ret_B = []
-
         for i in range(input_RGB_image.shape[0]):
             tmp = cv2.cvtColor(input_RGB_image[i], cv2.COLOR_RGB2LAB)
-            ret_L.append(to_torch_image(image=tmp[:, :, 0]))
-            ret_A.append(to_torch_image(image=tmp[:, :, 1]))
-            ret_B.append(to_torch_image(image=tmp[:, :, 2]))
+            ret_L.append(to_torch_image(image=tmp[:, :, 0]).unsqueeze(0))
+            ret_A.append(to_torch_image(image=tmp[:, :, 1]).unsqueeze(0))
+            ret_B.append(to_torch_image(image=tmp[:, :, 2]).unsqueeze(0))
 
         ret_L = torch.cat(ret_L, dim=0)
         ret_A = torch.cat(ret_A, dim=0)
         ret_B = torch.cat(ret_B, dim=0)
 
+        print(
+            'LAB output',
+            ret_L.shape,
+            ret_A.shape,
+            ret_B.shape,
+        )
+
         return (ret_L, ret_A, ret_B)
+
+
+class LAB_2_RGB:
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "input_L": ("MASK", ),
+                "input_A": ("MASK", ),
+                "input_B": ("MASK", ),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE", )
+    RETURN_NAMES = ("Output RGB image", )
+
+    FUNCTION = "test"
+
+    #OUTPUT_NODE = False
+
+    CATEGORY = "TRI3D"
+
+    def test(self, input_L, input_A, input_B):
+
+        batch_size = input_L.shape[0]
+        print(input_L.shape, input_A.shape, input_B.shape)
+
+        ret = []
+
+        if (input_A.shape[0] == batch_size) and (input_B.shape[0]
+                                                 == batch_size):
+
+            for i in range(batch_size):
+
+                input_L_NP = from_torch_image(image=input_L[i])
+                input_A_NP = from_torch_image(image=input_A[i])
+                input_B_NP = from_torch_image(image=input_B[i])
+
+                Y_MAX = input_L_NP.shape[0]
+                X_MAX = input_L_NP.shape[1]
+
+                if (input_A_NP.shape[0]
+                        == Y_MAX) and (input_B_NP.shape[0] == Y_MAX) and (
+                            (input_A_NP.shape[1] == X_MAX) and
+                            (input_B_NP.shape[1] == X_MAX)):
+
+                    image = np.zeros((Y_MAX, X_MAX, 3), dtype=np.uint8)
+
+                    image[:, :, 0] = input_L_NP
+                    image[:, :, 1] = input_A_NP
+                    image[:, :, 2] = input_B_NP
+
+                    image = cv2.cvtColor(image, cv2.COLOR_LAB2RGB)
+                    image = to_torch_image(image).unsqueeze(0)
+                    print('image.shape')
+                    print(image.shape)
+                    ret.append(image)
+
+                else:
+
+                    print('Resolution of different layers donot match')
+
+        else:
+
+            print('batch size of different layers donot match')
+
+        ret = torch.cat(ret, dim=0)
+
+        print('ret.shape', ret.shape)
+
+        return (ret, )
+
+
+class get_mean_and_standard_deviation:
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "input_array": ("MASK", ),
+                "input_mask": ("MASK", ),
+            },
+        }
+
+    RETURN_TYPES = (
+        "FLOAT",
+        "FLOAT",
+    )
+
+    RETURN_NAMES = (
+        "Mean",
+        "Standard deviation",
+    )
+
+    FUNCTION = "test"
+    CATEGORY = "TRI3D"
+
+    def test(self, input_array, input_mask):
+
+        input_array = from_torch_image(image=input_array)
+        input_mask = from_torch_image(image=input_mask)
+
+        mean, sigma = get_mu_sigma(array_input=input_array[0],
+                                   mask_input=input_mask[0])
+
+        print(mean, sigma)
+
+        return (mean, sigma)
+
+
+class renormalize_array:
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "input_array": ("MASK", ),
+                "input_mask": ("MASK", ),
+                "input_mean": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 2.0,
+                        "step": 0.001,
+                        "round":
+                        0.000001,  #The value represeting the precision to round to, will be set to the step value by default. Can be set to False to disable rounding.
+                        "display": "number"
+                    }),
+                "input_standard_deviation": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 2.0,
+                        "step": 0.001,
+                        "round":
+                        0.000001,  #The value represeting the precision to round to, will be set to the step value by default. Can be set to False to disable rounding.
+                        "display": "number"
+                    }),
+            },
+        }
+
+    RETURN_TYPES = ("MASK", )
+    RETURN_NAMES = ("Output array as mask", )
+
+    FUNCTION = "test"
+
+    #OUTPUT_NODE = False
+
+    CATEGORY = "TRI3D"
+
+    def test(
+        self,
+        input_array,
+        input_mask,
+        input_mean,
+        input_standard_deviation,
+    ):
+
+        batch_size = input_array.shape[0]
+
+        ret = []
+
+        if (input_mask.shape[0] == batch_size) and (input_B.shape[0]
+                                                    == batch_size):
+
+            for i in range(batch_size):
+
+                input_L_NP = from_torch_image(image=input_L[i])
+                input_A_NP = from_torch_image(image=input_A[i])
+                input_B_NP = from_torch_image(image=input_B[i])
+
+                Y_MAX = input_L_NP.shape[0]
+                X_MAX = input_L_NP.shape[1]
+
+                if (input_A_NP.shape[0]
+                        == Y_MAX) and (input_B_NP.shape[0] == Y_MAX) and (
+                            (input_A_NP.shape[1] == X_MAX) and
+                            (input_B_NP.shape[1] == X_MAX)):
+
+                    image = np.zeros((Y_MAX, X_MAX, 3), dtype=np.uint8)
+
+                    image[:, :, 0] = input_L_NP
+                    image[:, :, 1] = input_A_NP
+                    image[:, :, 2] = input_B_NP
+
+                    image = cv2.cvtColor(image, cv2.COLOR_LAB2RGB)
+                    image = to_torch_image(image).unsqueeze(0)
+                    print('image.shape')
+                    print(image.shape)
+                    ret.append(image)
+
+                else:
+
+                    print('Resolution of different layers donot match')
+
+        else:
+
+            print('batch size of different layers donot match')
+
+        ret = torch.cat(ret, dim=0)
+
+        print('ret.shape', ret.shape)
+
+        return (ret, )
