@@ -12,7 +12,7 @@ import folder_paths
 from PIL import Image, ImageOps
 sys.path.append(tri3d_custom_nodes_path)
 from scaled_paste import main_scaled_paste
-from simple_bg_swap import (simple_bg_swap, get_threshold_for_bg_swap, RGB_2_LAB)
+from simple_bg_swap import (simple_bg_swap, get_threshold_for_bg_swap, RGB_2_LAB, LAB_2_RGB, get_mean_and_standard_deviation, renormalize_array)
 
 
 def from_torch_image(image):
@@ -2801,7 +2801,11 @@ NODE_CLASS_MAPPINGS = {
     'tri3d-simple_bg_swap': simple_bg_swap,
     'tri3d-get_threshold_for_bg_swap': get_threshold_for_bg_swap,
     'tri3d-RGB_2_LAB': RGB_2_LAB,
+    'tri3d-LAB_2_RGB': LAB_2_RGB,
+    'tri3d-get_mean_and_standard_deviation': get_mean_and_standard_deviation,
+    'tri3d-renormalize_array': renormalize_array,
 }
+
 
 VERSION = "2.9.0"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
@@ -2837,4 +2841,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     'tri3d-simple_bg_swap':  'Simple bg swap' + " v" + VERSION,
     'tri3d-get_threshold_for_bg_swap':  'Get threshold for bg swap' + " v" + VERSION,
     'tri3d-RGB_2_LAB':  'Convert to LAB color space' + " v" + VERSION,
+    'tri3d-LAB_2_RGB': 'Convert LAB color space to RGB color space' + " v" + VERSION,
+    'tri3d-get_mean_and_standard_deviation': 'Get mean and standard deviation of array' + " v" + VERSION,
+    'tri3d-renormalize_array': 'Renormalize the layer to have the given mean and standard deviation' + " v" + VERSION,
 }

@@ -177,7 +177,6 @@ def get_mu_sigma(array_input, mask_input):
 
     array_input = array_input.astype(dtype=np.float32).flatten()
     mask_input = mask_input.astype(dtype=np.float32).flatten()
-    mask_input /= 255
 
     sum = np.sum(mask_input)
     mean = np.sum(array_input * mask_input) / sum
@@ -187,6 +186,17 @@ def get_mu_sigma(array_input, mask_input):
     sigma = math.sqrt(np.sum(np.square(array_input)) / sum)
 
     return mean, sigma
+
+
+def renormalize_array_main(array_input, mask_input, mu, sigma):
+    array_input_original = array_input.copy()
+    in_mu, in_sigma = get_mu_sigma(array_input, mask_input)
+    array_input = (((array_input - in_mu) / in_sigma) * sigma) + mu
+
+    array_input_original = (array_input_original *
+                            (1 - mask_input)) + (array_input * mask_input)
+
+    return array_input_original
 
 
 #!/usr/bin/python3
@@ -507,15 +517,16 @@ class get_mean_and_standard_deviation:
 
     def test(self, input_array, input_mask):
 
-        input_array = from_torch_image(image=input_array)
-        input_mask = from_torch_image(image=input_mask)
+        input_array = input_array.cpu().numpy()
+        input_mask = input_mask.cpu().numpy()
 
         mean, sigma = get_mu_sigma(array_input=input_array[0],
                                    mask_input=input_mask[0])
 
-        print(mean, sigma)
-
-        return (mean, sigma)
+        return (
+            mean,
+            sigma,
+        )
 
 
 class renormalize_array:
@@ -575,45 +586,25 @@ class renormalize_array:
 
         ret = []
 
-        if (input_mask.shape[0] == batch_size) and (input_B.shape[0]
-                                                    == batch_size):
+        if input_mask.shape[0] == batch_size:
 
             for i in range(batch_size):
 
-                input_L_NP = from_torch_image(image=input_L[i])
-                input_A_NP = from_torch_image(image=input_A[i])
-                input_B_NP = from_torch_image(image=input_B[i])
+                tmp = renormalize_array_main(
+                    array_input=input_array[i].cpu().numpy(),
+                    mask_input=input_mask[i].cpu().numpy(),
+                    mu=input_mean,
+                    sigma=input_standard_deviation)
 
-                Y_MAX = input_L_NP.shape[0]
-                X_MAX = input_L_NP.shape[1]
+                tmp = torch.from_numpy(tmp)
+                tmp = tmp.unsqueeze(0)
 
-                if (input_A_NP.shape[0]
-                        == Y_MAX) and (input_B_NP.shape[0] == Y_MAX) and (
-                            (input_A_NP.shape[1] == X_MAX) and
-                            (input_B_NP.shape[1] == X_MAX)):
-
-                    image = np.zeros((Y_MAX, X_MAX, 3), dtype=np.uint8)
-
-                    image[:, :, 0] = input_L_NP
-                    image[:, :, 1] = input_A_NP
-                    image[:, :, 2] = input_B_NP
-
-                    image = cv2.cvtColor(image, cv2.COLOR_LAB2RGB)
-                    image = to_torch_image(image).unsqueeze(0)
-                    print('image.shape')
-                    print(image.shape)
-                    ret.append(image)
-
-                else:
-
-                    print('Resolution of different layers donot match')
+                ret.append(tmp)
 
         else:
 
             print('batch size of different layers donot match')
 
         ret = torch.cat(ret, dim=0)
-
-        print('ret.shape', ret.shape)
 
         return (ret, )
