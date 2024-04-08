@@ -514,14 +514,14 @@ class TRI3DExtractPartsBatch:
         for img in images:
             # Resize the image to max height and width
             resized_img = cv2.resize(img, (max_width, max_height),
-                                     interpolation=cv2.INTER_AREA)
+                                     interpolation=cv2.INTER_CUBIC)
             tensor_img = cv2_img_to_tensor(resized_img)
             batch_results.append(tensor_img.squeeze(0))
 
         for sec in secondaries:
             # Resize the image to max height and width
             resized_sec = cv2.resize(sec, (max_width, max_height),
-                                     interpolation=cv2.INTER_AREA)
+                                     interpolation=cv2.INTER_NEAREST)
             tensor_sec = cv2_img_to_tensor(resized_sec)
             batch_secondaries.append(tensor_sec.squeeze(0))
 
@@ -663,7 +663,15 @@ class TRI3DPositionPartsBatch:
                 None,
             ]
             return img
-
+        
+        def unsharp_mask(image, sigma=1.0, strength=1.0):
+            # Blur the image
+            blurred_image = cv2.GaussianBlur(image, (0, 0), sigma)
+                                                    
+            # Calculate the sharpened image
+            sharpened_image = cv2.addWeighted(image, 1.0 + strength, blurred_image, -strength, 0)
+            return sharpened_image
+        
         batch_results = []
 
         for i in range(batch_images.shape[0]):
@@ -720,8 +728,10 @@ class TRI3DPositionPartsBatch:
                 cv2_handimg = tensor_to_cv2_img(handimg)
                 cv2_handimg = cv2.resize(cv2_handimg,
                                          (positions[2], positions[3]),
-                                         interpolation=cv2.INTER_NEAREST)
+                                         interpolation=cv2.INTER_AREA)
 
+                cv2_handimg = unsharp_mask(cv2_handimg)
+                
                 cv2_image[positions[1]:positions[1] + positions[3],
                           positions[0]:positions[0] +
                           positions[2]] = cv2_handimg
@@ -2799,7 +2809,7 @@ NODE_CLASS_MAPPINGS = {
     'tri3d-luminosity-match': TRI3D_reLUM,
 }
 
-VERSION = "2.10.0"
+VERSION = "2.10.1"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
