@@ -13,6 +13,7 @@ from PIL import Image, ImageOps
 sys.path.append(tri3d_custom_nodes_path)
 from scaled_paste import main_scaled_paste
 from simple_bg_swap import (simple_bg_swap, get_threshold_for_bg_swap, RGB_2_LAB, LAB_2_RGB, get_mean_and_standard_deviation, renormalize_array)
+from distribution_reshape import (simple_rescale_histogram, get_histogram_limits)
 
 
 def from_torch_image(image):
@@ -2804,7 +2805,10 @@ NODE_CLASS_MAPPINGS = {
     'tri3d-LAB_2_RGB': LAB_2_RGB,
     'tri3d-get_mean_and_standard_deviation': get_mean_and_standard_deviation,
     'tri3d-renormalize_array': renormalize_array,
+    "tri3d-simple_rescale_histogram": simple_rescale_histogram,
+    "tri3d-get_histogram_limits": get_histogram_limits,
 }
+
 
 
 VERSION = "2.9.0"
@@ -2844,4 +2848,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     'tri3d-LAB_2_RGB': 'Convert LAB color space to RGB color space' + " v" + VERSION,
     'tri3d-get_mean_and_standard_deviation': 'Get mean and standard deviation of array' + " v" + VERSION,
     'tri3d-renormalize_array': 'Renormalize the layer to have the given mean and standard deviation' + " v" + VERSION,
+    "tri3d-simple_rescale_histogram": 'Rescale the layer to have given max and min values' + " v" + VERSION,
+    "tri3d-get_histogram_limits": 'Calculate max and min values for rescaling histogram' + " v" + VERSION,
 }
