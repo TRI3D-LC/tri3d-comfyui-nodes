@@ -436,7 +436,7 @@ class TRI3DExtractPartsBatch:
         batch_results = []
         images = []
         secondaries = []
-
+        # cv2_secondary = tensor_to_cv2_img(batch_secondaries)
         for i in range(batch_images.shape[0]):
             image = batch_images[i]
             seg = batch_segs[i]
@@ -2819,7 +2819,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-get_histogram_limits": get_histogram_limits,
 }
 
-VERSION = "2.10.1"
+VERSION = "3.0"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
