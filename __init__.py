@@ -12,6 +12,8 @@ import folder_paths
 from PIL import Image, ImageOps
 sys.path.append(tri3d_custom_nodes_path)
 from scaled_paste import main_scaled_paste
+from simple_bg_swap import (simple_bg_swap, get_threshold_for_bg_swap, RGB_2_LAB, LAB_2_RGB, get_mean_and_standard_deviation, renormalize_array)
+from distribution_reshape import (simple_rescale_histogram, get_histogram_limits)
 
 
 def from_torch_image(image):
@@ -99,9 +101,9 @@ def download_model_file(path_file_output=None):
                     if chunk:  # filter out keep-alive chunks
                         file.write(chunk)
 
-        download_file(file_url, path_file_output)
+        # download_file(file_url, path_file_output)
 
-        # wget.download(file_url, out=path_file_output)
+        wget.download(file_url, out=path_file_output)
 
         # r = requests.get(file_url, stream=True)
         # with open(path_file_output, "wb") as f:
@@ -2807,6 +2809,14 @@ NODE_CLASS_MAPPINGS = {
     'tri3d-main_transparent_background': main_transparent_background,
     'tri3d-scaled-paste': main_scaled_paste,
     'tri3d-luminosity-match': TRI3D_reLUM,
+    'tri3d-simple_bg_swap': simple_bg_swap,
+    'tri3d-get_threshold_for_bg_swap': get_threshold_for_bg_swap,
+    'tri3d-RGB_2_LAB': RGB_2_LAB,
+    'tri3d-LAB_2_RGB': LAB_2_RGB,
+    'tri3d-get_mean_and_standard_deviation': get_mean_and_standard_deviation,
+    'tri3d-renormalize_array': renormalize_array,
+    "tri3d-simple_rescale_histogram": simple_rescale_histogram,
+    "tri3d-get_histogram_limits": get_histogram_limits,
 }
 
 VERSION = "2.10.1"
@@ -2840,4 +2850,12 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     'tri3d-main_transparent_background': 'Transparent Background' + " v" + VERSION,
     'tri3d-scaled-paste': 'Scaled paste' + " v" + VERSION,
     'tri3d-luminosity-match': 'Luminosity match' + " v" + VERSION,
+    'tri3d-simple_bg_swap':  'Simple bg swap' + " v" + VERSION,
+    'tri3d-get_threshold_for_bg_swap':  'Get threshold for bg swap' + " v" + VERSION,
+    'tri3d-RGB_2_LAB':  'Convert to LAB color space' + " v" + VERSION,
+    'tri3d-LAB_2_RGB': 'Convert LAB color space to RGB color space' + " v" + VERSION,
+    'tri3d-get_mean_and_standard_deviation': 'Get mean and standard deviation of array' + " v" + VERSION,
+    'tri3d-renormalize_array': 'Renormalize the layer to have the given mean and standard deviation' + " v" + VERSION,
+    "tri3d-simple_rescale_histogram": 'Rescale the layer to have given max and min values' + " v" + VERSION,
+    "tri3d-get_histogram_limits": 'Calculate max and min values for rescaling histogram' + " v" + VERSION,
 }
