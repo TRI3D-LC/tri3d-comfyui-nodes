@@ -400,7 +400,7 @@ class TRI3DExtractPartsBatch:
 
             # If no contours were found, just return None
             if not contours:
-                return None
+                return None, None
 
             # Combine all contours to find encompassing bounding box
             all_points = np.concatenate(contours, axis=0)
@@ -416,9 +416,9 @@ class TRI3DExtractPartsBatch:
             print(x, y, w, h, "x,y,w,h")
             print(input_img.shape, "input_img.shape")
             # Extract the region from the original image that contains both hands
-            hand_region = input_img[y:y + h, x:x + w]
-
-            return hand_region
+            # hand_region = input_img[y:y + h, x:x + w]
+            
+            return input_img, [x,y,w,h]
 
         def tensor_to_cv2_img(tensor, remove_alpha=False):
             # This will give us (H, W, C)
@@ -436,6 +436,9 @@ class TRI3DExtractPartsBatch:
         batch_results = []
         images = []
         secondaries = []
+        images_xywh = []
+        secondaries_xywh = []
+
         # cv2_secondary = tensor_to_cv2_img(batch_secondaries)
         for i in range(batch_images.shape[0]):
             image = batch_images[i]
@@ -484,18 +487,20 @@ class TRI3DExtractPartsBatch:
             if scarf:
                 color_code_list.append([128, 64, 0])
 
-            bimage = bounded_image(cv2_seg, color_code_list, cv2_image)
-            bsecondary = bounded_image(cv2_seg, color_code_list, cv2_secondary)
+            bimage, img_xywh = bounded_image(cv2_seg, color_code_list, cv2_image)
+            bsecondary, sec_xywh = bounded_image(cv2_seg, color_code_list, cv2_secondary)
 
             # Handle case when bimage is None to avoid error during conversion to tensor
             if bimage is not None:
                 images.append(bimage)
+                images_xywh.append(img_xywh)
             else:
                 num_channels = cv2_image.shape[2] if len(
                     cv2_image.shape) > 2 else 1
                 black_img = np.zeros((10, 10, num_channels),
                                      dtype=cv2_image.dtype)
                 images.append(black_img)
+                images_xywh.append([0, 0, 10, 10])
 
             if bsecondary is not None:
                 secondaries.append(bsecondary)
@@ -507,28 +512,43 @@ class TRI3DExtractPartsBatch:
                 secondaries.append(black_img)
 
         # Get max height and width
-        max_height = max(img.shape[0] for img in images)
-        max_width = max(img.shape[1] for img in images)
+        max_height = max([xywh[-1] for xywh in images_xywh])
+        max_width = max([xywh[-2] for xywh in images_xywh])  
+        
+        for i,img in enumerate(images):     #this takes care of edge case where max crop height/width of batch 
+                                            #exceeds image size of few images
+            x,y,_,_ = images_xywh[i]
+            h,w,_ = img.shape
+
+            if x+max_width > w:
+                max_width = w - x
+            if y+max_height > h:
+                max_height = h - y
+
+        max_height = max_height - max_height % 8                ##Making it divisible by 8    
+        max_width = max_width - max_width % 8
 
         batch_results = []
         batch_secondaries = []
 
-        for img in images:
-            # Resize the image to max height and width
-            resized_img = cv2.resize(img, (max_width, max_height),
-                                     interpolation=cv2.INTER_CUBIC)
-            tensor_img = cv2_img_to_tensor(resized_img)
-            batch_results.append(tensor_img.squeeze(0))
-
-        for sec in secondaries:
-            # Resize the image to max height and width
-            resized_sec = cv2.resize(sec, (max_width, max_height),
-                                     interpolation=cv2.INTER_NEAREST)
-            tensor_sec = cv2_img_to_tensor(resized_sec)
-            batch_secondaries.append(tensor_sec.squeeze(0))
-
+        for i,img in enumerate(images):
+            x,y,w,h = images_xywh[i]
+            img = img[y:y+max_height, x:x+max_width]
+            img = cv2_img_to_tensor(img)
+            
+            batch_results.append(img.squeeze(0))
+            
+        for i,sec in enumerate(secondaries):
+            
+            x,y,w,h = images_xywh[i]
+            sec = sec[y:y+max_height, x:x+max_width]
+            
+            sec = cv2_img_to_tensor(sec)
+            batch_secondaries.append(sec.squeeze(0))
+            
         batch_results = torch.stack(batch_results)
         batch_secondaries = torch.stack(batch_secondaries)
+
         print(batch_results.shape, "batch_results.shape")
         return (batch_results, batch_secondaries)
 
