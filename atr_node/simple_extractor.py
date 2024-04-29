@@ -88,9 +88,28 @@ def get_palette(num_cls):
     return palette
 
 
+def download_model_restore(model_restore_path):
+    import os
+    import gdown
+    from pathlib import Path
+
+    # Ensure the directory for the model path exists
+    os.makedirs(os.path.dirname(model_restore_path), exist_ok=True)
+    
+    # Check if the model file already exists
+    if not Path(model_restore_path).is_file():
+        print("Model file does not exist, downloading...")
+        
+        # Google Drive ID for the file
+        file_id = '1ruJg4lqR_jgQPj-9K0PP-L2vJERYOxLP'
+        gdown.download(id=file_id, output=model_restore_path, quiet=False)
+        print("Download complete.")
+    else:
+        print("Model file already exists.")
+
+
 def main():
     args = get_arguments()
-
     gpus = [int(i) for i in args.gpu.split(',')]
     assert len(gpus) == 1
     if not args.gpu == 'None':
@@ -102,7 +121,7 @@ def main():
     print("Evaluating total class number {} with {}".format(num_classes, label))
 
     model = networks.init_model('resnet101', num_classes=num_classes, pretrained=None)
-
+    download_model_restore(args.model_restore)
     state_dict = torch.load(args.model_restore)['state_dict']
     from collections import OrderedDict
     new_state_dict = OrderedDict()

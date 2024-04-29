@@ -6,3 +6,4 @@ torchvision
 gdown
 transparent-background
 wget
+gdown
