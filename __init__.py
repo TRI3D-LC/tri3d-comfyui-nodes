@@ -2839,7 +2839,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-get_histogram_limits": get_histogram_limits,
 }
 
-VERSION = "3.0"
+VERSION = "3.1"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
