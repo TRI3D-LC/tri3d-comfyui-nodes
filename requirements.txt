@@ -3,7 +3,8 @@ ninja
 pillow
 torch
 torchvision
-gdown
 transparent-background
 wget
 gdown
+matplotlib
+python-dotenv
