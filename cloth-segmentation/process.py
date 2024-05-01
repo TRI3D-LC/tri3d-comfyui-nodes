@@ -100,6 +100,7 @@ def apply_transform(img):
 
 from PIL import Image
 
+
 def generate_mask(input_image, net, device='cpu'):
     img = input_image
     img_size = img.size
@@ -123,8 +124,6 @@ def generate_mask(input_image, net, device='cpu'):
     for cls in classes_of_interest:
         binary_mask[output_arr == cls] = 255
 
-    # Convert binary mask to a 3-channel image to use as a mask
-
     # Ensure binary_mask is 2D
     if binary_mask.ndim > 2:
         binary_mask = binary_mask.squeeze()  # Removes single-dimensional entries from the shape
@@ -132,77 +131,27 @@ def generate_mask(input_image, net, device='cpu'):
         raise ValueError("binary_mask must be a 2-dimensional array")
 
     binary_mask_img = Image.fromarray(binary_mask, mode='L').resize(img_size, Image.BICUBIC)
-    binary_mask_3ch = binary_mask_img.convert('RGB')  # Convert to RGB
 
-    # Apply mask to the original image
+    # Create an RGBA image for the output
+    extracted_garment = Image.new("RGBA", img_size)
     original_img = img.resize(img_size)  # Resize the processed image back to original size
-    extracted_garment = Image.new("RGB", original_img.size)
     extracted_garment.paste(original_img, mask=binary_mask_img)
 
-    # Save the garment image
+    # Save the garment image with transparency
     garment_path = os.path.join(output_dir, 'extracted_garment.png')
-    extracted_garment.save(garment_path)
+    extracted_garment.save(garment_path, format="PNG")
 
     return extracted_garment
 
-# Note: Ensure you define `apply_transform` and import necessary libraries.
-
-
-# def generate_mask(input_image, net, palette, device = 'cpu'):
-
-#     #img = Image.open(input_image).convert('RGB')
-#     img = input_image
-#     img_size = img.size
-#     img = img.resize((768, 768), Image.BICUBIC)
-#     image_tensor = apply_transform(img)
-#     image_tensor = torch.unsqueeze(image_tensor, 0)
-
-#     alpha_out_dir = os.path.join(opt.output,'alpha')
-#     cloth_seg_out_dir = os.path.join(opt.output,'cloth_seg')
-
-#     os.makedirs(alpha_out_dir, exist_ok=True)
-#     os.makedirs(cloth_seg_out_dir, exist_ok=True)
-
-#     with torch.no_grad():
-#         output_tensor = net(image_tensor.to(device))
-#         output_tensor = F.log_softmax(output_tensor[0], dim=1)
-#         output_tensor = torch.max(output_tensor, dim=1, keepdim=True)[1]
-#         output_tensor = torch.squeeze(output_tensor, dim=0)
-#         output_arr = output_tensor.cpu().numpy()
-
-#     classes_to_save = []
-
-#     # Check which classes are present in the image
-#     for cls in range(1, 4):  # Exclude background class (0)
-#         if np.any(output_arr == cls):
-#             classes_to_save.append(cls)
-
-#     # Save alpha masks
-#     for cls in classes_to_save:
-#         alpha_mask = (output_arr == cls).astype(np.uint8) * 255
-#         alpha_mask = alpha_mask[0]  # Selecting the first channel to make it 2D
-#         alpha_mask_img = Image.fromarray(alpha_mask, mode='L')
-#         alpha_mask_img = alpha_mask_img.resize(img_size, Image.BICUBIC)
-#         alpha_mask_img.save(os.path.join(alpha_out_dir, f'{cls}.png'))
-
-#     # Save final cloth segmentations
-#     cloth_seg = Image.fromarray(output_arr[0].astype(np.uint8), mode='P')
-#     cloth_seg.putpalette(palette)
-#     cloth_seg = cloth_seg.resize(img_size, Image.BICUBIC)
-#     cloth_seg.save(os.path.join(cloth_seg_out_dir, 'final_seg.png'))
-#     return cloth_seg
-
-
 # def generate_mask(input_image, net, device='cpu'):
-#     #img = Image.open(input_image).convert('RGB')
 #     img = input_image
 #     img_size = img.size
 #     img = img.resize((768, 768), Image.BICUBIC)
 #     image_tensor = apply_transform(img)
 #     image_tensor = torch.unsqueeze(image_tensor, 0)
 
-#     alpha_out_dir = os.path.join(opt.output, 'alpha')
-#     os.makedirs(alpha_out_dir, exist_ok=True)
+#     output_dir = os.path.join(opt.output, 'extracted_garment')
+#     os.makedirs(output_dir, exist_ok=True)
 
 #     with torch.no_grad():
 #         output_tensor = net(image_tensor.to(device))
@@ -211,19 +160,33 @@ def generate_mask(input_image, net, device='cpu'):
 #         output_tensor = torch.squeeze(output_tensor, dim=0)
 #         output_arr = output_tensor.cpu().numpy()
 
-#     # Create a binary mask where selected classes are 1 (white) and others are 0 (black)
+#     # Create a binary mask where selected classes are 1, others are 0
 #     binary_mask = np.zeros_like(output_arr, dtype=np.uint8)
 #     classes_of_interest = [1, 2, 3]  # Modify this list according to your classes of interest
 #     for cls in classes_of_interest:
 #         binary_mask[output_arr == cls] = 255
 
-#     # Create and save the mask image
-#     binary_mask = np.squeeze(binary_mask)  # Remove singleton dimensions if any
-#     binary_mask_img = Image.fromarray(binary_mask, mode='L')
-#     binary_mask_img = binary_mask_img.resize(img_size, Image.BICUBIC)
-#     binary_mask_img.save(os.path.join(alpha_out_dir, 'final_mask.png'))
+#     # Convert binary mask to a 3-channel image to use as a mask
 
-#     return binary_mask_img
+#     # Ensure binary_mask is 2D
+#     if binary_mask.ndim > 2:
+#         binary_mask = binary_mask.squeeze()  # Removes single-dimensional entries from the shape
+#     if binary_mask.ndim != 2:
+#         raise ValueError("binary_mask must be a 2-dimensional array")
+
+#     binary_mask_img = Image.fromarray(binary_mask, mode='L').resize(img_size, Image.BICUBIC)
+#     binary_mask_3ch = binary_mask_img.convert('RGB')  # Convert to RGB
+
+#     # Apply mask to the original image
+#     original_img = img.resize(img_size)  # Resize the processed image back to original size
+#     extracted_garment = Image.new("RGB", original_img.size)
+#     extracted_garment.paste(original_img, mask=binary_mask_img)
+
+#     # Save the garment image
+#     garment_path = os.path.join(output_dir, 'extracted_garment.png')
+#     extracted_garment.save(garment_path)
+
+#     return extracted_garment
 
 
 def check_or_download_model(file_path):

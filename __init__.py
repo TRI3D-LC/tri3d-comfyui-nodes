@@ -266,13 +266,17 @@ class TRI3DLEVINDABHICLOTHSEGBATCH:
         os.chdir(cwd)
 
         # Collect and return the results
+
+        
+
         batch_results = []
         for i in range(images.shape[0]):
-            cv2_segm = cv2.imread(LSEG_OUTPUT_PATH + f'image{i}.png')
-            cv2_segm = cv2.cvtColor(cv2_segm, cv2.COLOR_BGR2RGB)
+            cv2_segm = cv2.imread(LSEG_OUTPUT_PATH + f'image{i}.png', cv2.IMREAD_UNCHANGED)  # Read PNG with alpha channel
+            cv2_segm = cv2.cvtColor(cv2_segm, cv2.COLOR_BGRA2RGBA)  # Convert from BGRA to RGBA
             b_tensor_img = cv2_img_to_tensor(cv2_segm)
             batch_results.append(b_tensor_img.squeeze(0))
 
+        
         batch_results = torch.stack(batch_results)
 
         

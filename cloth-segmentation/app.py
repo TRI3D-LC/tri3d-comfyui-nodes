@@ -26,4 +26,4 @@ import os
 for cur_image in os.listdir(INPUT_PATH):
     img = PIL.Image.open(INPUT_PATH + cur_image)
     cloth_seg = run(img)
-    cloth_seg.save(OUTPUT_PATH + cur_image)
+    cloth_seg.save(OUTPUT_PATH + cur_image, format="PNG")
