@@ -15,5 +15,15 @@ def initialize_and_load_models():
 net = initialize_and_load_models()
 
 def run(img):
-    cloth_seg = generate_mask(img, net=net, device=device)
+    palette = get_palette(4)
+    cloth_seg = generate_mask(img, net=net,device=device)
     return cloth_seg
+
+INPUT_PATH = "./input/"
+OUTPUT_PATH = "./output/"
+
+import os 
+for cur_image in os.listdir(INPUT_PATH):
+    img = PIL.Image.open(INPUT_PATH + cur_image)
+    cloth_seg = run(img)
+    cloth_seg.save(OUTPUT_PATH + cur_image)
