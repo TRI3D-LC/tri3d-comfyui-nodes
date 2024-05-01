@@ -6,5 +6,7 @@ venv
 checkpoints/
 checkpoint/
 .env
+.pth
+cloth-segmentation/model/cloth_segm.pth
 
 dwpose/keypoints/
