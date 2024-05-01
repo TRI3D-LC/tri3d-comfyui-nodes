@@ -10,3 +10,4 @@ checkpoint/
 cloth-segmentation/model/cloth_segm.pth
 
 dwpose/keypoints/
+huggingface/
