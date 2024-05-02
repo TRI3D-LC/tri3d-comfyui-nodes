@@ -192,11 +192,12 @@ def generate_mask(input_image, net, device='cpu'):
 def check_or_download_model(file_path):
     if not os.path.exists(file_path):
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        url = "https://drive.google.com/file/d/1qVv720hAd11JSCuIVJuqfjCGolwb1H8o/"
+        url = "https://drive.google.com/uc?export=download&id=1qVv720hAd11JSCuIVJuqfjCGolwb1H8o"
         gdown.download(url, file_path, quiet=False)
         print("Model downloaded successfully.")
     else:
         print("Model already exists.")
+
 
 
 def load_seg_model(checkpoint_path, device='cpu'):
