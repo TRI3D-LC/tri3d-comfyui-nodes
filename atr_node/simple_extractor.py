@@ -101,7 +101,8 @@ def download_model_restore(model_restore_path):
         print("Model file does not exist, downloading...")
         
         # Google Drive ID for the file
-        file_id = '1ruJg4lqR_jgQPj-9K0PP-L2vJERYOxLP'
+        # file_id = '1ruJg4lqR_jgQPj-9K0PP-L2vJERYOxLP'
+        file_id="1AVVLm1LxOs3W1Fp_GLefIz6fdWfEYg88"
         gdown.download(id=file_id, output=model_restore_path, quiet=False)
         print("Download complete.")
     else:
