@@ -2928,7 +2928,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-get_histogram_limits": get_histogram_limits,
 }
 
-VERSION = "3.2.1"
+VERSION = "3.2.2"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-levindabhi-cloth-seg": "Levindabhi Cloth Seg" + " v" + VERSION,
