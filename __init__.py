@@ -137,6 +137,8 @@ def run_transparent_background(path_dir_input,
                                path_dir_output,
                                path_file_model=None):
 
+    ensure_package()
+
     if path_file_model is None:
         path_file_model = get_path_file_model()
 
@@ -2884,7 +2886,6 @@ class main_transparent_background():
         return (image, mask)
 
 
-ensure_package()
 
 
 # A dictionary that contains all nodes you want to export with their names
