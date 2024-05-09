@@ -442,7 +442,11 @@ class TRI3DExtractPartsBatch:
     RETURN_TYPES = (
         "IMAGE",
         "IMAGE",
+        "LIST"
     )
+    
+    RETURN_NAMES = ("extracted_images","extracted_masks","extracted_coords")
+
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
@@ -532,10 +536,13 @@ class TRI3DExtractPartsBatch:
         for i in range(batch_images.shape[0]):
             image = batch_images[i]
             seg = batch_segs[i]
-
+            
             cv2_image = tensor_to_cv2_img(image)
             cv2_secondary = tensor_to_cv2_img(batch_secondaries[i])
             cv2_seg = tensor_to_cv2_img(seg)
+
+            cv2_secondary  = cv2.resize(cv2_secondary, (cv2_image.shape[1], image.shape[0]),
+                                 interpolation=cv2.INTER_AREA)
 
             color_code_list = []
             ################# ATR MAPPING#################
@@ -619,12 +626,14 @@ class TRI3DExtractPartsBatch:
 
         batch_results = []
         batch_secondaries = []
+        batch_coords = []
 
         for i,img in enumerate(images):
             x,y,w,h = images_xywh[i]
             img = img[y:y+max_height, x:x+max_width]
             img = cv2_img_to_tensor(img)
-            
+            # print("xywh", x, y, max_width, max_height)
+            batch_coords.append([x, y, max_width, max_height])
             batch_results.append(img.squeeze(0))
             
         for i,sec in enumerate(secondaries):
@@ -639,7 +648,8 @@ class TRI3DExtractPartsBatch:
         batch_secondaries = torch.stack(batch_secondaries)
 
         print(batch_results.shape, "batch_results.shape")
-        return (batch_results, batch_secondaries)
+        print(batch_coords, "batch_coords")
+        return (batch_results, batch_secondaries, batch_coords)
 
 
 class TRI3DPositionPartsBatch:
@@ -652,8 +662,9 @@ class TRI3DPositionPartsBatch:
         return {
             "required": {
                 "batch_images": ("IMAGE", ),
-                "batch_segs": ("IMAGE", ),
+                # "batch_segs": ("IMAGE", ),
                 "batch_handimgs": ("IMAGE", ),
+                "batch_coords":("LIST", ),
                 "margin": ("INT", {
                     "default": 15,
                     "min": 0
@@ -719,7 +730,7 @@ class TRI3DPositionPartsBatch:
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, batch_images, batch_segs, batch_handimgs, margin, right_leg,
+    def main(self, batch_images, batch_handimgs, batch_coords, margin, right_leg,
              right_hand, head, hair, left_shoe, bag, background, dress,
              left_leg, right_shoe, left_hand, upper_garment, lower_garment,
              belt, skirt, hat, sunglasses, scarf):
@@ -787,11 +798,12 @@ class TRI3DPositionPartsBatch:
 
         for i in range(batch_images.shape[0]):
             image = batch_images[i]
-            seg = batch_segs[i]
+            # seg = batch_segs[i]
             handimg = batch_handimgs[i]
+            positions = batch_coords[i]
 
             cv2_image = tensor_to_cv2_img(image)
-            cv2_seg = tensor_to_cv2_img(seg)
+            # cv2_seg = tensor_to_cv2_img(seg)
 
             color_code_list = []
             ################# ATR MAPPING#################
@@ -832,14 +844,20 @@ class TRI3DPositionPartsBatch:
             if scarf:
                 color_code_list.append([128, 64, 0])
 
-            positions = bounded_image_points(cv2_seg, color_code_list,
-                                             cv2_image)
-
+            # positions = bounded_image_points(cv2_seg, color_code_list,
+            #                                  cv2_image)
+            
             try:
                 cv2_handimg = tensor_to_cv2_img(handimg)
-                cv2_handimg = cv2.resize(cv2_handimg,
-                                         (positions[2], positions[3]),
-                                         interpolation=cv2.INTER_AREA)
+               
+                # positions =  "".join(positions.split(","))
+                # positions = [int(i) for i in positions]
+                # print("xywh", positions)
+                
+                if cv2_handimg.shape[0] != positions[3] or cv2_handimg.shape[1] != positions[2]:
+                    cv2_handimg = cv2.resize(cv2_handimg,
+                                            (positions[2], positions[3]),
+                                            interpolation=cv2.INTER_AREA)
 
                 cv2_handimg = unsharp_mask(cv2_handimg)
                 
