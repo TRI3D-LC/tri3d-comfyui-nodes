@@ -2660,6 +2660,64 @@ class TRI3D_clipdrop_bgremove_api:
         # print(mask.shape)
         return output,
 
+
+
+
+class TRI3D_clipdrop_bgreplace_api:
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE", ),
+                "text" : ("STRING", {"default": "model standing on a beach","multiline": True, "dynamicPrompts": True})
+            },
+        }
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", )
+    CATEGORY = "TRI3D"
+
+    def run(self, image, text):
+        image = from_torch_image(image)
+        
+        _, enc_image = cv2.imencode('.jpg', image)
+        from dotenv import load_dotenv
+        load_dotenv()
+        CLIPDROP_API_KEY = os.getenv('CLIPDROP_API_KEY')
+
+        # CLIPDROP_API_KEY = os.environ.get('CLIPDROP_API_KEY')
+
+    
+        r = requests.post('https://clipdrop-api.co/replace-background/v1',
+        files = {
+            'image_file': ("mannequin.jpg", enc_image.tobytes(), 'image/jpeg'),
+            },
+        headers = { 'x-api-key': CLIPDROP_API_KEY},
+        data = {
+            'prompt': text
+        }
+        )
+        if (r.ok):
+            pass
+        else:
+            r.raise_for_status()
+        output = np.array(Image.open(io.BytesIO(r.content)))
+        output = cv2.cvtColor(output, cv2.COLOR_BGRA2RGBA)
+        # print("decoded output",output.shape)
+        # mask = output[:,:,3]
+        # output = output[:,:,0:3]
+        output = torch.from_numpy(output.astype(np.float32)/255.0)[None,]
+        # print("converted image to torch")
+        # print(output.shape)
+        # mask = torch.from_numpy(mask.astype(np.float32)/255.0)[None,]
+        # print("converted mask to torch")
+        # print(mask.shape)
+        return output,
+
 class TRI3DAdjustNeck:
     def __init__(self):
         pass
@@ -2892,6 +2950,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-image-mask-2-box": TRI3D_image_mask_2_box,
     "tri3d-image-mask-box-2-image": TRI3D_image_mask_box_2_image,
     "tri3d-clipdrop-bgremove-api": TRI3D_clipdrop_bgremove_api,
+    "tri3d-clipdrop-bgreplace-api": TRI3D_clipdrop_bgreplace_api,
     "tri3d-adjust-neck": TRI3DAdjustNeck,
     "tri3d-HistogramEqualization": HistogramEqualization,
     "tri3d-composite-image-splitter": TRI3DCompositeImageSplitter,
@@ -2908,7 +2967,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-get_histogram_limits": get_histogram_limits,
 }
 
-VERSION = "3.3"
+VERSION = "3.4"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-levindabhi-cloth-seg": "Levindabhi Cloth Seg" + " v" + VERSION,
@@ -2934,6 +2993,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d--image-mask-2-box": "Extract box from image" + " v" + VERSION,
     "tri3d-image-mask-box-2-image": "Stitch box to image" + " v" + VERSION,
     "tri3d-clipdrop-bgremove-api": "RemBG ClipDrop" + " v" + VERSION,
+    "tri3d-clipdrop-bgreplace-api": "ReplaceBG ClipDrop" + " v" + VERSION,
     "tri3d-adjust-neck": "Adjust Neck" + " v" + VERSION,
     "tri3d-HistogramEqualization": "Adjust Neck" + " v" + VERSION,
     "tri3d-composite-image-splitter": "Composite Image Splitter" + " v" + VERSION,
