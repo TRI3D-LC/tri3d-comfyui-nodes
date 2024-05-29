@@ -286,6 +286,49 @@ class TRI3DLEVINDABHICLOTHSEGBATCH:
         return (batch_results, )
 
 
+class clear_memory:
+    def __init__(self):
+        pass
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "any": ("IMAGE", )
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+
+    FUNCTION = "main"
+    CATEGORY = "TRI3D"
+
+    def main(self, any):
+        import pycuda.driver as cuda
+        import pycuda.autoinit
+
+        # Get device memory info
+        mem_info = cuda.mem_get_info()
+        free_memory = mem_info[0]
+        total_memory = mem_info[1]
+
+        free_per = float(free_memory)/float(total_memory)
+        print("before free_per ", free_per, free_memory, total_memory)
+        if free_per < 0.1:
+            import gc 
+            gc.collect()
+
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+            time.sleep(1)
+
+            mem_info = cuda.mem_get_info()
+            free_memory = mem_info[0]
+            total_memory = mem_info[1]
+            free_per = float(free_memory)/float(total_memory)
+
+            print("after free_per ", free_per, free_memory, total_memory)
+
+        return any
 
 
 class TRI3DATRParseBatch:
@@ -311,6 +354,9 @@ class TRI3DATRParseBatch:
         import torch
         import os
         import shutil
+        import time
+
+        
 
         def tensor_to_cv2_img(tensor, remove_alpha=False):
             i = 255. * tensor.cpu().numpy()  # This will give us (H, W, C)
@@ -323,6 +369,8 @@ class TRI3DATRParseBatch:
                 None,
             ]
             return img
+
+        
 
         ATR_PATH = 'custom_nodes/tri3d-comfyui-nodes/atr_node/'
         ATR_INPUT_PATH = ATR_PATH + 'input/'
@@ -2965,6 +3013,7 @@ NODE_CLASS_MAPPINGS = {
     'tri3d-renormalize_array': renormalize_array,
     "tri3d-simple_rescale_histogram": simple_rescale_histogram,
     "tri3d-get_histogram_limits": get_histogram_limits,
+    "tri3d-clear-memory": clear_memory,
 }
 
 VERSION = "3.4"
@@ -3008,4 +3057,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     'tri3d-renormalize_array': 'Renormalize the layer to have the given mean and standard deviation' + " v" + VERSION,
     "tri3d-simple_rescale_histogram": 'Rescale the layer to have given max and min values' + " v" + VERSION,
     "tri3d-get_histogram_limits": 'Calculate max and min values for rescaling histogram' + " v" + VERSION,
+    "tri3d-clear_memory": 'Clear Memory' + " v" + VERSION,
 }
