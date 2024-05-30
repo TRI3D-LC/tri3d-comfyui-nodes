@@ -286,49 +286,102 @@ class TRI3DLEVINDABHICLOTHSEGBATCH:
         return (batch_results, )
 
 
+# class clear_memory:
+#     def __init__(self):
+#         pass
+#     @classmethod
+#     def INPUT_TYPES(s):
+#         return {
+#             "required": {
+#                 "input": ("IMAGE", ),
+#                 "free_mem_per_limit" : ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
+#             },
+#         }
+
+#     RETURN_TYPES = ("IMAGE",)
+
+#     FUNCTION = "main"
+#     CATEGORY = "TRI3D"
+
+#     def main(self, input,free_mem_per_limit):
+#         import pycuda.driver as cuda
+#         import pycuda.autoinit
+#         import time
+
+#         # Get device memory info
+#         mem_info = cuda.mem_get_info()
+#         free_memory = mem_info[0]
+#         total_memory = mem_info[1]
+
+#         free_per = float(free_memory)/float(total_memory)
+#         print("before free_per ", free_per, free_memory, total_memory)
+#         if free_per < free_mem_per_limit:
+#             import gc 
+#             gc.collect()
+
+#             torch.cuda.empty_cache()
+#             torch.cuda.ipc_collect()
+#             time.sleep(2)
+
+#             mem_info = cuda.mem_get_info()
+#             free_memory = mem_info[0]
+#             total_memory = mem_info[1]
+#             free_per = float(free_memory)/float(total_memory)
+
+#             print("after free_per ", free_per, free_memory, total_memory)
+
+#         return (any,)
+
 class clear_memory:
     def __init__(self):
         pass
+
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {
             "required": {
-                "any": ("IMAGE", )
+                "input": ("IMAGE", ),
+                "free_mem_per_limit": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
             },
         }
 
     RETURN_TYPES = ("IMAGE",)
-
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
-    def main(self, any):
+    def main(self, input, free_mem_per_limit):
         import pycuda.driver as cuda
         import pycuda.autoinit
+        import torch
+        import time
+
+        def clear_gpu_memory():
+            import gc
+            gc.collect()
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect(2)
+            time.sleep(2)
 
         # Get device memory info
         mem_info = cuda.mem_get_info()
         free_memory = mem_info[0]
         total_memory = mem_info[1]
 
-        free_per = float(free_memory)/float(total_memory)
+        free_per = float(free_memory) / float(total_memory)
         print("before free_per ", free_per, free_memory, total_memory)
-        if free_per < 0.1:
-            import gc 
-            gc.collect()
 
-            torch.cuda.empty_cache()
-            torch.cuda.ipc_collect()
-            time.sleep(1)
+        if free_per < free_mem_per_limit:
+            clear_gpu_memory()
 
             mem_info = cuda.mem_get_info()
             free_memory = mem_info[0]
             total_memory = mem_info[1]
-            free_per = float(free_memory)/float(total_memory)
+            free_per = float(free_memory) / float(total_memory)
 
             print("after free_per ", free_per, free_memory, total_memory)
 
-        return any
+        # Return the input tensor as is
+        return (input,)
 
 
 class TRI3DATRParseBatch:
@@ -3016,7 +3069,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-clear-memory": clear_memory,
 }
 
-VERSION = "3.4"
+VERSION = "3.5"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-levindabhi-cloth-seg": "Levindabhi Cloth Seg" + " v" + VERSION,
