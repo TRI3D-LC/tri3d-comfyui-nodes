@@ -296,6 +296,12 @@ class clear_memory:
         return {
             "required": {
                 "input": ("IMAGE", ),
+                "free_mem_per_limit": ("FLOAT", {
+                    "default": 1,
+                    "min": 0,
+                    "max": 1,
+                    "step": 0.01,
+                }),
             },
         }
 
