@@ -359,7 +359,7 @@ class clear_memory:
             import gc
             gc.collect()
             torch.cuda.empty_cache()
-            torch.cuda.ipc_collect(2)
+            torch.cuda.ipc_collect()
             time.sleep(2)
 
         # Get device memory info
