@@ -2,7 +2,7 @@
 import os
 import os.path
 tri3d_custom_nodes_path = os.path.dirname(os.path.abspath(__file__))
-import cv2, json, math, pathlib, requests, io, tempfile, subprocess, sys, wget
+import cv2, json, math, pathlib, requests, io, tempfile, subprocess, sys, wget, glob
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -285,7 +285,88 @@ class TRI3DLEVINDABHICLOTHSEGBATCH:
 
         return (batch_results, )
 
+class TRI3DClothFootwearSegmentation:
 
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "images": ("IMAGE", ),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE", )
+    FUNCTION = "main"
+    CATEGORY = "TRI3D"
+
+    def main(self, images):
+        import cv2
+        import numpy as np
+        import torch
+        import os
+        import shutil
+
+        def tensor_to_cv2_img(tensor, remove_alpha=False):
+            i = 255. * tensor.cpu().numpy()  # This will give us (H, W, C)
+            img = np.clip(i, 0, 255).astype(np.uint8)
+            return img
+
+        def cv2_img_to_tensor(img):
+            img = img.astype(np.float32) / 255.0
+            img = torch.from_numpy(img)[
+                None,
+            ]
+            return img
+
+        LSEG_PATH = 'custom_nodes/tri3d-comfyui-nodes/cloth-footwear-segmentation/'
+        LSEG_INPUT_PATH = LSEG_PATH + 'input_images/'
+        LSEG_OUTPUT_PATH = LSEG_PATH + 'output_images/'
+
+        # # Create the input directory if it does not exist
+        shutil.rmtree(LSEG_INPUT_PATH, ignore_errors=True)
+        os.makedirs(LSEG_INPUT_PATH, exist_ok=True)
+
+        shutil.rmtree(LSEG_OUTPUT_PATH, ignore_errors=True)
+        os.makedirs(LSEG_OUTPUT_PATH, exist_ok=True)
+
+        for i in range(images.shape[0]):
+            image = images[i]
+            cv2_image = tensor_to_cv2_img(image)
+            cv2_image = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2RGB)
+            cv2.imwrite(LSEG_INPUT_PATH + f"image{i}.png", cv2_image)
+
+        # Run the LSEG model
+        cwd = os.getcwd()
+        os.chdir(LSEG_PATH)
+        from dotenv import load_dotenv
+        load_dotenv()
+        COMFY_PYTHON_PATH = os.getenv('COMFY_PYTHON_PATH','python')
+        
+        os.system(
+            COMFY_PYTHON_PATH + " infer.py"
+        )
+        os.chdir(cwd)
+
+        # Collect and return the results
+
+        
+
+        batch_results = []
+        for i in range(images.shape[0]):
+            cv2_segm = cv2.imread(LSEG_OUTPUT_PATH + f'image{i}.png', cv2.IMREAD_UNCHANGED)  # Read PNG with alpha channel
+            cv2_segm = cv2.cvtColor(cv2_segm, cv2.COLOR_BGRA2RGB)  # Convert from BGRA to RGBA
+            b_tensor_img = cv2_img_to_tensor(cv2_segm)
+            batch_results.append(b_tensor_img.squeeze(0))
+
+        
+        batch_results = torch.stack(batch_results)
+
+        
+
+        return (batch_results, )
 
 class clear_memory:
     def __init__(self):
@@ -2972,6 +3053,7 @@ class main_transparent_background():
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
     "tri3d-levindabhi-cloth-seg": TRI3DLEVINDABHICLOTHSEGBATCH,
+    "tri3d-cloth-footwear-seg": TRI3DClothFootwearSegmentation,
     "tri3d-atr-parse-batch": TRI3DATRParseBatch,
     'tri3d-extract-parts-batch': TRI3DExtractPartsBatch,
     "tri3d-extract-parts-batch2": TRI3DExtractPartsBatch2,
@@ -3014,6 +3096,7 @@ VERSION = "3.5"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-levindabhi-cloth-seg": "Levindabhi Cloth Seg" + " v" + VERSION,
+    "tri3d-cloth-footwear-seg": "Cloth footwear Seg" + "v" + VERSION,
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
     'tri3d-extract-parts-batch': 'Extract Parts Batch' + " v" + VERSION,
     'tri3d-extract-parts-batch2': 'Extract Parts Batch 2' + " v" + VERSION,
