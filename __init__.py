@@ -2957,6 +2957,13 @@ class main_transparent_background():
 
     def run(self, image):
         image = self.from_torch_image(image)
+
+        import torch
+        import gc
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        gc.collect()
+
         image = get_transparent_background(image)
         mask = image[:, :, :, 3]
         image = image[:, :, :, 0:3]
@@ -2964,8 +2971,6 @@ class main_transparent_background():
         mask = self.to_torch_image(mask)
         print('DEBUG', image.shape, mask.shape)
         return (image, mask)
-
-
 
 
 # A dictionary that contains all nodes you want to export with their names
