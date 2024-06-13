@@ -408,6 +408,176 @@ class TRI3DATRParseBatch:
         return (batch_results, )
 
 
+class TRI3DExtractMasksBatch:
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "batch_segs": ("IMAGE", ),
+                "right_leg": ("BOOLEAN", {
+                    "default": False
+                }),
+                "right_hand": ("BOOLEAN", {
+                    "default": True
+                }),
+                "head": ("BOOLEAN", {
+                    "default": False
+                }),
+                "hair": ("BOOLEAN", {
+                    "default": False
+                }),
+                "left_shoe": ("BOOLEAN", {
+                    "default": False
+                }),
+                "bag": ("BOOLEAN", {
+                    "default": False
+                }),
+                "background": ("BOOLEAN", {
+                    "default": False
+                }),
+                "dress": ("BOOLEAN", {
+                    "default": False
+                }),
+                "left_leg": ("BOOLEAN", {
+                    "default": False
+                }),
+                "right_shoe": ("BOOLEAN", {
+                    "default": False
+                }),
+                "left_hand": ("BOOLEAN", {
+                    "default": True
+                }),
+                "upper_garment": ("BOOLEAN", {
+                    "default": False
+                }),
+                "lower_garment": ("BOOLEAN", {
+                    "default": False
+                }),
+                "belt": ("BOOLEAN", {
+                    "default": False
+                }),
+                "skirt": ("BOOLEAN", {
+                    "default": False
+                }),
+                "hat": ("BOOLEAN", {
+                    "default": False
+                }),
+                "sunglasses": ("BOOLEAN", {
+                    "default": False
+                }),
+                "scarf": ("BOOLEAN", {
+                    "default": False
+                }),
+            },
+        }
+
+    FUNCTION = "main"
+    RETURN_TYPES = ("MASK", )
+    CATEGORY = "TRI3D"
+
+    def main(self, batch_segs, right_leg, right_hand, head, hair, left_shoe, bag, background,
+             dress, left_leg, right_shoe, left_hand, upper_garment,
+             lower_garment, belt, skirt, hat, sunglasses, scarf):
+        import cv2
+        import numpy as np
+        import torch
+        from pprint import pprint
+
+        def mask_image(seg_img, color_code_list):
+            # Create a mask for the selected parts
+            mask = np.zeros_like(seg_img[:, :, 0])
+            for color in color_code_list:
+                lowerb = np.array(color, dtype=np.uint8)
+                upperb = np.array(color, dtype=np.uint8)
+                temp_mask = cv2.inRange(seg_img, lowerb, upperb)
+                mask = cv2.bitwise_or(mask, temp_mask)
+
+            return mask
+
+        def tensor_to_cv2_img(tensor, remove_alpha=False):
+            # This will give us (H, W, C)
+            i = 255. * tensor.squeeze(0).cpu().numpy()
+            img = np.clip(i, 0, 255).astype(np.uint8)
+            return img
+
+        def cv2_img_to_tensor(img):
+            img = img.astype(np.float32) / 255.0
+            img = torch.from_numpy(img)[
+                None,
+            ]
+            return img
+
+        masks = []
+        # Process each segmentation image
+        for i in range(batch_segs.shape[0]):
+            seg = batch_segs[i]
+
+            cv2_seg = tensor_to_cv2_img(seg)
+
+            color_code_list = []
+            ################# ATR MAPPING#################
+            if right_leg:
+                color_code_list.append([192, 0, 128])
+            if right_hand:
+                color_code_list.append([192, 128, 128])
+            if head:
+                color_code_list.append([192, 128, 0])
+            if hair:
+                color_code_list.append([0, 128, 0])
+            if left_shoe:
+                color_code_list.append([192, 0, 0])
+            if bag:
+                color_code_list.append([0, 64, 0])
+            if background:
+                color_code_list.append([0, 0, 0])
+            if dress:
+                color_code_list.append([128, 128, 128])
+            if left_leg:
+                color_code_list.append([64, 0, 128])
+            if right_shoe:
+                color_code_list.append([64, 128, 0])
+            if left_hand:
+                color_code_list.append([64, 128, 128])
+            if upper_garment:
+                color_code_list.append([0, 0, 128])
+            if lower_garment:
+                color_code_list.append([0, 128, 128])
+            if belt:
+                color_code_list.append([64, 0, 0])
+            if skirt:
+                color_code_list.append([128, 0, 128])
+            if hat:
+                color_code_list.append([128, 0, 0])
+            if sunglasses:
+                color_code_list.append([128, 128, 0])
+            if scarf:
+                color_code_list.append([128, 64, 0])
+
+            mask = mask_image(cv2_seg, color_code_list)
+
+            masks.append(mask)
+
+        # Get max height and width
+        max_height = max(mask.shape[0] for mask in masks)
+        max_width = max(mask.shape[1] for mask in masks)
+
+        batch_results = []
+
+        for mask in masks:
+            # Resize the mask to max height and width
+            resized_mask = cv2.resize(mask, (max_width, max_height),
+                                      interpolation=cv2.INTER_NEAREST)
+            tensor_mask = cv2_img_to_tensor(resized_mask)
+            batch_results.append(tensor_mask.squeeze(0))
+
+        batch_results = torch.stack(batch_results)
+        print(batch_results.shape, "batch_results.shape")
+        return (batch_results,)
+
 class TRI3DExtractPartsBatch:
 
     def __init__(self):
@@ -2973,6 +3143,7 @@ class main_transparent_background():
 NODE_CLASS_MAPPINGS = {
     "tri3d-levindabhi-cloth-seg": TRI3DLEVINDABHICLOTHSEGBATCH,
     "tri3d-atr-parse-batch": TRI3DATRParseBatch,
+    'tri3d-extract-masks-batch': TRI3DExtractMasksBatch,
     'tri3d-extract-parts-batch': TRI3DExtractPartsBatch,
     "tri3d-extract-parts-batch2": TRI3DExtractPartsBatch2,
     "tri3d-position-parts-batch": TRI3DPositionPartsBatch,
@@ -3010,11 +3181,12 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-clear-memory": clear_memory,
 }
 
-VERSION = "3.5"
+VERSION = "3.6"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-levindabhi-cloth-seg": "Levindabhi Cloth Seg" + " v" + VERSION,
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
+    'tri3d-extract-masks-batch': 'Extract Masks Batch' + " v" + VERSION,
     'tri3d-extract-parts-batch': 'Extract Parts Batch' + " v" + VERSION,
     'tri3d-extract-parts-batch2': 'Extract Parts Batch 2' + " v" + VERSION,
     "tri3d-position-parts-batch": "Position Parts Batch" + " v" + VERSION,
