@@ -15,6 +15,8 @@ from scaled_paste import main_scaled_paste
 from simple_bg_swap import (simple_bg_swap, get_threshold_for_bg_swap, RGB_2_LAB, LAB_2_RGB, get_mean_and_standard_deviation, renormalize_array)
 from distribution_reshape import (simple_rescale_histogram, get_histogram_limits)
 
+from .AEMatter import (load_AEMatter_Model, run_AEMatter_inference)
+from .MVANet_inference import (load_MVANet_Model, run_MVANet_inference)
 
 def from_torch_image(image):
     image = image.squeeze().cpu().numpy() * 255.0
@@ -3013,6 +3015,10 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-simple_rescale_histogram": simple_rescale_histogram,
     "tri3d-get_histogram_limits": get_histogram_limits,
     "tri3d-clear-memory": clear_memory,
+    "tri3d-load_MVANet_Model": load_MVANet_Model,
+    "tri3d-run_MVANet_inference": run_MVANet_inference,
+    'tri3d-load_AEMatter_Model': load_AEMatter_Model,
+    'tri3d-run_AEMatter_inference': run_AEMatter_inference,
 }
 
 VERSION = "3.5"
@@ -3057,4 +3063,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-simple_rescale_histogram": 'Rescale the layer to have given max and min values' + " v" + VERSION,
     "tri3d-get_histogram_limits": 'Calculate max and min values for rescaling histogram' + " v" + VERSION,
     "tri3d-clear_memory": 'Clear Memory' + " v" + VERSION,
+    "tri3d-load_MVANet_Model": 'Load MVANet Model' + ' v' + VERSION,
+    "tri3d-run_MVANet_inference": 'Run MVANet inference' + ' v' + VERSION,
+    'tri3d-load_AEMatter_Model': 'Load AEMatter Model' + ' v' + VERSION,
+    'tri3d-run_AEMatter_inference': 'Run AEMatter inference' + ' v' + VERSION,
 }
