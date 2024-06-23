@@ -3136,11 +3136,12 @@ class main_transparent_background():
         return (image, mask)
 
 
-
+from photoroom import TRI3D_photoroom_bgremove_api
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
+    "tri3d-photoroom-bgremove-api": TRI3D_photoroom_bgremove_api,
     "tri3d-levindabhi-cloth-seg": TRI3DLEVINDABHICLOTHSEGBATCH,
     "tri3d-atr-parse-batch": TRI3DATRParseBatch,
     'tri3d-extract-masks-batch': TRI3DExtractMasksBatch,
@@ -3181,9 +3182,10 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-clear-memory": clear_memory,
 }
 
-VERSION = "3.6"
+VERSION = "3.7"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
+    "tri3d-photoroom-bgremove-api": "Photoroom BG Remove" + " v" + VERSION,
     "tri3d-levindabhi-cloth-seg": "Levindabhi Cloth Seg" + " v" + VERSION,
     "tri3d-atr-parse-batch": "ATR Parse Batch" + " v" + VERSION,
     'tri3d-extract-masks-batch': 'Extract Masks Batch' + " v" + VERSION,
