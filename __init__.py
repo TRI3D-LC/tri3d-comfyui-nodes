@@ -15,6 +15,8 @@ from scaled_paste import main_scaled_paste
 from simple_bg_swap import (simple_bg_swap, get_threshold_for_bg_swap, RGB_2_LAB, LAB_2_RGB, get_mean_and_standard_deviation, renormalize_array)
 from distribution_reshape import (simple_rescale_histogram, get_histogram_limits)
 
+from .AEMatter import (load_AEMatter_Model, run_AEMatter_inference)
+from .MVANet_inference import (load_MVANet_Model, run_MVANet_inference)
 
 def from_torch_image(image):
     image = image.squeeze().cpu().numpy() * 255.0
@@ -3127,6 +3129,13 @@ class main_transparent_background():
 
     def run(self, image):
         image = self.from_torch_image(image)
+
+        import torch
+        import gc
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        gc.collect()
+
         image = get_transparent_background(image)
         mask = image[:, :, :, 3]
         image = image[:, :, :, 0:3]
@@ -3136,8 +3145,11 @@ class main_transparent_background():
         return (image, mask)
 
 
+<<<<<<< HEAD
 from photoroom import TRI3D_photoroom_bgremove_api
 
+=======
+>>>>>>> 648e3cda90d443855bb15c05e53f26484d0e2ba6
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
@@ -3180,6 +3192,10 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-simple_rescale_histogram": simple_rescale_histogram,
     "tri3d-get_histogram_limits": get_histogram_limits,
     "tri3d-clear-memory": clear_memory,
+    "tri3d-load_MVANet_Model": load_MVANet_Model,
+    "tri3d-run_MVANet_inference": run_MVANet_inference,
+    'tri3d-load_AEMatter_Model': load_AEMatter_Model,
+    'tri3d-run_AEMatter_inference': run_AEMatter_inference,
 }
 
 VERSION = "3.7"
@@ -3226,4 +3242,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-simple_rescale_histogram": 'Rescale the layer to have given max and min values' + " v" + VERSION,
     "tri3d-get_histogram_limits": 'Calculate max and min values for rescaling histogram' + " v" + VERSION,
     "tri3d-clear_memory": 'Clear Memory' + " v" + VERSION,
+    "tri3d-load_MVANet_Model": 'Load MVANet Model' + ' v' + VERSION,
+    "tri3d-run_MVANet_inference": 'Run MVANet inference' + ' v' + VERSION,
+    'tri3d-load_AEMatter_Model': 'Load AEMatter Model' + ' v' + VERSION,
+    'tri3d-run_AEMatter_inference': 'Run AEMatter inference' + ' v' + VERSION,
 }
