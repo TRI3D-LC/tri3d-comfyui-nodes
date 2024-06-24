@@ -3130,11 +3130,11 @@ class main_transparent_background():
     def run(self, image):
         image = self.from_torch_image(image)
 
-        import torch
-        import gc
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        gc.collect()
+        # import torch
+        # import gc
+        # if torch.cuda.is_available():
+        #     torch.cuda.empty_cache()
+        # gc.collect()
 
         image = get_transparent_background(image)
         mask = image[:, :, :, 3]
