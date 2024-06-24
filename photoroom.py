@@ -36,7 +36,9 @@ class TRI3D_photoroom_bgremove_api:
         dotenv.load_dotenv()
 
         # Read the API key from the environment variable
-        PHOTOROOM_API_KEY = os.getenv('PHOTOROOM_API_KEY')
+        PHOTOROOM_API_KEY = os.getenv('PHOTOROOM_API_KEY','EMPTY')
+        if PHOTOROOM_API_KEY == 'EMPTY':
+            return images
         def tensor_to_cv2_img(tensor, remove_alpha=False):
             i = 255. * tensor.cpu().numpy()  # This will give us (H, W, C)
             img = np.clip(i, 0, 255).astype(np.uint8)
