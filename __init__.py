@@ -3552,7 +3552,7 @@ NODE_CLASS_MAPPINGS = {
     'tri3d-run_AEMatter_inference': run_AEMatter_inference,
 }
 
-VERSION = "3.7"
+VERSION = "3.8"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-photoroom-bgremove-api": "Photoroom BG Remove" + " v" + VERSION,
