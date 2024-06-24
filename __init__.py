@@ -3145,11 +3145,8 @@ class main_transparent_background():
         return (image, mask)
 
 
-<<<<<<< HEAD
 from photoroom import TRI3D_photoroom_bgremove_api
 
-=======
->>>>>>> 648e3cda90d443855bb15c05e53f26484d0e2ba6
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
