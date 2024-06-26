@@ -17,6 +17,8 @@ from distribution_reshape import (simple_rescale_histogram, get_histogram_limits
 
 from .AEMatter import (load_AEMatter_Model, run_AEMatter_inference)
 from .MVANet_inference import (load_MVANet_Model, run_MVANet_inference)
+from .MVANet_inference import (load_MVANet_Model, run_MVANet_inference)
+from .segment_face import main_face_segment
 
 def from_torch_image(image):
     image = image.squeeze().cpu().numpy() * 255.0
@@ -3714,7 +3716,9 @@ NODE_CLASS_MAPPINGS = {
     'tri3d-load_AEMatter_Model': load_AEMatter_Model,
     'tri3d-run_AEMatter_inference': run_AEMatter_inference,
     "tri3d-bgremove-mega" :TRI3D_BGREMOVE_MEGA,
+    'tri3d-facer_face_segment' : main_face_segment,
 }
+
 
 VERSION = "3.8"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
@@ -3767,4 +3771,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     'tri3d-load_AEMatter_Model': 'Load AEMatter Model' + ' v' + VERSION,
     'tri3d-run_AEMatter_inference': 'Run AEMatter inference' + ' v' + VERSION,
     "tri3d-bgremove-mega": "BG Remove Mega" + " v" + VERSION,
+    'tri3d-facer_face_segment' : "Segment face using facer" + " v" + VERSION,
 }
