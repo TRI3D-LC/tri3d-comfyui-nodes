@@ -54,7 +54,7 @@ def detect_face_from_tensor(image):
 def full_work_wrapper(image):
     res, n_classes = detect_face_from_tensor(image)
     tup = do_recolor(res, n_classes)
-    tup = torch.from_numpy(tup).to(device=image.device, dtype=image.dtype)
+    # tup = torch.from_numpy(tup).to(device=image.device, dtype=image.dtype)
     return tup
 
 
