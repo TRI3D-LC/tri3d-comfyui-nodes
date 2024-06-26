@@ -79,7 +79,7 @@ class main_face_segment():
         batch_size = image.shape[0]
         ret = []
         for i in range(batch_size):
-            ret.append(full_work_wrapper(image[i]))
+            ret.append(full_work_wrapper(image[i].clone()))
 
         ret = np.array(ret)
         ret = torch.from_numpy(ret).to(dtype=image.dtype, device=image.device)
