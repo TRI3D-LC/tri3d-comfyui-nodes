@@ -15,10 +15,13 @@ from scaled_paste import main_scaled_paste
 from simple_bg_swap import (simple_bg_swap, get_threshold_for_bg_swap, RGB_2_LAB, LAB_2_RGB, get_mean_and_standard_deviation, renormalize_array)
 from distribution_reshape import (simple_rescale_histogram, get_histogram_limits)
 
+
 from .AEMatter import (load_AEMatter_Model, run_AEMatter_inference)
 from .MVANet_inference import (load_MVANet_Model, run_MVANet_inference)
 from .MVANet_inference import (load_MVANet_Model, run_MVANet_inference)
 from .segment_face import main_face_segment
+from .light_layer import main_light_layer
+
 
 def from_torch_image(image):
     image = image.squeeze().cpu().numpy() * 255.0
@@ -3717,6 +3720,7 @@ NODE_CLASS_MAPPINGS = {
     'tri3d-run_AEMatter_inference': run_AEMatter_inference,
     "tri3d-bgremove-mega" :TRI3D_BGREMOVE_MEGA,
     'tri3d-facer_face_segment' : main_face_segment,
+    'tri3d-flexible_color_extract' : main_light_layer,
 }
 
 
@@ -3771,5 +3775,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     'tri3d-load_AEMatter_Model': 'Load AEMatter Model' + ' v' + VERSION,
     'tri3d-run_AEMatter_inference': 'Run AEMatter inference' + ' v' + VERSION,
     "tri3d-bgremove-mega": "BG Remove Mega" + " v" + VERSION,
-    'tri3d-facer_face_segment' : "Segment face using facer" + " v" + VERSION,
+    'tri3d-facer_face_segment': "Segment face using facer" + " v" + VERSION,
+    'tri3d-flexible_color_extract': "Flexible color extract" + " v" + VERSION,
 }
