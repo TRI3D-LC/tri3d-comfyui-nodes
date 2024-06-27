@@ -52,6 +52,18 @@ def detect_face_from_tensor(image):
 
 
 def full_work_wrapper(image):
+    try:
+        res, n_classes = detect_face_from_tensor(image)
+    except:
+        res = torch.zeros((image.shape[0], image.shape[1]), dtype=torch.int64)
+        n_classes = 11
+        print('Warning: Failed to find any face in the image...')
+
+    tup = do_recolor(res, n_classes)
+    tup = torch.from_numpy(tup).to(device=image.device, dtype=image.dtype)
+
+    return tup
+
     res, n_classes = detect_face_from_tensor(image)
     tup = do_recolor(res, n_classes)
     # tup = torch.from_numpy(tup).to(device=image.device, dtype=image.dtype)
