@@ -51,7 +51,12 @@ def detect_face_from_tensor(image):
     return (vis_seg_probs, n_classes)
 
 
-def full_work_wrapper(image):
+def full_work_wrapper(image,to_run):
+    if not to_run:
+        res = torch.zeros((image.shape[0], image.shape[1]), dtype=torch.int64)
+        n_classes = 11
+        return do_recolor(res, n_classes)
+        
     try:
         res, n_classes = detect_face_from_tensor(image)
     except:
@@ -60,14 +65,13 @@ def full_work_wrapper(image):
         print('Warning: Failed to find any face in the image...')
 
     tup = do_recolor(res, n_classes)
-    tup = torch.from_numpy(tup).to(device=image.device, dtype=image.dtype)
-
-    return tup
-
-    res, n_classes = detect_face_from_tensor(image)
-    tup = do_recolor(res, n_classes)
     # tup = torch.from_numpy(tup).to(device=image.device, dtype=image.dtype)
     return tup
+
+    # res, n_classes = detect_face_from_tensor(image)
+    # tup = do_recolor(res, n_classes)
+    # # tup = torch.from_numpy(tup).to(device=image.device, dtype=image.dtype)
+    # return tup
 
 
 class main_face_segment():
@@ -80,6 +84,7 @@ class main_face_segment():
         return {
             "required": {
                 "image": ("IMAGE", ),
+                "to_run": ("BOOLEAN",)
             },
         }
 
@@ -87,11 +92,11 @@ class main_face_segment():
     RETURN_TYPES = ("IMAGE", )
     CATEGORY = "TRI3D"
 
-    def run(self, image):
+    def run(self, image,to_run):
         batch_size = image.shape[0]
         ret = []
         for i in range(batch_size):
-            ret.append(full_work_wrapper(image[i].clone()))
+            ret.append(full_work_wrapper(image[i].clone(),to_run))
 
         ret = np.array(ret)
         ret = torch.from_numpy(ret).to(dtype=image.dtype, device=image.device)
