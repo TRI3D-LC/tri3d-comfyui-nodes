@@ -97,7 +97,8 @@ def download_model_file(path_file_output=None):
 
     if not os.path.exists(path_file_output):
 
-        file_url = 'https://huggingface.co/hanamizuki-ai/InSPyReNet-SwinB-Plus-Ultra/resolve/main/latest.pth'
+        file_url = 'https://github.com/plemeri/transparent-background/releases/download/1.2.12/ckpt_base.pth'
+        # 'https://huggingface.co/hanamizuki-ai/InSPyReNet-SwinB-Plus-Ultra/resolve/main/latest.pth'
         
         import requests
 
@@ -152,7 +153,7 @@ def run_transparent_background(path_dir_input,
     command = [
         'transparent-background', '--source', path_dir_input,
         '--dest', path_dir_output, '--jit', '--type', 'rgba',
-        '--mode', 'base'
+        '--mode', 'base', '--ckpt', path_file_model
     ]
 
     subprocess.run(command)
