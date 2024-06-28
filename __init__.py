@@ -150,8 +150,9 @@ def run_transparent_background(path_dir_input,
         path_file_model = get_path_file_model()
 
     command = [
-        'transparent-background', '--source', path_dir_input, '--dest',
-        path_dir_output, '--ckpt', path_file_model
+        'transparent-background', '--source', path_dir_input,
+        '--dest', path_dir_output, '--jit', '--type', 'rgba',
+        '--mode', 'base'
     ]
 
     subprocess.run(command)
