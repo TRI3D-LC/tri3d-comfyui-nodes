@@ -69,6 +69,105 @@ def run_slave(input_image_path, output_image_path, tmp_file_path):
     import os
 
     EXEC_STRING = '''
+import os
+
+try:
+    del os.environ['AUX_ANNOTATOR_CKPTS_PATH']
+    os.unsetenv('AUX_ANNOTATOR_CKPTS_PATH')
+except:
+    print('Failed to unset AUX_ANNOTATOR_CKPTS_PATH')
+
+try:
+    del os.environ['AUX_ORT_PROVIDERS']
+    os.unsetenv('AUX_ORT_PROVIDERS')
+except:
+    print('Failed to unset AUX_ORT_PROVIDERS')
+
+try:
+    del os.environ['AUX_TEMP_DIR']
+    os.unsetenv('AUX_TEMP_DIR')
+except:
+    print('Failed to unset AUX_TEMP_DIR')
+
+try:
+    del os.environ['AUX_USE_SYMLINKS']
+    os.unsetenv('AUX_USE_SYMLINKS')
+except:
+    print('Failed to unset AUX_USE_SYMLINKS')
+
+try:
+    del os.environ['CUBLAS_WORKSPACE_CONFIG']
+    os.unsetenv('CUBLAS_WORKSPACE_CONFIG')
+except:
+    print('Failed to unset CUBLAS_WORKSPACE_CONFIG')
+
+try:
+    del os.environ['CUDA_MODULE_LOADING']
+    os.unsetenv('CUDA_MODULE_LOADING')
+except:
+    print('Failed to unset CUDA_MODULE_LOADING')
+
+try:
+    del os.environ['DWPOSE_ONNXRT_CHECKED']
+    os.unsetenv('DWPOSE_ONNXRT_CHECKED')
+except:
+    print('Failed to unset DWPOSE_ONNXRT_CHECKED')
+
+try:
+    del os.environ['KINETO_LOG_LEVEL']
+    os.unsetenv('KINETO_LOG_LEVEL')
+except:
+    print('Failed to unset KINETO_LOG_LEVEL')
+
+try:
+    del os.environ['KMP_DUPLICATE_LIB_OK']
+    os.unsetenv('KMP_DUPLICATE_LIB_OK')
+except:
+    print('Failed to unset KMP_DUPLICATE_LIB_OK')
+
+try:
+    del os.environ['KMP_INIT_AT_FORK']
+    os.unsetenv('KMP_INIT_AT_FORK')
+except:
+    print('Failed to unset KMP_INIT_AT_FORK')
+
+try:
+    del os.environ['PYTORCH_CUDA_ALLOC_CONF']
+    os.unsetenv('PYTORCH_CUDA_ALLOC_CONF')
+except:
+    print('Failed to unset PYTORCH_CUDA_ALLOC_CONF')
+
+try:
+    del os.environ['PYTORCH_ENABLE_MPS_FALLBACK']
+    os.unsetenv('PYTORCH_ENABLE_MPS_FALLBACK')
+except:
+    print('Failed to unset PYTORCH_ENABLE_MPS_FALLBACK')
+
+try:
+    del os.environ['PYTORCH_NVML_BASED_CUDA_CHECK']
+    os.unsetenv('PYTORCH_NVML_BASED_CUDA_CHECK')
+except:
+    print('Failed to unset PYTORCH_NVML_BASED_CUDA_CHECK')
+
+try:
+    del os.environ['TF_CPP_MIN_LOG_LEVEL']
+    os.unsetenv('TF_CPP_MIN_LOG_LEVEL')
+except:
+    print('Failed to unset TF_CPP_MIN_LOG_LEVEL')
+
+try:
+    del os.environ['TOKENIZERS_PARALLELISM']
+    os.unsetenv('TOKENIZERS_PARALLELISM')
+except:
+    print('Failed to unset TOKENIZERS_PARALLELISM')
+
+try:
+    del os.environ['TORCH_CPP_LOG_LEVEL']
+    os.unsetenv('TORCH_CPP_LOG_LEVEL')
+except:
+    print('Failed to unset TORCH_CPP_LOG_LEVEL')
+
+
 import torch
 import facer
 import cv2
@@ -138,7 +237,7 @@ cv2.imwrite(sys.argv[2], tup)
     with open(tmp_file_path, 'w', encoding='utf-8') as f:
         f.write(EXEC_STRING)
 
-    CMD = '. ${HOME}/dbnew.sh ; env ; python3 ' + tmp_file_path + ' ' + input_image_path + ' ' + output_image_path
+    CMD = '. ${HOME}/dbnew.sh ; python3 ' + tmp_file_path + ' ' + input_image_path + ' ' + output_image_path
 
     print(CMD)
     os.system(CMD)
@@ -177,9 +276,7 @@ def run_slave_tensor(image):
     image = cv2.imread(path_output, cv2.IMREAD_COLOR)
     os.unlink(path_output)
     os.rmdir(path_dir.name)
-    # image = cv2.cvtColor(src=image, code=cv2.COLOR_BGR2RGB)
     image = image.astype(np.float32) / 255.0
-    # image = torch.from_numpy(image).to(dtype=outtype, device=device) / 255.0
     return image
 
 
