@@ -1,9 +1,11 @@
 #!/usr/bin/python3
-import torch
-import facer
 import cv2
-import einops
 import numpy as np
+
+import torch
+import einops
+
+import facer
 
 
 def load_image(image_path):
@@ -43,25 +45,37 @@ def detect_face_from_tensor(image):
         faces = face_parser(image, faces)
 
     seg_logits = faces['seg']['logits']
-    seg_probs = seg_logits.softmax(dim=1)  # nfaces x nclasses x h x w
-    n_classes = seg_probs.size(1)
+    num_faces = seg_logits.shape[0]
+    print(num_faces)
 
-    vis_seg_probs = seg_probs.argmax(dim=1)
-    vis_seg_probs = einops.einsum(vis_seg_probs, 'b h w -> h w')
-    return (vis_seg_probs, n_classes)
+    if num_faces >= 1:
+
+        seg_probs = seg_logits.softmax(dim=1)  # nfaces x nclasses x h x w
+        n_classes = seg_probs.size(1)
+
+        vis_seg_probs = seg_probs.argmax(dim=1)
+        vis_seg_probs = einops.einsum(vis_seg_probs, 'b h w -> h w')
+
+        return (vis_seg_probs, n_classes, num_faces)
+
+    else:
+
+        vis_seg_probs = torch.zeros((image.shape[0], image.shape[1]),
+                                    dtype=torch.int64)
+
+        n_classes = 11
+
+        return (vis_seg_probs, n_classes, num_faces)
 
 
 def full_work_wrapper(image):
+
     try:
-        res, n_classes = detect_face_from_tensor(image)
+        res, n_classes, num_faces = detect_face_from_tensor(image)
     except:
         res = torch.zeros((image.shape[0], image.shape[1]), dtype=torch.int64)
         n_classes = 11
-        print('Warning: Failed to find any face in the image...')
-
     tup = do_recolor(res, n_classes)
-    tup = torch.from_numpy(tup).to(device=image.device, dtype=image.dtype)
-
     return tup
 
 
@@ -76,97 +90,81 @@ try:
     os.unsetenv('AUX_ANNOTATOR_CKPTS_PATH')
 except:
     print('Failed to unset AUX_ANNOTATOR_CKPTS_PATH')
-
 try:
     del os.environ['AUX_ORT_PROVIDERS']
     os.unsetenv('AUX_ORT_PROVIDERS')
 except:
     print('Failed to unset AUX_ORT_PROVIDERS')
-
 try:
     del os.environ['AUX_TEMP_DIR']
     os.unsetenv('AUX_TEMP_DIR')
 except:
     print('Failed to unset AUX_TEMP_DIR')
-
 try:
     del os.environ['AUX_USE_SYMLINKS']
     os.unsetenv('AUX_USE_SYMLINKS')
 except:
     print('Failed to unset AUX_USE_SYMLINKS')
-
 try:
     del os.environ['CUBLAS_WORKSPACE_CONFIG']
     os.unsetenv('CUBLAS_WORKSPACE_CONFIG')
 except:
     print('Failed to unset CUBLAS_WORKSPACE_CONFIG')
-
 try:
     del os.environ['CUDA_MODULE_LOADING']
     os.unsetenv('CUDA_MODULE_LOADING')
 except:
     print('Failed to unset CUDA_MODULE_LOADING')
-
 try:
     del os.environ['DWPOSE_ONNXRT_CHECKED']
     os.unsetenv('DWPOSE_ONNXRT_CHECKED')
 except:
     print('Failed to unset DWPOSE_ONNXRT_CHECKED')
-
 try:
     del os.environ['KINETO_LOG_LEVEL']
     os.unsetenv('KINETO_LOG_LEVEL')
 except:
     print('Failed to unset KINETO_LOG_LEVEL')
-
 try:
     del os.environ['KMP_DUPLICATE_LIB_OK']
     os.unsetenv('KMP_DUPLICATE_LIB_OK')
 except:
     print('Failed to unset KMP_DUPLICATE_LIB_OK')
-
 try:
     del os.environ['KMP_INIT_AT_FORK']
     os.unsetenv('KMP_INIT_AT_FORK')
 except:
     print('Failed to unset KMP_INIT_AT_FORK')
-
 try:
     del os.environ['PYTORCH_CUDA_ALLOC_CONF']
     os.unsetenv('PYTORCH_CUDA_ALLOC_CONF')
 except:
     print('Failed to unset PYTORCH_CUDA_ALLOC_CONF')
-
 try:
     del os.environ['PYTORCH_ENABLE_MPS_FALLBACK']
     os.unsetenv('PYTORCH_ENABLE_MPS_FALLBACK')
 except:
     print('Failed to unset PYTORCH_ENABLE_MPS_FALLBACK')
-
 try:
     del os.environ['PYTORCH_NVML_BASED_CUDA_CHECK']
     os.unsetenv('PYTORCH_NVML_BASED_CUDA_CHECK')
 except:
     print('Failed to unset PYTORCH_NVML_BASED_CUDA_CHECK')
-
 try:
     del os.environ['TF_CPP_MIN_LOG_LEVEL']
     os.unsetenv('TF_CPP_MIN_LOG_LEVEL')
 except:
     print('Failed to unset TF_CPP_MIN_LOG_LEVEL')
-
 try:
     del os.environ['TOKENIZERS_PARALLELISM']
     os.unsetenv('TOKENIZERS_PARALLELISM')
 except:
     print('Failed to unset TOKENIZERS_PARALLELISM')
-
 try:
     del os.environ['TORCH_CPP_LOG_LEVEL']
     os.unsetenv('TORCH_CPP_LOG_LEVEL')
 except:
     print('Failed to unset TORCH_CPP_LOG_LEVEL')
-
 
 import torch
 import facer
@@ -237,13 +235,14 @@ cv2.imwrite(sys.argv[2], tup)
     with open(tmp_file_path, 'w', encoding='utf-8') as f:
         f.write(EXEC_STRING)
 
-    CMD = 'python3 ' + tmp_file_path + ' ' + input_image_path + ' ' + output_image_path
+    CMD = 'env > ~/env.txt ; python3 ' + tmp_file_path + ' ' + input_image_path + ' ' + output_image_path
 
     print(CMD)
     os.system(CMD)
 
 
 def run_slave_tensor(image):
+
     import tempfile
     import cv2
     import os
@@ -276,7 +275,9 @@ def run_slave_tensor(image):
     image = cv2.imread(path_output, cv2.IMREAD_COLOR)
     os.unlink(path_output)
     os.rmdir(path_dir.name)
+    # image = cv2.cvtColor(src=image, code=cv2.COLOR_BGR2RGB)
     image = image.astype(np.float32) / 255.0
+    # image = torch.from_numpy(image).to(dtype=outtype, device=device) / 255.0
     return image
 
 
@@ -290,6 +291,7 @@ class main_face_segment():
         return {
             "required": {
                 "image": ("IMAGE", ),
+                "to_run": ("BOOLEAN", )
             },
         }
 
@@ -297,15 +299,19 @@ class main_face_segment():
     RETURN_TYPES = ("IMAGE", )
     CATEGORY = "TRI3D"
 
-    def run(self, image):
-        batch_size = image.shape[0]
-        ret = []
-        for i in range(batch_size):
-            # ret.append(full_work_wrapper(image[i].clone()))
-            ret.append(run_slave_tensor(image[i].clone()))
+    def run(self, image, to_run):
+        if to_run:
+            batch_size = image.shape[0]
+            ret = []
+            for i in range(batch_size):
+                ret.append(run_slave_tensor(image[i].clone()))
+                # ret.append(full_work_wrapper(image[i].clone()))
 
-        ret = np.array(ret)
-        ret = torch.from_numpy(ret).to(dtype=image.dtype, device=image.device)
-        print(ret.shape)
+            ret = np.array(ret)
 
-        return (ret, )
+            ret = torch.from_numpy(ret).to(dtype=image.dtype,
+                                           device=image.device)
+
+            return (ret, )
+        else:
+            return (torch.zeros_like(image), )
