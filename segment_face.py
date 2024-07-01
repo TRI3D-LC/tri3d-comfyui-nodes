@@ -237,7 +237,7 @@ cv2.imwrite(sys.argv[2], tup)
     with open(tmp_file_path, 'w', encoding='utf-8') as f:
         f.write(EXEC_STRING)
 
-    CMD = '. ${HOME}/dbnew.sh ; python3 ' + tmp_file_path + ' ' + input_image_path + ' ' + output_image_path
+    CMD = 'python3 ' + tmp_file_path + ' ' + input_image_path + ' ' + output_image_path
 
     print(CMD)
     os.system(CMD)
