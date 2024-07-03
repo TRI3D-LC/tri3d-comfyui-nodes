@@ -42,9 +42,15 @@ def to_torch_image(image):
 def get_bounding_box(mask_input):
     rows = np.any(mask_input, axis=1)
     cols = np.any(mask_input, axis=0)
-    rmin, rmax = np.where(rows)[0][[0, -1]]
-    cmin, cmax = np.where(cols)[0][[0, -1]]
-    return rmin, cmin, rmax, cmax
+    r = np.where(rows)[0]
+    c = np.where(cols)[0]
+    
+    if (r.flatten().shape[0] > 0) and (c.flatten().shape[0] > 0):
+        rmin, rmax = r[[0, -1]]
+        cmin, cmax = c[[0, -1]]
+        return rmin, cmin, rmax, cmax
+    else:
+        return 0, 0, mask_input.shape[0] - 1, mask_input.shape[1] - 1
 
 
 def extract_box_from_image(image, mask):
@@ -3726,7 +3732,7 @@ NODE_CLASS_MAPPINGS = {
 }
 
 
-VERSION = "4.2"
+VERSION = "4.2.1"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-photoroom-bgremove-api": "Photoroom BG Remove" + " v" + VERSION,
