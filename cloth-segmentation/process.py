@@ -138,30 +138,34 @@ def generate_mask(input_image, net, device='cpu'):
     print(image_tmp.shape)
     print('#### DEBUG STOP ####')
 
-    # Create a binary mask where selected classes are 1, others are 0
-    binary_mask = np.zeros_like(output_arr, dtype=np.uint8)
-    classes_of_interest = [1, 2, 3]  # Modify this list according to your classes of interest
-    for cls in classes_of_interest:
-        binary_mask[output_arr == cls] = 255
+    # # Create a binary mask where selected classes are 1, others are 0
+    # binary_mask = np.zeros_like(output_arr, dtype=np.uint8)
+    # classes_of_interest = [1, 2, 3]  # Modify this list according to your classes of interest
+    # for cls in classes_of_interest:
+    #     binary_mask[output_arr == cls] = 255
 
-    # Ensure binary_mask is 2D
-    if binary_mask.ndim > 2:
-        binary_mask = binary_mask.squeeze()  # Removes single-dimensional entries from the shape
-    if binary_mask.ndim != 2:
-        raise ValueError("binary_mask must be a 2-dimensional array")
+    # # Ensure binary_mask is 2D
+    # if binary_mask.ndim > 2:
+    #     binary_mask = binary_mask.squeeze()  # Removes single-dimensional entries from the shape
+    # if binary_mask.ndim != 2:
+    #     raise ValueError("binary_mask must be a 2-dimensional array")
 
-    binary_mask_img = Image.fromarray(binary_mask, mode='L').resize(img_size, Image.BICUBIC)
+    # binary_mask_img = Image.fromarray(binary_mask, mode='L').resize(img_size, Image.BICUBIC)
 
-    # Create an RGBA image for the output
-    extracted_garment = Image.new("RGBA", img_size)
-    original_img = img.resize(img_size)  # Resize the processed image back to original size
-    extracted_garment.paste(original_img, mask=binary_mask_img)
+    # # Create an RGBA image for the output
+    # extracted_garment = Image.new("RGBA", img_size)
+    # original_img = img.resize(img_size)  # Resize the processed image back to original size
+    # extracted_garment.paste(original_img, mask=binary_mask_img)
 
-    # Save the garment image with transparency
+    # # Save the garment image with transparency
+    # garment_path = os.path.join(output_dir, 'extracted_garment.png')
+    # extracted_garment.save(garment_path, format="PNG")
+
+    # return extracted_garment
+
     garment_path = os.path.join(output_dir, 'extracted_garment.png')
-    extracted_garment.save(garment_path, format="PNG")
-
-    return extracted_garment
+    cv2.imwrite(garment_path, cv2.cvtColor(src = image_tmp, code = cv2.COLOR_RGB2BGR))
+    return image_tmp
 
 # def generate_mask(input_image, net, device='cpu'):
 #     img = input_image
