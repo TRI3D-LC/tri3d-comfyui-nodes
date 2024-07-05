@@ -104,7 +104,7 @@ from PIL import Image
 def generate_mask(input_image, net, device='cpu'):
     img = input_image
     img_size = img.size
-    img = img.resize((768, 768), Image.BICUBIC)
+    # img = img.resize((768, 768), Image.BICUBIC)
     image_tensor = apply_transform(img)
     image_tensor = torch.unsqueeze(image_tensor, 0)
 
