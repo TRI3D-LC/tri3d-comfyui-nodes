@@ -118,6 +118,10 @@ def generate_mask(input_image, net, device='cpu'):
         output_tensor = torch.squeeze(output_tensor, dim=0)
         output_arr = output_tensor.cpu().numpy()
 
+    print('#### DEBUG START ####')
+    print(output_arr.shape)
+    print('#### DEBUG STOP ####')
+
     # Create a binary mask where selected classes are 1, others are 0
     binary_mask = np.zeros_like(output_arr, dtype=np.uint8)
     classes_of_interest = [1, 2, 3]  # Modify this list according to your classes of interest
