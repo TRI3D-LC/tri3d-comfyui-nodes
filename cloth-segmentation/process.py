@@ -138,6 +138,10 @@ def generate_mask(input_image, net, device='cpu'):
     print(image_tmp.shape)
     print('#### DEBUG STOP ####')
 
+    garment_path = os.path.join(output_dir, 'extracted_garment.png')
+    cv2.imwrite(garment_path, cv2.cvtColor(src = image_tmp, code = cv2.COLOR_RGB2BGR))
+    return image_tmp
+
     # # Create a binary mask where selected classes are 1, others are 0
     # binary_mask = np.zeros_like(output_arr, dtype=np.uint8)
     # classes_of_interest = [1, 2, 3]  # Modify this list according to your classes of interest
@@ -163,9 +167,6 @@ def generate_mask(input_image, net, device='cpu'):
 
     # return extracted_garment
 
-    garment_path = os.path.join(output_dir, 'extracted_garment.png')
-    cv2.imwrite(garment_path, cv2.cvtColor(src = image_tmp, code = cv2.COLOR_RGB2BGR))
-    return image_tmp
 
 # def generate_mask(input_image, net, device='cpu'):
 #     img = input_image
