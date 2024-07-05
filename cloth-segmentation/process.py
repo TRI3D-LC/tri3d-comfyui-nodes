@@ -127,7 +127,7 @@ def generate_mask(input_image, net, device='cpu'):
     print('#### DEBUG START ####')
     with torch.no_grad():
         output_tensor = net(image_tensor.to(device))
-        print(output_tensor.shape)
+        print(output_tensor[0].shape)
         output_tensor = F.log_softmax(output_tensor[0], dim=1)
         output_tensor = torch.max(output_tensor, dim=1, keepdim=True)[1]
         output_tensor = torch.squeeze(output_tensor, dim=0)
