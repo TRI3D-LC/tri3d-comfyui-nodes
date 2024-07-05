@@ -14,6 +14,19 @@ import torchvision.transforms as transforms
 from collections import OrderedDict
 from options import opt
 
+import einops
+
+def do_recolor(vis_seg_probs, n_classes):
+    val = int(255 / n_classes)
+    not_visible = (vis_seg_probs == 0).astype(dtype=np.uint8)
+    not_visible = 1 - not_visible
+    not_visible *= 255
+    vis_seg_probs *= val
+    ret = np.array((vis_seg_probs, not_visible, not_visible), np.uint8)
+    ret = einops.rearrange(ret, 'c h w -> h w c')
+    ret = cv2.cvtColor(ret, cv2.COLOR_HSV2RGB_FULL)
+    return ret
+
 
 def load_checkpoint(model, checkpoint_path):
     if not os.path.exists(checkpoint_path):
@@ -111,15 +124,18 @@ def generate_mask(input_image, net, device='cpu'):
     output_dir = os.path.join(opt.output, 'extracted_garment')
     os.makedirs(output_dir, exist_ok=True)
 
+    print('#### DEBUG START ####')
     with torch.no_grad():
         output_tensor = net(image_tensor.to(device))
+        print(output_tensor.shape)
         output_tensor = F.log_softmax(output_tensor[0], dim=1)
         output_tensor = torch.max(output_tensor, dim=1, keepdim=True)[1]
         output_tensor = torch.squeeze(output_tensor, dim=0)
         output_arr = output_tensor.cpu().numpy()
 
-    print('#### DEBUG START ####')
     print(output_arr.shape)
+    image_tmp = do_recolor(vis_seg_probs = output_arr.squeeze(0), n_classes = 4)
+    print(image_tmp.shape)
     print('#### DEBUG STOP ####')
 
     # Create a binary mask where selected classes are 1, others are 0
