@@ -17,9 +17,6 @@ from distribution_reshape import (simple_rescale_histogram, get_histogram_limits
 
 
 from .AEMatter import (load_AEMatter_Model, run_AEMatter_inference)
-from .MVANet_inference import (load_MVANet_Model, run_MVANet_inference)
-from .MVANet_inference import (load_MVANet_Model, run_MVANet_inference)
-from .segment_face import main_face_segment
 from .light_layer import main_light_layer
 
 
@@ -3722,17 +3719,14 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-simple_rescale_histogram": simple_rescale_histogram,
     "tri3d-get_histogram_limits": get_histogram_limits,
     "tri3d-clear-memory": clear_memory,
-    "tri3d-load_MVANet_Model": load_MVANet_Model,
-    "tri3d-run_MVANet_inference": run_MVANet_inference,
     'tri3d-load_AEMatter_Model': load_AEMatter_Model,
     'tri3d-run_AEMatter_inference': run_AEMatter_inference,
     "tri3d-bgremove-mega" :TRI3D_BGREMOVE_MEGA,
-    'tri3d-facer_face_segment' : main_face_segment,
     'tri3d-flexible_color_extract' : main_light_layer,
 }
 
 
-VERSION = "4.2.1"
+VERSION = "4.3"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-photoroom-bgremove-api": "Photoroom BG Remove" + " v" + VERSION,
@@ -3778,11 +3772,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-simple_rescale_histogram": 'Rescale the layer to have given max and min values' + " v" + VERSION,
     "tri3d-get_histogram_limits": 'Calculate max and min values for rescaling histogram' + " v" + VERSION,
     "tri3d-clear_memory": 'Clear Memory' + " v" + VERSION,
-    "tri3d-load_MVANet_Model": 'Load MVANet Model' + ' v' + VERSION,
-    "tri3d-run_MVANet_inference": 'Run MVANet inference' + ' v' + VERSION,
     'tri3d-load_AEMatter_Model': 'Load AEMatter Model' + ' v' + VERSION,
     'tri3d-run_AEMatter_inference': 'Run AEMatter inference' + ' v' + VERSION,
     "tri3d-bgremove-mega": "BG Remove Mega" + " v" + VERSION,
-    'tri3d-facer_face_segment': "Segment face using facer" + " v" + VERSION,
     'tri3d-flexible_color_extract': "Flexible color extract" + " v" + VERSION,
 }
