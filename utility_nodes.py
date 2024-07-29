@@ -82,7 +82,8 @@ class TRI3D_extract_pose_part():
 
 
     FUNCTION = "run"
-    RETURN_TYPES = ("IMAGE", )
+    RETURN_TYPES = ("IMAGE", "STRING")
+    RETURN_NAMES = ("image", "coords")
     CATEGORY = "TRI3D"
 
     def get_frame_coords(self,point1, point2):
@@ -108,31 +109,78 @@ class TRI3D_extract_pose_part():
 
         print("Input image shape:", image.shape)
 
-        h,w = image.shape[:2]
+        og_h, og_w = image.shape[:2]
+        ph, pw = [input_pose['height'], input_pose['width']]
 
-        width_offset = int(w * (width_pad) / 100)
-        height_offset = int(h * (height_pad) / 100)
+        for i,point in enumerate(keypoints):
+            x,y = point
+            y = int((y/ph)*og_h)
+            x = int((x/pw)*og_w)
+            keypoints[i] = [x, y]
+
+        width_offset = int(og_w * (width_pad) / 100)
+        height_offset = int(og_h * (height_pad) / 100)
 
         xmin, xmax, ymin, ymax = [0, image.shape[1], 0, image.shape[0]]
 
         part_to_coords = {
             "shoulders":self.get_frame_coords(keypoints[2], keypoints[5])
         }
-        
+
         if shoulders:
             new_xmin, new_xmax, new_ymin, new_ymax = part_to_coords["shoulders"]
 
-            xmin, xmax, ymin, ymax = min(xmin, new_xmin), max(xmax, new_xmax), min(ymin, new_ymin), max(ymax, new_ymax)
+            xmin, xmax, ymin, ymax = new_xmin, new_xmax, new_ymin, new_ymax
         
-        print("extracted coords", xmin, xmax, ymin, ymax)
         xmin = max(0, xmin - width_offset)
-        xmax = min(w, xmax + width_offset)
+        xmax = min(og_w, xmax + width_offset)
         ymin = max(0, ymin - height_offset)
-        ymax = min(h, ymax + height_offset)
+        ymax = min(og_h, ymax + height_offset)
 
-        image = to_torch_image(image[ymin:ymax, xmin:xmax,:]).unsqueeze(0)
+        image = image[ymin:ymax, xmin:xmax,:].astype(np.uint8)
+        image = to_torch_image(image)
         batch_result.append(image)
         batch_result = torch.stack(batch_result)
         # print("final_coords", xmin, xmax, ymin, ymax)
+        coords = ",".join([str(xmin), str(xmax), str(ymin), str(ymax)])
+        print(batch_result.shape)
+        return batch_result, coords
+
+class TRI3D_position_pose_part():
+    """
+        put back   
+    """
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "og_image": ("IMAGE", ),
+                "extracted_image": ("IMAGE", ),
+                "coords": ("STRING",{"default" : "xmin, xmax, ymin, ymax"}),
+            }
+        }
+
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", )
+    RETURN_NAMES = ("image", )
+    CATEGORY = "TRI3D"
+
+    def run(self, og_image, extracted_image, coords):
+
+        batch_result = []
+        og_image = from_torch_image(og_image[0])
+        extracted_image = from_torch_image(extracted_image[0])
+        
+        xmin, xmax, ymin, ymax = [int(i) for i in coords.split(",")]
+
+        og_image[ymin:ymax, xmin:xmax, :] = extracted_image
+
+        og_image = to_torch_image(og_image).unsqueeze(0)
+        batch_result.append(og_image)
+        batch_result = torch.stack(batch_result)
         return batch_result
 
