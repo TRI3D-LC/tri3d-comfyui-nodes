@@ -102,7 +102,7 @@ class TRI3D_extract_pose_part():
         """
 
         image = from_torch_image(image[0])
-        
+        batch_result = []
         input_pose = json.load(open(pose_json))
         keypoints = input_pose['keypoints']
 
@@ -118,7 +118,7 @@ class TRI3D_extract_pose_part():
         part_to_coords = {
             "shoulders":self.get_frame_coords(keypoints[2], keypoints[5])
         }
-
+        
         if shoulders:
             new_xmin, new_xmax, new_ymin, new_ymax = part_to_coords["shoulders"]
 
@@ -130,11 +130,9 @@ class TRI3D_extract_pose_part():
         ymin = max(0, ymin - height_offset)
         ymax = min(h, ymax + height_offset)
 
-        result_image = image[ymin:ymax, xmin:xmax,:]
-
-        result_image = to_torch_image(result_image).unsqueeze(0)
-        # result_image = result_image.permute(0,3,1,2)
-        print(result_image.shape)
-        print("final_coords", xmin, xmax, ymin, ymax)
-        return result_image
+        image = to_torch_image(image[ymin:ymax, xmin:xmax,:]).unsqueeze(0)
+        batch_result.append(image)
+        batch_result = torch.stack(batch_result)
+        # print("final_coords", xmin, xmax, ymin, ymax)
+        return batch_result
 
