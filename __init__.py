@@ -12,6 +12,7 @@ import folder_paths
 from PIL import Image, ImageOps
 sys.path.append(tri3d_custom_nodes_path)
 from scaled_paste import main_scaled_paste
+from scaled_paste import main_scaled_paste_2
 from simple_bg_swap import (simple_bg_swap, get_threshold_for_bg_swap, RGB_2_LAB, LAB_2_RGB, get_mean_and_standard_deviation, renormalize_array)
 from distribution_reshape import (simple_rescale_histogram, get_histogram_limits)
 
@@ -155,7 +156,7 @@ def run_transparent_background(path_dir_input,
 
     command = [
         'transparent-background', '--source', path_dir_input,
-        '--dest', path_dir_output, '--jit', '--type', 'rgba',
+        '--dest', path_dir_output, '--type', 'rgba',
         '--mode', 'base', '--ckpt', path_file_model
     ]
 
@@ -3709,6 +3710,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-composite-image-splitter": TRI3DCompositeImageSplitter,
     'tri3d-main_transparent_background': main_transparent_background,
     'tri3d-scaled-paste': main_scaled_paste,
+    'tri3d-scaled-paste_unsafe': main_scaled_paste_2,
     'tri3d-luminosity-match': TRI3D_reLUM,
     'tri3d-simple_bg_swap': simple_bg_swap,
     'tri3d-get_threshold_for_bg_swap': get_threshold_for_bg_swap,
@@ -3762,6 +3764,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-composite-image-splitter": "Composite Image Splitter" + " v" + VERSION,
     'tri3d-main_transparent_background': 'Transparent Background' + " v" + VERSION,
     'tri3d-scaled-paste': 'Scaled paste' + " v" + VERSION,
+    'tri3d-scaled-paste_unsafe': 'Scaled paste unsafe' + " v" + VERSION,
     'tri3d-luminosity-match': 'Luminosity match' + " v" + VERSION,
     'tri3d-simple_bg_swap':  'Simple bg swap' + " v" + VERSION,
     'tri3d-get_threshold_for_bg_swap':  'Get threshold for bg swap' + " v" + VERSION,
