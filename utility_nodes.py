@@ -1,4 +1,4 @@
-import torch, cv2
+import torch, cv2, json
 import numpy as np
 
 
@@ -55,5 +55,86 @@ class TRI3D_clean_mask():
             batch_results.append(region_mask.squeeze(0))
 
         batch_results = torch.stack(batch_results)
+        print(batch_results.shape)
         return batch_results
         
+
+class TRI3D_extract_pose_part():
+    """
+        For the given pose, extract region around body parts, region can be defined by % of image size  
+    """
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE", ),
+                "pose_json": ("STRING",{"default" : "dwpose/keypoints/input.json"}),
+                "width_pad": ("FLOAT",{"default": 1.0, "min": 0.0, "max": 100.0, "step": 0.01}),
+                "height_pad": ("FLOAT",{"default": 1.0, "min": 0.0, "max": 100.0, "step": 0.01}),
+                "shoulders":("BOOLEAN", {
+                    "default": False
+                })
+            }
+        }
+
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", )
+    CATEGORY = "TRI3D"
+
+    def get_frame_coords(self,point1, point2):
+        x1, y1 = point1
+        x2, y2 = point2
+
+        xmin, xmax, ymin, ymax = min(x1, x2), max(x1, x2), min(y1, y2), max(y1, y2)
+
+        return [xmin, xmax, ymin, ymax]
+
+    def run(self, image, pose_json, width_pad, height_pad, shoulders):
+        """
+        image : input image
+        width_pad: % of image width you want to apply on both size of pose body part
+        height_pad: % of image width you want to apply on both size of pose body part
+        rest of them are body parts
+        """
+
+        image = from_torch_image(image[0])
+        
+        input_pose = json.load(open(pose_json))
+        keypoints = input_pose['keypoints']
+
+        print("Input image shape:", image.shape)
+
+        h,w = image.shape[:2]
+
+        width_offset = int(w * (width_pad) / 100)
+        height_offset = int(h * (height_pad) / 100)
+
+        xmin, xmax, ymin, ymax = [0, image.shape[1], 0, image.shape[0]]
+
+        part_to_coords = {
+            "shoulders":self.get_frame_coords(keypoints[2], keypoints[5])
+        }
+
+        if shoulders:
+            new_xmin, new_xmax, new_ymin, new_ymax = part_to_coords["shoulders"]
+
+            xmin, xmax, ymin, ymax = min(xmin, new_xmin), max(xmax, new_xmax), min(ymin, new_ymin), max(ymax, new_ymax)
+        
+        print("extracted coords", xmin, xmax, ymin, ymax)
+        xmin = max(0, xmin - width_offset)
+        xmax = min(w, xmax + width_offset)
+        ymin = max(0, ymin - height_offset)
+        ymax = min(h, ymax + height_offset)
+
+        result_image = image[ymin:ymax, xmin:xmax,:]
+
+        result_image = to_torch_image(result_image).unsqueeze(0)
+        # result_image = result_image.permute(0,3,1,2)
+        print(result_image.shape)
+        print("final_coords", xmin, xmax, ymin, ymax)
+        return result_image
+
