@@ -55,11 +55,17 @@ def scaled_paste_2(
 
     print('DEBUG scaled_paste 4 ', image_background.shape)
 
-    end_0 = int(image_background.shape[0])
-    begin_0 = int(end_0 - height)
-    end_0 = int(begin_0 + image_foreground.shape[0])
+    bg_h = image_background.shape[0]
+    fg_h = image_foreground.shape[0]
+    
+    end_0 = int(bg_h - (bg_h * (height_factor-1)))    
+    # end_0 = int(image_background.shape[0])
+    begin_0 = max(0, int(end_0 - fg_h))
+    # end_0 = int(begin_0 + image_foreground.shape[0])
 
-    print('DEBUG scaled_paste 5 ', begin_0, end_0)
+    fg_start_height = fg_h - (end_0 - begin_0)
+    
+    print('DEBUG scaled_paste 5 ', begin_0, end_0, fg_start_height)
 
     end_1 = image_background.shape[1]
     begin_1 = end_1 - image_foreground.shape[1]
@@ -69,7 +75,11 @@ def scaled_paste_2(
     print('DEBUG scaled_paste 6 ', begin_1, end_1)
 
     image_reference = image_background[begin_0:end_0, begin_1:end_1, :]
+    
+    image_foreground = image_foreground[fg_start_height:,:,:]
+    mask_foreground = mask_foreground[fg_start_height:,:]
 
+    print('DEBUG scaled_paste 7 ', image_reference.shape, image_foreground.shape, mask_foreground.shape)
     for i in range(3):
         image_reference[:, :,
                         i] = (mask_foreground * image_foreground[:, :, i]) + (
