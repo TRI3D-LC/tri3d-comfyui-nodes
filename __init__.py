@@ -1,4 +1,5 @@
 # v1.1.0
+
 import os
 import os.path
 tri3d_custom_nodes_path = os.path.dirname(os.path.abspath(__file__))
@@ -9,8 +10,10 @@ import torch.nn.functional as F
 import hashlib
 import comfy.model_management as model_management
 import folder_paths
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageDraw
 sys.path.append(tri3d_custom_nodes_path)
+sys.path.append('.')
+sys.path.append('..')
 from scaled_paste import main_scaled_paste
 from simple_bg_swap import (simple_bg_swap, get_threshold_for_bg_swap, RGB_2_LAB, LAB_2_RGB, get_mean_and_standard_deviation, renormalize_array)
 from distribution_reshape import (simple_rescale_histogram, get_histogram_limits)
@@ -22,6 +25,9 @@ from .MVANet_inference import (load_MVANet_Model, run_MVANet_inference)
 from .segment_face import main_face_segment
 from .light_layer import main_light_layer
 
+from torchvision.transforms import ToPILImage, ToTensor
+from idm_masking.humanparsing.run_parsing import Parsing
+from idm_masking.openpose.run_openpose import OpenPose
 
 def from_torch_image(image):
     image = image.squeeze().cpu().numpy() * 255.0
@@ -3672,9 +3678,251 @@ class TRI3D_BGREMOVE_MEGA():
             return (batch_results,batch_results_masks)
                 
 
+#####
 
 
 
+label_map = {
+    "background": 0,
+    "hat": 1,
+    "hair": 2,
+    "sunglasses": 3,
+    "upper_clothes": 4,
+    "skirt": 5,
+    "pants": 6,
+    "dress": 7,
+    "belt": 8,
+    "left_shoe": 9,
+    "right_shoe": 10,
+    "head": 11,
+    "left_leg": 12,
+    "right_leg": 13,
+    "left_arm": 14,
+    "right_arm": 15,
+    "bag": 16,
+    "scarf": 17,
+}
+
+full_body_garments = [
+    "jumpsuit", "romper", "onesie", "coverall", "catsuit",
+    "overalls", "dungarees", "boilersuit", "hazmat suit", "wetsuit",
+    "ski suit", "spacesuit", "leotard", "unitard", "kimono", 
+    "caftan", "abaya", "sari", "dashiki", "djellaba", "muumuu", "full_body"
+]
+
+upper_body_garments = [
+    "shirt", "blouse", "t-shirt", "sweater", "cardigan", "jacket",
+    "blazer", "hoodie", "tank top", "vest", "crop top", "tunic",
+    "polo shirt", "sweatshirt", "pullover", "turtleneck", "halter top",
+    "bolero", "poncho", "shrug", "camisole", "bustier", "corset",
+    "coat", "parka", "windbreaker", "upper_body"
+]
+
+lower_body_garments = [
+    "pants", "trousers", "jeans", "shorts", "skirt", "leggings",
+    "joggers", "sweatpants", "chinos", "khakis", "cargo pants",
+    "culottes", "capris", "palazzo pants", "bermuda shorts",
+    "mini skirt", "midi skirt", "maxi skirt", "sarong", "kilt",
+    "dhoti", "harem pants", "bloomers", "lower_body"
+]
+
+
+MAX_RESOLUTION = 16384
+
+class TRI3DBodyMask:
+    
+    def __init__(self):
+        self.parsing_model = Parsing(0)
+        self.openpose_model = OpenPose(0)
+    
+    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+                "required": {
+                "human_img": ("IMAGE",),
+                "garment_description": ("STRING", {"multiline": True}),
+                "width": ("INT", {"default": 768, "min": 0, "max": MAX_RESOLUTION}),
+                "height": ("INT", {"default": 1024, "min": 0, "max": MAX_RESOLUTION}),
+                "dilate": ("INT", {"default": 1, "min": -50, "max": 50}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE","MASK")
+    FUNCTION = "body_mask"
+    CATEGORY = "ComfyUI-IDM-VTON"
+    
+
+
+    def extend_arm_mask(self, wrist, elbow, scale):
+        wrist = elbow + scale * (wrist - elbow)
+        return wrist
+
+    def hole_fill(self, img):
+        img = np.pad(img[1:-1, 1:-1], pad_width = 1, mode = 'constant', constant_values=0)
+        img_copy = img.copy()
+        mask = np.zeros((img.shape[0] + 2, img.shape[1] + 2), dtype=np.uint8)
+
+        cv2.floodFill(img, mask, (0, 0), 255)
+        img_inverse = cv2.bitwise_not(img)
+        dst = cv2.bitwise_or(img_copy, img_inverse)
+        return dst
+
+    def refine_mask(self, mask):
+        contours, hierarchy = cv2.findContours(mask.astype(np.uint8),
+                                            cv2.RETR_CCOMP, cv2.CHAIN_APPROX_TC89_L1)
+        area = []
+        for j in range(len(contours)):
+            a_d = cv2.contourArea(contours[j], True)
+            area.append(abs(a_d))
+        refined_mask = np.zeros_like(mask).astype(np.uint8)
+        if len(area) != 0:
+            i = area.index(max(area))
+            cv2.drawContours(refined_mask, contours, i, color=255, thickness=-1)
+
+        return refined_mask
+    
+    def check_category(self, word_list, input_string):
+        input_string = input_string.lower()
+        for word in word_list:
+            if word.lower() in input_string:
+                return True
+        return False
+
+    def body_mask(self, human_img: Image.Image, garment_description, width, height, dilate):
+        human_img =  torch.transpose(human_img, 0, -1)
+        human_img = torch.squeeze(human_img, dim=-1)
+        
+        human_img = ToPILImage()(human_img)
+        human_img = human_img.resize((width,height))
+        keypoint = self.openpose_model(human_img.resize((384, 512)))
+        model_img, _ = self.parsing_model(human_img.resize((384, 512)))
+        im_parse = model_img.resize((width, height), Image.NEAREST)
+        parse_array = np.array(im_parse)
+        
+
+        if self.check_category(full_body_garments, garment_description):
+            category = "dresses"
+        elif self.check_category(upper_body_garments, garment_description):
+            category = "upper_body"
+        elif self.check_category(lower_body_garments, garment_description):
+            category = "lower_body"
+
+        arm_width = 45
+        
+        parse_head = (parse_array == 1).astype(np.float32) + \
+                    (parse_array == 3).astype(np.float32) + \
+                    (parse_array == 11).astype(np.float32)
+
+        parser_mask_fixed = (parse_array == label_map["left_shoe"]).astype(np.float32) + \
+                            (parse_array == label_map["right_shoe"]).astype(np.float32) + \
+                            (parse_array == label_map["hat"]).astype(np.float32) + \
+                            (parse_array == label_map["sunglasses"]).astype(np.float32) + \
+                            (parse_array == label_map["bag"]).astype(np.float32)
+
+        parser_mask_changeable = (parse_array == label_map["background"]).astype(np.float32)
+
+        arms_left = (parse_array == 14).astype(np.float32)
+        arms_right = (parse_array == 15).astype(np.float32)
+
+        if category == 'dresses':
+            parse_mask = (parse_array == 7).astype(np.float32) + \
+                        (parse_array == 4).astype(np.float32) + \
+                        (parse_array == 5).astype(np.float32) + \
+                        (parse_array == 6).astype(np.float32)
+            parser_mask_changeable += np.logical_and(parse_array, np.logical_not(parser_mask_fixed))
+
+        elif category == 'upper_body':
+            parse_mask = (parse_array == 4).astype(np.float32) + (parse_array == 7).astype(np.float32)
+            parser_mask_fixed_lower_cloth = (parse_array == label_map["skirt"]).astype(np.float32) + \
+                                            (parse_array == label_map["pants"]).astype(np.float32)
+            parser_mask_fixed += parser_mask_fixed_lower_cloth
+            parser_mask_changeable += np.logical_and(parse_array, np.logical_not(parser_mask_fixed))
+
+        elif category == 'lower_body':
+            parse_mask = (parse_array == 6).astype(np.float32) + \
+                        (parse_array == 12).astype(np.float32) + \
+                        (parse_array == 13).astype(np.float32) + \
+                        (parse_array == 5).astype(np.float32)
+            parser_mask_fixed += (parse_array == label_map["upper_clothes"]).astype(np.float32) + \
+                                (parse_array == 14).astype(np.float32) + \
+                                (parse_array == 15).astype(np.float32)
+            parser_mask_changeable += np.logical_and(parse_array, np.logical_not(parser_mask_fixed))
+        else:
+            raise NotImplementedError
+
+        # Load pose points
+        pose_data = keypoint["pose_keypoints_2d"]
+        pose_data = np.array(pose_data)
+        pose_data = pose_data.reshape((-1, 2))
+
+        im_arms_left = Image.new('L', (width, height))
+        im_arms_right = Image.new('L', (width, height))
+        arms_draw_left = ImageDraw.Draw(im_arms_left)
+        arms_draw_right = ImageDraw.Draw(im_arms_right)
+        if category == 'dresses' or category == 'upper_body':
+            shoulder_right = np.multiply(tuple(pose_data[2][:2]), height / 512.0)
+            shoulder_left = np.multiply(tuple(pose_data[5][:2]), height / 512.0)
+            elbow_right = np.multiply(tuple(pose_data[3][:2]), height / 512.0)
+            elbow_left = np.multiply(tuple(pose_data[6][:2]), height / 512.0)
+            wrist_right = np.multiply(tuple(pose_data[4][:2]), height / 512.0)
+            wrist_left = np.multiply(tuple(pose_data[7][:2]), height / 512.0)
+            ARM_LINE_WIDTH = int(arm_width / 512 * height)
+            size_left = [shoulder_left[0] - ARM_LINE_WIDTH // 2, shoulder_left[1] - ARM_LINE_WIDTH // 2, shoulder_left[0] + ARM_LINE_WIDTH // 2, shoulder_left[1] + ARM_LINE_WIDTH // 2]
+            size_right = [shoulder_right[0] - ARM_LINE_WIDTH // 2, shoulder_right[1] - ARM_LINE_WIDTH // 2, shoulder_right[0] + ARM_LINE_WIDTH // 2,
+                        shoulder_right[1] + ARM_LINE_WIDTH // 2]
+            
+
+            if wrist_right[0] <= 1. and wrist_right[1] <= 1.:
+                im_arms_right = arms_right
+            else:
+                wrist_right = self.extend_arm_mask(wrist_right, elbow_right, 1.2)
+                arms_draw_right.line(np.concatenate((shoulder_right, elbow_right, wrist_right)).astype(np.uint16).tolist(), 'white', ARM_LINE_WIDTH, 'curve')
+                arms_draw_right.arc(size_right, 0, 360, 'white', ARM_LINE_WIDTH // 2)
+
+            if wrist_left[0] <= 1. and wrist_left[1] <= 1.:
+                im_arms_left = arms_left
+            else:
+                wrist_left = self.extend_arm_mask(wrist_left, elbow_left, 1.2)
+                arms_draw_left.line(np.concatenate((wrist_left, elbow_left, shoulder_left)).astype(np.uint16).tolist(), 'white', ARM_LINE_WIDTH, 'curve')
+                arms_draw_left.arc(size_left, 0, 360, 'white', ARM_LINE_WIDTH // 2)
+
+            hands_left = np.logical_and(np.logical_not(im_arms_left), arms_left)
+            hands_right = np.logical_and(np.logical_not(im_arms_right), arms_right)
+            parser_mask_fixed += hands_left + hands_right
+
+        parser_mask_fixed = np.logical_or(parser_mask_fixed, parse_head)
+        parse_mask = cv2.dilate(parse_mask, np.ones((5, 5), np.uint16), iterations=5)
+        if category == 'dresses' or category == 'upper_body':
+            neck_mask = (parse_array == 18).astype(np.float32)
+            neck_mask = cv2.dilate(neck_mask, np.ones((5, 5), np.uint16), iterations=1)
+            neck_mask = np.logical_and(neck_mask, np.logical_not(parse_head))
+            parse_mask = np.logical_or(parse_mask, neck_mask)
+            arm_mask = cv2.dilate(np.logical_or(im_arms_left, im_arms_right).astype('float32'), np.ones((5, 5), np.uint16), iterations=4)
+            parse_mask += np.logical_or(parse_mask, arm_mask)
+
+        parse_mask = np.logical_and(parser_mask_changeable, np.logical_not(parse_mask))
+
+        parse_mask_total = np.logical_or(parse_mask, parser_mask_fixed)
+        inpaint_mask = 1 - parse_mask_total
+        img = np.where(inpaint_mask, 255, 0)
+        dst = self.hole_fill(img.astype(np.uint8))
+        dst = self.refine_mask(dst)
+        mask = (dst / 255 * 1).astype(np.uint8)
+        
+        kernel = np.ones((3, 3), np.uint8)
+        if dilate >= 0:
+            mask = cv2.dilate(mask, kernel, iterations=int(dilate))
+        else:
+            mask = cv2.erode(mask, kernel, iterations=int(abs(dilate)))
+
+        mask = Image.fromarray(mask * 255)
+        mask = ToTensor()(mask)
+        
+        return (mask, mask,)
+
+
+#####
 
 from photoroom import TRI3D_photoroom_bgremove_api
 
@@ -3729,6 +3977,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-bgremove-mega" :TRI3D_BGREMOVE_MEGA,
     'tri3d-facer_face_segment' : main_face_segment,
     'tri3d-flexible_color_extract' : main_light_layer,
+    "tri3d-automatic-body-mask": TRI3DBodyMask,
 }
 
 
@@ -3785,4 +4034,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-bgremove-mega": "BG Remove Mega" + " v" + VERSION,
     'tri3d-facer_face_segment': "Segment face using facer" + " v" + VERSION,
     'tri3d-flexible_color_extract': "Flexible color extract" + " v" + VERSION,
+    "tri3d-automatic-body-mask": "Find correct Body Mask from Flats" + " v" + VERSION,
 }
