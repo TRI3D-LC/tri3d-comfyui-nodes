@@ -42,20 +42,22 @@ class TRI3D_clean_mask():
             h,w = mask.shape[:2]
 
             total_area = h*w
-            num_labels, labels = cv2.connectedComponents(mask)
+            # num_labels, labels = cv2.connectedComponents(mask)
             region_mask = np.zeros_like(mask)
 
-            for label in range(1, num_labels):  
-                area_percent = (np.sum(labels == label)/ total_area) * 100
-                if area_percent < threshold:
-                    continue
-                region_mask[labels == label] = 255
-
+            # for label in range(1, num_labels):  
+            #     area_percent = (np.sum(labels == label)/ total_area) * 100
+            #     if area_percent < threshold:
+            #         continue
+            #     region_mask[labels == label] = 255
+            
+            area_percent = (np.sum(mask == 255)/ total_area) * 100
+            if area_percent > threshold:
+                region_mask[mask == 255] = 255
             region_mask = to_torch_image(region_mask)
             batch_results.append(region_mask.squeeze(0))
 
         batch_results = torch.stack(batch_results)
-        print(batch_results.shape)
         return batch_results
         
 
