@@ -94,6 +94,10 @@ class TRI3D_extract_pose_part():
 
         xmin, xmax, ymin, ymax = min(x1, x2), max(x1, x2), min(y1, y2), max(y1, y2)
 
+        for i in [xmin, xmax, ymin, ymax]:
+            if i < 0: 
+                return None
+
         return [xmin, xmax, ymin, ymax]
 
     def run(self, image, pose_json, width_pad, height_pad, shoulders):
@@ -109,8 +113,6 @@ class TRI3D_extract_pose_part():
         input_pose = json.load(open(pose_json))
         keypoints = input_pose['keypoints']
 
-        print("Input image shape:", image.shape)
-
         og_h, og_w = image.shape[:2]
         ph, pw = [input_pose['height'], input_pose['width']]
 
@@ -123,29 +125,31 @@ class TRI3D_extract_pose_part():
         width_offset = int(og_w * (width_pad) / 100)
         height_offset = int(og_h * (height_pad) / 100)
 
-        xmin, xmax, ymin, ymax = [0, image.shape[1], 0, image.shape[0]]
+        xmin, xmax, ymin, ymax = [0, og_w, 0, og_h]
 
         part_to_coords = {
             "shoulders":self.get_frame_coords(keypoints[2], keypoints[5])
         }
 
         if shoulders:
-            new_xmin, new_xmax, new_ymin, new_ymax = part_to_coords["shoulders"]
+            print(part_to_coords["shoulders"])
+            if part_to_coords["shoulders"] != None:
+                new_xmin, new_xmax, new_ymin, new_ymax = part_to_coords["shoulders"]
 
-            xmin, xmax, ymin, ymax = new_xmin, new_xmax, new_ymin, new_ymax
+                xmin, xmax, ymin, ymax = new_xmin, new_xmax, new_ymin, new_ymax
         
         xmin = max(0, xmin - width_offset)
         xmax = min(og_w, xmax + width_offset)
         ymin = max(0, ymin - height_offset)
         ymax = min(og_h, ymax + height_offset)
 
-        image = image[ymin:ymax, xmin:xmax,:].astype(np.uint8)
+        image = image[ymin:ymax, xmin:xmax, :].astype(np.uint8)
         image = to_torch_image(image)
         batch_result.append(image)
         batch_result = torch.stack(batch_result)
-        # print("final_coords", xmin, xmax, ymin, ymax)
+        print("final_coords", xmin, xmax, ymin, ymax)
         coords = ",".join([str(xmin), str(xmax), str(ymin), str(ymax)])
-        print(batch_result.shape)
+        
         return batch_result, coords
 
 class TRI3D_position_pose_part():

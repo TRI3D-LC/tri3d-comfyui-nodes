@@ -3665,7 +3665,6 @@ class TRI3D_BGREMOVE_MEGA():
 
             batch_results = torch.stack(batch_results)
             batch_results_masks = torch.stack(batch_results_masks)
-            print("scsadvsdfbgfbgfnfdnfgn:",batch_results.shape)
             return (batch_results,batch_results_masks)
                 
 
