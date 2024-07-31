@@ -3702,15 +3702,15 @@ label_map = {
 }
 
 full_body_garments = [
-    "jumpsuit", "romper", "onesie", "coverall", "catsuit",
-    "overalls", "dungarees", "boilersuit", "hazmat suit", "wetsuit",
-    "ski suit", "spacesuit", "leotard", "unitard", "kimono", 
+    "jumpsuit", "romper", "onesie", "coverall", "catsuit", "one-peice",
+    "overalls", "dungarees", "boilersuit", "suit", "wetsuit",
+    "swimsuit", "spacesuit", "leotard", "unitard", "kimono",
     "caftan", "abaya", "sari", "dashiki", "djellaba", "muumuu", "full_body"
 ]
 
 upper_body_garments = [
     "shirt", "blouse", "t-shirt", "sweater", "cardigan", "jacket",
-    "blazer", "hoodie", "tank top", "vest", "crop top", "tunic",
+    "blazer", "hoodie", "tank top", "vest", "crop top", "tunic", "bra",
     "polo shirt", "sweatshirt", "pullover", "turtleneck", "halter top",
     "bolero", "poncho", "shrug", "camisole", "bustier", "corset",
     "coat", "parka", "windbreaker", "upper_body"
@@ -3719,7 +3719,7 @@ upper_body_garments = [
 lower_body_garments = [
     "pants", "trousers", "jeans", "shorts", "skirt", "leggings",
     "joggers", "sweatpants", "chinos", "khakis", "cargo pants",
-    "culottes", "capris", "palazzo pants", "bermuda shorts",
+    "culottes", "capris", "palazzo", "bermuda shorts", "panties",
     "mini skirt", "midi skirt", "maxi skirt", "sarong", "kilt",
     "dhoti", "harem pants", "bloomers", "lower_body"
 ]
@@ -3798,14 +3798,27 @@ class TRI3DBodyMask:
         im_parse = model_img.resize((width, height), Image.NEAREST)
         parse_array = np.array(im_parse)
         
-
+        f = False
+        u = False
+        l = False
+        
+        category = "dresses"
         if self.check_category(full_body_garments, garment_description):
-            category = "dresses"
-        elif self.check_category(upper_body_garments, garment_description):
-            category = "upper_body"
-        elif self.check_category(lower_body_garments, garment_description):
-            category = "lower_body"
+            f = True
+        if self.check_category(upper_body_garments, garment_description):
+            u = True
+        if self.check_category(lower_body_garments, garment_description):
+            l = True
 
+        if f:
+            category = "dresses"
+        elif u and l:
+            category = "dresses"
+        elif u:
+            category = "upper_body"
+        elif l:
+            category = "lower_body"        
+        
         arm_width = 45
         
         parse_head = (parse_array == 1).astype(np.float32) + \

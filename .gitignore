@@ -5,6 +5,7 @@ venv
 .DS_Store
 checkpoints/
 checkpoint/
+ckpt/
 .env
 .pth
 cloth-segmentation/model/cloth_segm.pth
