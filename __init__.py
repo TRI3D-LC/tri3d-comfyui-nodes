@@ -15,7 +15,7 @@ from scaled_paste import main_scaled_paste
 from scaled_paste import main_scaled_paste_2
 from simple_bg_swap import (simple_bg_swap, get_threshold_for_bg_swap, RGB_2_LAB, LAB_2_RGB, get_mean_and_standard_deviation, renormalize_array)
 from distribution_reshape import (simple_rescale_histogram, get_histogram_limits)
-
+from utility_nodes import TRI3D_clean_mask, TRI3D_extract_pose_part, TRI3D_position_pose_part
 
 from .AEMatter import (load_AEMatter_Model, run_AEMatter_inference)
 from .light_layer import main_light_layer
@@ -3666,7 +3666,6 @@ class TRI3D_BGREMOVE_MEGA():
 
             batch_results = torch.stack(batch_results)
             batch_results_masks = torch.stack(batch_results_masks)
-
             return (batch_results,batch_results_masks)
                 
 
@@ -3725,6 +3724,9 @@ NODE_CLASS_MAPPINGS = {
     'tri3d-run_AEMatter_inference': run_AEMatter_inference,
     "tri3d-bgremove-mega" :TRI3D_BGREMOVE_MEGA,
     'tri3d-flexible_color_extract' : main_light_layer,
+    'tri3d-clean_mask': TRI3D_clean_mask,
+    "tri3d-extract_pose_part": TRI3D_extract_pose_part,
+    "tri3d_position_pose_part":TRI3D_position_pose_part
 }
 
 
@@ -3779,4 +3781,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     'tri3d-run_AEMatter_inference': 'Run AEMatter inference' + ' v' + VERSION,
     "tri3d-bgremove-mega": "BG Remove Mega" + " v" + VERSION,
     'tri3d-flexible_color_extract': "Flexible color extract" + " v" + VERSION,
+    'tri3d-clean_mask': "Clear small patches" + " v" + VERSION,
+    "tri3d-extract_pose_part": "Extract pose part" + " v" + VERSION,
+    "tri3d_position_pose_part": "Position pose part" + " v" + VERSION,
+
 }
