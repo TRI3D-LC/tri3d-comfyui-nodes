@@ -31,7 +31,8 @@ class TRI3D_clean_mask():
         }
 
     FUNCTION = "run"
-    RETURN_TYPES = ("MASK", )
+    RETURN_TYPES = ("MASK", "BOOL")
+    RETURN_NAMES = ("mask", "cleaned")
     CATEGORY = "TRI3D"
 
     def run(self, masks, threshold):
@@ -50,15 +51,16 @@ class TRI3D_clean_mask():
             #     if area_percent < threshold:
             #         continue
             #     region_mask[labels == label] = 255
-            
+            less_than_threshold = True
             area_percent = (np.sum(mask == 255)/ total_area) * 100
             if area_percent > threshold:
                 region_mask[mask == 255] = 255
+                less_than_threshold = False
             region_mask = to_torch_image(region_mask)
             batch_results.append(region_mask.squeeze(0))
 
         batch_results = torch.stack(batch_results)
-        return batch_results
+        return (batch_results, less_than_threshold)
         
 
 class TRI3D_extract_pose_part():
@@ -154,7 +156,7 @@ class TRI3D_extract_pose_part():
 
 class TRI3D_position_pose_part():
     """
-        put back   
+        put back extracted parts on OG image 
     """
     def __init__(self):
         pass
@@ -190,3 +192,52 @@ class TRI3D_position_pose_part():
         batch_result = torch.stack(batch_result)
         return batch_result
 
+
+class TRI3D_fill_mask():
+    """
+        fill mask with the neighbouring pixels
+    """
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE", ),
+                "mask": ("MASK", ),
+                "negative_mask": ("MASK", ),
+                "offset":("FLOAT",{"default": 1, "min": 0.0, "max": 100.0, "step": 0.01})
+            }
+        }
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", )
+    RETURN_NAMES = ("image", )
+    CATEGORY = "TRI3D"
+
+    def run(self, image, mask, negative_mask, offset):
+        image = from_torch_image(image[0])
+        mask = from_torch_image(mask[0])
+        mask = np.where(mask < 127, 0, 255)
+        mask = mask.astype(np.uint8)
+        mh, mw = mask.shape
+
+        negative_mask = from_torch_image(negative_mask[0])
+        negative_mask = np.where(negative_mask < 127, 0, 255)
+        negative_mask = negative_mask.astype(np.uint8)
+
+        indices = np.where(mask == 255)
+
+        offset = offset / 100
+        for y,x in zip(indices[0],indices[1]):
+            x_off = min(mw-1, int(x + offset * mw))
+            if negative_mask[y][x_off] != 255:
+                image[y][x] = image[y][x_off]
+            else:
+                x_off = max(0, int(x - offset * mw))
+                if negative_mask[y][x_off] != 255:
+                    image[y][x] = image[y][x_off]
+        
+        image = to_torch_image(image).unsqueeze(0)
+        return (image,)
