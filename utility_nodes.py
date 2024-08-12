@@ -212,32 +212,46 @@ class TRI3D_fill_mask():
         }
 
     FUNCTION = "run"
-    RETURN_TYPES = ("IMAGE", )
-    RETURN_NAMES = ("image", )
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
     CATEGORY = "TRI3D"
 
     def run(self, image, mask, negative_mask, offset):
         image = from_torch_image(image[0])
-        mask = from_torch_image(mask[0])
-        mask = np.where(mask < 127, 0, 255)
-        mask = mask.astype(np.uint8)
-        mh, mw = mask.shape
 
-        negative_mask = from_torch_image(negative_mask[0])
-        negative_mask = np.where(negative_mask < 127, 0, 255)
-        negative_mask = negative_mask.astype(np.uint8)
+        mask = mask[0].cpu().numpy()
+        mask = np.expand_dims(mask, -1)
+        mh, mw, _ = mask.shape
 
-        indices = np.where(mask == 255)
+        inverse_mask = np.ones_like(mask) - mask
+        
+        negative_mask = negative_mask[0].cpu().numpy()
+        indices = np.where(mask > 0)
 
         offset = offset / 100
+        
+        source = image.copy()
+
         for y,x in zip(indices[0],indices[1]):
             x_off = min(mw-1, int(x + offset * mw))
-            if negative_mask[y][x_off] != 255:
-                image[y][x] = image[y][x_off]
+            if negative_mask[y][x_off] == 0:         #check if pixles on right are outside body
+                source[y][x] = image[y][x_off]
+                
             else:
-                x_off = max(0, int(x - offset * mw))
-                if negative_mask[y][x_off] != 255:
-                    image[y][x] = image[y][x_off]
-        
+                x_off = max(0, int(x - offset * mw))       #check if pixles on left are outside body
+                if negative_mask[y][x_off] == 0:
+                    source[y][x] = image[y][x_off]
+                else:
+                    y_off = max(0, int(y - offset * mh))
+                    if negative_mask[y_off][x] == 0:            #check if pixles on top are outside body
+                        source[y][x] = image[y_off][x]
+
+                    else:
+                        y_off = min(mh-1, int(y + offset * mh))
+                        if negative_mask[y_off][x] == 0:            #check if pixles on bottom are outside body
+                            source[y][x] = image[y_off][x]
+
+        image = mask * source + inverse_mask * image
         image = to_torch_image(image).unsqueeze(0)
+
         return (image,)
