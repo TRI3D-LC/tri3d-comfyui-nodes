@@ -2836,9 +2836,14 @@ class TRI3D_recolor_LAB:
                 mu_2, sigma_2 = get_mu_sigma(array_input=image_2[:, :, i],
                                              mask_input=mask_2)
 
+                sigma_calculated = sigma_1 * factor_sigma[i]
+                if factor_sigma[i] < 0:
+                    sigma_calculated = sigma_2
+
                 image_2[:, :, i] = (
                     ((image_2[:, :, i] - mu_2) / sigma_2) *
-                    (sigma_1 * factor_sigma[i])) + (mu_1 * factor_mean[i])
+                    sigma_calculated) + (mu_1 * factor_mean[i])
+
 
             image_2 = np.clip(image_2, 0, 255)
             image_2 = image_2.astype(dtype=np.uint8)
