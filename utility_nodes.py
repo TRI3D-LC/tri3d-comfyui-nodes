@@ -255,3 +255,37 @@ class TRI3D_fill_mask():
         image = to_torch_image(image).unsqueeze(0)
 
         return (image,)
+
+class TRI3D_is_only_trouser:
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "pose_json_file": ("STRING", {
+                    "default": "dwpose/keypoints"
+                })
+            }
+        }
+
+    RETURN_TYPES = ("BOOLEAN", )
+    FUNCTION = "main"
+    CATEGORY = "TRI3D"
+
+    def main(self, pose_json_file):
+        pose = json.load(open(pose_json_file))
+        height = pose['height']
+        width = pose['width']
+        keypoints = pose['keypoints']
+
+        points = [0,14,15,16,17,2,1,5]
+        point_to_part = {0:'nose',14:"left eye",15:"right eye",16:"left ear",17:"right ear",2:"left shoulder",1:"neck",5:"right shoulder"}
+        all_negative = True          #if all face and shoulder points are negative means it is a bottom shot
+        for point in points:
+            x,y = keypoints[point]
+            if x > 0 and y > 0:
+                all_negative = False    
+                print(f"{point_to_part[point]} exist")
+        return (all_negative,)
