@@ -289,3 +289,121 @@ class TRI3D_is_only_trouser:
                 all_negative = False    
                 print(f"{point_to_part[point]} exist")
         return (all_negative,)
+
+class TRI3D_extract_facer_mask:
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "background": ("BOOLEAN", {
+                    "default": False
+                }),
+                'hair':("BOOLEAN", {
+                    "default": False
+                }),
+                'lower_lip':("BOOLEAN", {
+                    "default": False
+                }),
+                'inner_mouth':("BOOLEAN", {
+                    "default": False
+                }),
+                'upper_lip':("BOOLEAN", {
+                    "default": False
+                }),
+                'nose':("BOOLEAN", {
+                    "default": False
+                }),
+                'left_eyebrow':("BOOLEAN", {
+                    "default": False
+                }),
+                'right_eyebrow':("BOOLEAN", {
+                    "default": False
+                }),
+                'left_eye':("BOOLEAN", {
+                    "default": False
+                }),
+                'right_eye':("BOOLEAN", {
+                    "default": False
+                }),
+                'face':("BOOLEAN", {
+                    "default": False
+                })
+            }
+        }
+
+    RETURN_TYPES = ("MASK", )
+    FUNCTION = "main"
+    CATEGORY = "TRI3D"
+
+    def main(self, image, background, hair, lower_lip, inner_mouth, upper_lip, nose, left_eyebrow, right_eyebrow, left_eye, right_eye, face):
+
+        image = from_torch_image(image[0])
+        h,w,_ = image.shape
+        
+        mask = np.zeros_like(image)
+        
+        label_to_rgb = {'background':[0,0,0], 'face':[0,138,255], 'right_eye':[180, 255, 0], 'left_eye':[42, 255, 0], 'right_eyebrow':[0, 255, 96],
+                'left_eyebrow':[0,255,234], 'nose':[255, 192, 0],  'upper_lip':[255, 54, 0], 'inner_mouth':[255, 0, 84], 'lower_lip':[255, 0, 222], 
+                'hair':[150,0,255]}
+
+        if background:
+            temp = np.all(image == label_to_rgb['background'], axis=-1)
+            idcs = np.where(temp==True)
+            mask[idcs] = 255
+        
+        if face:
+            temp = np.all(image == label_to_rgb['face'], axis=-1)
+            idcs = np.where(temp==True)
+            mask[idcs] = 255
+
+        if right_eye:
+            temp = np.all(image == label_to_rgb['right_eye'], axis=-1)
+            idcs = np.where(temp==True)
+            mask[idcs] = 255
+
+        if left_eye:
+            temp = np.all(image == label_to_rgb['left_eye'], axis=-1)
+            idcs = np.where(temp==True)
+            mask[idcs] = 255
+
+        if right_eyebrow:
+            temp = np.all(image == label_to_rgb['right_eyebrow'], axis=-1)
+            idcs = np.where(temp==True)
+            mask[idcs] = 255
+
+        if left_eyebrow:
+            temp = np.all(image == label_to_rgb['left_eyebrow'], axis=-1)
+            idcs = np.where(temp==True)
+            mask[idcs] = 255
+
+        if nose:
+            temp = np.all(image == label_to_rgb['nose'], axis=-1)
+            idcs = np.where(temp==True)
+            mask[idcs] = 255
+
+        if upper_lip:
+            temp = np.all(image == label_to_rgb['upper_lip'], axis=-1)
+            idcs = np.where(temp==True)
+            mask[idcs] = 255
+
+        if inner_mouth:
+            temp = np.all(image == label_to_rgb['inner_mouth'], axis=-1)
+            idcs = np.where(temp==True)
+            mask[idcs] = 255
+
+        if lower_lip:
+            temp = np.all(image == label_to_rgb['lower_lip'], axis=-1)
+            idcs = np.where(temp==True)
+            mask[idcs] = 255
+
+        if hair:
+            temp = np.all(image == label_to_rgb['hair'], axis=-1)
+            idcs = np.where(temp==True)
+            mask[idcs] = 255
+
+        mask = to_torch_image(mask[:,:,0]).unsqueeze(0)   
+        return (mask,)

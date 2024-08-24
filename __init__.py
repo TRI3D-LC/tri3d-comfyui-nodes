@@ -16,6 +16,7 @@ from scaled_paste import main_scaled_paste_2
 from simple_bg_swap import (simple_bg_swap, get_threshold_for_bg_swap, RGB_2_LAB, LAB_2_RGB, get_mean_and_standard_deviation, renormalize_array)
 from distribution_reshape import (simple_rescale_histogram, get_histogram_limits)
 from utility_nodes import TRI3D_clean_mask, TRI3D_extract_pose_part, TRI3D_position_pose_part, TRI3D_fill_mask, TRI3D_is_only_trouser
+from utility_nodes import TRI3D_extract_facer_mask
 
 from .AEMatter import (load_AEMatter_Model, run_AEMatter_inference)
 from .light_layer import main_light_layer
@@ -3736,11 +3737,12 @@ NODE_CLASS_MAPPINGS = {
     "tri3d-extract_pose_part": TRI3D_extract_pose_part,
     "tri3d_position_pose_part":TRI3D_position_pose_part,
     "tri3d_fill_mask": TRI3D_fill_mask,
-    "tri3d_is_only_trouser": TRI3D_is_only_trouser
+    "tri3d_is_only_trouser": TRI3D_is_only_trouser,
+    "tri3d_extract_facer_mask":TRI3D_extract_facer_mask
 }
 
 
-VERSION = "4.7.2"
+VERSION = "4.7.3"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-photoroom-bgremove-api": "Photoroom BG Remove" + " v" + VERSION,
@@ -3795,5 +3797,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-extract_pose_part": "Extract pose part" + " v" + VERSION,
     "tri3d_position_pose_part": "Position pose part" + " v" + VERSION,
     "tri3d_fill_mask": "Fill mask" + " v" + VERSION,
-    "tri3d_is_only_trouser": "Is only trouser" + " v" + VERSION
+    "tri3d_is_only_trouser": "Is only trouser" + " v" + VERSION,
+    "tri3d_extract_facer_mask": "Extract facer mask" + " v" + VERSION
 }
