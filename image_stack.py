@@ -13,7 +13,7 @@ def do_stack(img1, img2):
 
     dim = max(max(img1.shape[0], img2.shape[0]), img1.shape[1] + img2.shape[1])
 
-    out = torch.zeros((dim, dim, 3), dtype=img1.dtype, device=img1.device)
+    out = torch.zeros((dim, dim, 3), dtype=img1.dtype, device=img1.device) + 1
 
     diff1 = (out.shape[0] - img1.shape[0]) // 2
     diff2 = (out.shape[0] - img2.shape[0]) // 2
