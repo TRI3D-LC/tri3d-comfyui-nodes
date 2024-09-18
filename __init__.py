@@ -3742,7 +3742,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d_fill_mask": TRI3D_fill_mask,
     "tri3d_is_only_trouser": TRI3D_is_only_trouser,
     "tri3d_extract_facer_mask":TRI3D_extract_facer_mask,
-    "tri3d_H_Stack_Images": H_Stack_Image
+    "tri3d_H_Stack_Images": H_Stack_Images
 }
 
 
