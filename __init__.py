@@ -22,6 +22,15 @@ from .AEMatter import (load_AEMatter_Model, run_AEMatter_inference)
 from .light_layer import main_light_layer
 
 
+from .image_stack import (
+    H_Stack_Images,
+    SaveImage_absolute,
+    SaveText_absolute,
+    Wait_And_Read_File,
+)
+
+
+
 def from_torch_image(image):
     image = image.squeeze().cpu().numpy() * 255.0
     image = np.clip(image, 0, 255).astype(np.uint8)
@@ -3738,7 +3747,11 @@ NODE_CLASS_MAPPINGS = {
     "tri3d_position_pose_part":TRI3D_position_pose_part,
     "tri3d_fill_mask": TRI3D_fill_mask,
     "tri3d_is_only_trouser": TRI3D_is_only_trouser,
-    "tri3d_extract_facer_mask":TRI3D_extract_facer_mask
+    "tri3d_extract_facer_mask":TRI3D_extract_facer_mask,
+    "tri3d_H_Stack_Images": H_Stack_Images,
+    "tri3d_SaveImage_absolute":SaveImage_absolute,
+    "tri3d_SaveText_absolute":SaveText_absolute,
+    "tri3d_Wait_And_Read_File":Wait_And_Read_File,
 }
 
 
@@ -3798,5 +3811,9 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d_position_pose_part": "Position pose part" + " v" + VERSION,
     "tri3d_fill_mask": "Fill mask" + " v" + VERSION,
     "tri3d_is_only_trouser": "Is only trouser" + " v" + VERSION,
-    "tri3d_extract_facer_mask": "Extract facer mask" + " v" + VERSION
+    "tri3d_extract_facer_mask": "Extract facer mask" + " v" + VERSION,
+    "tri3d_H_Stack_Images": "Stack images for cat vton with flux" + " v" + VERSION,
+    "tri3d_SaveImage_absolute": "Save image to an absolute path and provide text optional to control execution order" + " v" + VERSION,
+    "tri3d_SaveText_absolute": "Save text to an absolute path and provide text optional to control execution order " + " v" + VERSION,
+    "tri3d_Wait_And_Read_File": "Wait and read text file, optional control from text " + " v" + VERSION,
 }
