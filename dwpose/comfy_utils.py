@@ -276,8 +276,4 @@ def switch_to_backpose(input_keypoints, input_width):
 
     return input_keypoints
 
-def extract_torso_keypoints(keypoints):
-    # Indices for torso-related keypoints
-    torso_indices = [8, 9, 10, 11, 12, 13]
-    return [keypoints[i] for i in torso_indices if keypoints[i] != [-1, -1]]
 

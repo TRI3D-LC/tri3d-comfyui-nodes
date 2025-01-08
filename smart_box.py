@@ -34,11 +34,17 @@ class TRI3D_SmartBox:
     RETURN_TYPES = ("IMAGE", )
     CATEGORY = "TRI3D"
 
+    def extract_torso_keypoints(self, keypoints):
+        # Indices for torso-related keypoints
+        torso_indices = [8, 9, 10, 11, 12, 13]
+        return [keypoints[i] for i in torso_indices if keypoints[i] != [-1, -1]]
+
+
     def run(self, image, keypoints_json):
-        from .dwpose import comfy_utils
+        
         kp_data = json.loads(open(keypoints_json, 'r').read())
         original_height, original_width = kp_data['height'], kp_data['width']
-        torso_keypoints = comfy_utils.extract_torso_keypoints(kp_data['keypoints'])
+        torso_keypoints = self.extract_torso_keypoints(kp_data['keypoints'])
 
         # Convert Torch image to OpenCV format
         cv_image = self.from_torch_image(image)
