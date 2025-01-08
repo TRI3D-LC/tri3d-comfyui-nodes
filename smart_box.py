@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import json
-from dwpose.comfy_utils import extract_torso_keypoints
+from .dwpose import comfy_utils
 import cv2
 
 class TRI3D_SmartBox:
@@ -36,7 +36,7 @@ class TRI3D_SmartBox:
     def run(self, image, keypoints_json):
         kp_data = json.loads(open(keypoints_json, 'r').read())
         original_height, original_width = kp_data['height'], kp_data['width']
-        torso_keypoints = extract_torso_keypoints(kp_data['keypoints'])
+        torso_keypoints = comfy_utils.extract_torso_keypoints(kp_data['keypoints'])
 
         # Convert Torch image to OpenCV format
         cv_image = self.from_torch_image(image)
