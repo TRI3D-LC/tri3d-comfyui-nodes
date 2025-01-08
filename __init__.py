@@ -1941,6 +1941,8 @@ class TRI3DDWPose_Preprocessor:
         out_image = torch.stack(out_image_list, dim=0)
         del model
 
+        # print(save_file_path, "save_file_path")
+
         return (out_image, save_file_path)
 
 
@@ -3692,6 +3694,7 @@ class TRI3D_BGREMOVE_MEGA():
 
 
 from photoroom import TRI3D_photoroom_bgremove_api
+from smart_box import TRI3D_SmartBox
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
@@ -3752,10 +3755,11 @@ NODE_CLASS_MAPPINGS = {
     "tri3d_SaveImage_absolute":SaveImage_absolute,
     "tri3d_SaveText_absolute":SaveText_absolute,
     "tri3d_Wait_And_Read_File":Wait_And_Read_File,
+    "tri3d_SmartBox": TRI3D_SmartBox,
 }
 
 
-VERSION = "4.7.3"
+VERSION = "4.8.0"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-photoroom-bgremove-api": "Photoroom BG Remove" + " v" + VERSION,
@@ -3816,4 +3820,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d_SaveImage_absolute": "Save image to an absolute path and provide text optional to control execution order" + " v" + VERSION,
     "tri3d_SaveText_absolute": "Save text to an absolute path and provide text optional to control execution order " + " v" + VERSION,
     "tri3d_Wait_And_Read_File": "Wait and read text file, optional control from text " + " v" + VERSION,
+    "tri3d_SmartBox": "Smart Box" + " v" + VERSION,
 }
