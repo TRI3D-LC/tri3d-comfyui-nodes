@@ -3759,7 +3759,7 @@ NODE_CLASS_MAPPINGS = {
 }
 
 
-VERSION = "4.8.0"
+VERSION = "4.8.1"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-photoroom-bgremove-api": "Photoroom BG Remove" + " v" + VERSION,
