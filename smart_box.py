@@ -97,3 +97,62 @@ class TRI3D_SmartBox:
         return image
 
     
+class TRI3D_Skip_HeadMask:
+    def from_torch_image(self, image):
+        image = image.cpu().numpy() * 255.0
+        image = np.clip(image, 0, 255).astype(np.uint8)
+        return image
+
+    def to_torch_image(self, image):
+        image = image.astype(dtype=np.float32)
+        image /= 255.0
+        image = torch.from_numpy(image)
+        return image
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE", ),
+                "head_mask": ("IMAGE", ),
+            },
+        }
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", )
+    CATEGORY = "TRI3D"
+
+    def run(self, image, head_mask):
+        # Convert Torch images to OpenCV format
+        cv_image = self.from_torch_image(image)
+        cv_head_mask = self.from_torch_image(head_mask)
+
+        # Remove the batch dimension if present
+        if len(cv_image.shape) == 4:
+            cv_image = cv_image[0]
+        if len(cv_head_mask.shape) == 4:
+            cv_head_mask = cv_head_mask[0]
+
+        # Find the lowest point in the head mask
+        mask = cv_head_mask[:, :, 0]  # Assuming single-channel mask
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        lowest_y = 0
+        for contour in contours:
+            for point in contour:
+                x, y = point[0]
+                if y > lowest_y:
+                    lowest_y = y
+
+        # Black out everything above the lowest point
+        cv_image[:lowest_y, :] = 0
+
+        # Convert back to Torch format
+        torch_image = self.to_torch_image(cv_image)
+
+        # Add the batch dimension back
+        torch_image = torch_image.unsqueeze(0)
+
+        return (torch_image,)
