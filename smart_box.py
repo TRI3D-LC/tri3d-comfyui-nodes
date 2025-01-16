@@ -83,7 +83,10 @@ class TRI3D_SmartBox:
     def fill_below_hip(self, image, keypoints):
         # Correct the indices for hip keypoints
         # Assuming indices 8 and 11 are for left and right hips
-        hip_y = (keypoints[0][1] + keypoints[1][1]) // 2
+        try:
+            hip_y = (keypoints[0][1] + keypoints[1][1]) // 2
+        except:
+            hip_y = 0
 
         # Find the bounding box of the mask below the hip line
         mask = image[:, :, 0]  # Assuming single-channel mask
