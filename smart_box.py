@@ -104,7 +104,10 @@ class TRI3D_SmartBox:
             # print(cnt, x,y,w,h, cv2.contourArea(contour), "cnt,x,y,w,h,area")
             cnt+=1
         #     cv2.rectangle(image, (x, y + hip_y), (x + w, y + h + hip_y), (255, 255, 255), -1)
-        contours = [contour for contour in contours if cv2.contourArea(contour) > 100]
+        contours = [contour for contour in contours if cv2.contourArea(contour) > 20]
+
+        if len(contours) == 0:
+            return image
         # Combine all contours into one
         all_contours = np.vstack(contours)
 
