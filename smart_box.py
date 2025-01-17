@@ -93,9 +93,12 @@ class TRI3D_SmartBox:
         below_hip = mask[hip_y:, :]
         contours, _ = cv2.findContours(below_hip, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        for contour in contours:
-            x, y, w, h = cv2.boundingRect(contour)
-            cv2.rectangle(image, (x, y + hip_y), (x + w, y + h + hip_y), (255, 255, 255), -1)
+        # Combine all contours into one
+        all_contours = np.vstack(contours)
+
+        # Calculate a single bounding rectangle for all contours
+        x, y, w, h = cv2.boundingRect(all_contours)
+        cv2.rectangle(image, (x, y + hip_y), (x + w, y + h + hip_y), (255, 255, 255), -1)
 
         return image
 
