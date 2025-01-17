@@ -84,7 +84,7 @@ class TRI3D_SmartBox:
         # Correct the indices for hip keypoints
         # Assuming indices 8 and 11 are for left and right hips
         try:
-            hip_y = (keypoints[0][1] + keypoints[1][1]) // 2
+            hip_y = min(keypoints[0][1], keypoints[1][1], keypoints[2][1], keypoints[3][1], keypoints[4][1], keypoints[5][1])
         except:
             hip_y = 0
 
