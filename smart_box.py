@@ -37,7 +37,7 @@ class TRI3D_SmartBox:
     def extract_torso_keypoints(self, keypoints):
         # Indices for torso-related keypoints
         torso_indices = [8, 9, 10, 11, 12, 13]
-        return [keypoints[i] for i in torso_indices if keypoints[i] != [-1, -1]]
+        return [keypoints[i] for i in torso_indices]
 
 
     def run(self, image, keypoints_json):
@@ -83,21 +83,34 @@ class TRI3D_SmartBox:
     def fill_below_hip(self, image, keypoints):
         # Correct the indices for hip keypoints
         # Assuming indices 8 and 11 are for left and right hips
+        # print(keypoints,"hip keypoints")
         try:
-            hip_y = min(keypoints[0][1], keypoints[1][1], keypoints[2][1], keypoints[3][1], keypoints[4][1], keypoints[5][1])
+            valid_y_coords = [kp[1] for kp in keypoints if kp[1] >= 0]
+            hip_y = min(valid_y_coords) if valid_y_coords else 0
         except:
             hip_y = 0
+        
+        if hip_y == 0:
+            return image
 
         # Find the bounding box of the mask below the hip line
         mask = image[:, :, 0]  # Assuming single-channel mask
         below_hip = mask[hip_y:, :]
         contours, _ = cv2.findContours(below_hip, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
+        cnt = 0
+        
+        for contour in contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            # print(cnt, x,y,w,h, cv2.contourArea(contour), "cnt,x,y,w,h,area")
+            cnt+=1
+        #     cv2.rectangle(image, (x, y + hip_y), (x + w, y + h + hip_y), (255, 255, 255), -1)
+        contours = [contour for contour in contours if cv2.contourArea(contour) > 100]
         # Combine all contours into one
         all_contours = np.vstack(contours)
 
         # Calculate a single bounding rectangle for all contours
         x, y, w, h = cv2.boundingRect(all_contours)
+        # print(x,y,w,h, "x,y,w,h")
         cv2.rectangle(image, (x, y + hip_y), (x + w, y + h + hip_y), (255, 255, 255), -1)
 
         return image
