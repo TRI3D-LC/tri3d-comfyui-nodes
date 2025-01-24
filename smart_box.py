@@ -4,6 +4,34 @@ import json
 
 import cv2
 
+#  {0,  "Nose"},
+# //     {1,  "Neck"},
+# //     {2,  "RShoulder"},
+# //     {3,  "RElbow"},
+# //     {4,  "RWrist"},
+# //     {5,  "LShoulder"},
+# //     {6,  "LElbow"},
+# //     {7,  "LWrist"},
+# //     {8,  "MidHip"},
+# //     {9,  "RHip"},
+# //     {10, "RKnee"},
+# //     {11, "RAnkle"},
+# //     {12, "LHip"},
+# //     {13, "LKnee"},
+# //     {14, "LAnkle"},
+# //     {15, "REye"},
+# //     {16, "LEye"},
+# //     {17, "REar"},
+# //     {18, "LEar"},
+# //     {19, "LBigToe"},
+# //     {20, "LSmallToe"},
+# //     {21, "LHeel"},
+# //     {22, "RBigToe"},
+# //     {23, "RSmallToe"},
+# //     {24, "RHeel"},
+# //     {25, "Background"}
+
+
 class TRI3D_SmartBox:
     
     
@@ -170,6 +198,103 @@ class TRI3D_Skip_HeadMask:
 
         # Black out everything above the lowest point
         cv_image[:lowest_y, :] = 0
+
+        # Convert back to Torch format
+        torch_image = self.to_torch_image(cv_image)
+
+        # Add the batch dimension back
+        torch_image = torch_image.unsqueeze(0)
+
+        return (torch_image,)
+
+
+    
+class TRI3D_Skip_HeadMask_AddNeck:
+
+    def adjust_keypoints(self, keypoints, image_shape, original_height, original_width):
+        image_height, image_width = image_shape[:2]
+        scale_x = image_width / original_width
+        scale_y = image_height / original_height
+
+        adjusted_keypoints = [
+            (int(x * scale_x), int(y * scale_y)) for x, y in keypoints
+        ]
+        return adjusted_keypoints
+
+    def from_torch_image(self, image):
+        image = image.cpu().numpy() * 255.0
+        image = np.clip(image, 0, 255).astype(np.uint8)
+        return image
+
+    def to_torch_image(self, image):
+        image = image.astype(dtype=np.float32)
+        image /= 255.0
+        image = torch.from_numpy(image)
+        return image
+
+
+    def extract_neck_keypoint(self, keypoints):
+        # Indices for torso-related keypoints
+        neck_indices = [1]
+        return [keypoints[i] for i in neck_indices]
+
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE", ),
+                "head_mask": ("IMAGE", ),
+                "keypoints_json": ("STRING", {"multiline": True}),
+                "ratio_aggression": ("FLOAT", {"default": 0.5, "min": 0, "max": 1, "step": 0.01}),
+            },
+        }
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", )
+    CATEGORY = "TRI3D"
+
+    def run(self, image, head_mask, keypoints_json,ratio_aggression):
+        # Convert Torch images to OpenCV format
+        cv_image = self.from_torch_image(image)
+        cv_head_mask = self.from_torch_image(head_mask)
+
+        # Remove the batch dimension if present
+        if len(cv_image.shape) == 4:
+            cv_image = cv_image[0]
+        if len(cv_head_mask.shape) == 4:
+            cv_head_mask = cv_head_mask[0]
+
+        kp_data = json.loads(open(keypoints_json, 'r').read())
+        original_height, original_width = kp_data['height'], kp_data['width']
+        neck_keypoints = self.extract_neck_keypoint(kp_data['keypoints'])
+        from pprint import pprint
+        pprint(neck_keypoints)
+        adjusted_neck_keypoints = self.adjust_keypoints(neck_keypoints, cv_image.shape, original_height, original_width)
+        # Find the lowest point in the head mask
+        mask = cv_head_mask[:, :, 0]  # Assuming single-channel mask
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        lowest_y = 0
+        for contour in contours:
+            for point in contour:
+                x, y = point[0]
+                if y > lowest_y:
+                    lowest_y = y
+        
+        #take average of neck keypoint y and lowest_y in head mask 
+        neck_y = adjusted_neck_keypoints[0][1]
+        if(neck_y <= 0):
+            neck_y = lowest_y
+        average_y = int((neck_y*ratio_aggression + lowest_y*(1-ratio_aggression)))
+        
+        print(neck_y, lowest_y, "neck_y, lowest_y")
+        print(average_y, "average_y")
+
+        # Black out everything above the lowest point
+        cv_image[:average_y, :] = 0
 
         # Convert back to Torch format
         torch_image = self.to_torch_image(cv_image)

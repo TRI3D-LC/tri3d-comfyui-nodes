@@ -3694,7 +3694,7 @@ class TRI3D_BGREMOVE_MEGA():
 
 
 from photoroom import TRI3D_photoroom_bgremove_api
-from smart_box import TRI3D_SmartBox, TRI3D_Skip_HeadMask
+from smart_box import TRI3D_SmartBox, TRI3D_Skip_HeadMask, TRI3D_Skip_HeadMask_AddNeck
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
@@ -3757,10 +3757,11 @@ NODE_CLASS_MAPPINGS = {
     "tri3d_Wait_And_Read_File":Wait_And_Read_File,
     "tri3d_SmartBox": TRI3D_SmartBox,
     "tri3d_Skip_HeadMask": TRI3D_Skip_HeadMask,
+    "tri3d_Skip_HeadMask_AddNeck": TRI3D_Skip_HeadMask_AddNeck,
 }
 
 
-VERSION = "4.8.3"
+VERSION = "4.8.4"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-photoroom-bgremove-api": "Photoroom BG Remove" + " v" + VERSION,
@@ -3823,4 +3824,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d_Wait_And_Read_File": "Wait and read text file, optional control from text " + " v" + VERSION,
     "tri3d_SmartBox": "Smart Box" + " v" + VERSION,
     "tri3d_Skip_HeadMask": "Skip Head Mask" + " v" + VERSION,
+    "tri3d_Skip_HeadMask_AddNeck": "Skip Head Mask and add neck" + " v" + VERSION,
 }
