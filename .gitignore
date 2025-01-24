@@ -11,3 +11,5 @@ cloth-segmentation/model/cloth_segm.pth
 
 dwpose/keypoints/
 huggingface/
+
+safetensors/model.safetensors
