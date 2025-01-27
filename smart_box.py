@@ -335,7 +335,7 @@ class TRI3D_Image_extend:
     RETURN_NAMES = ("image", "mask_image", )
     CATEGORY = "TRI3D"
 
-    def run(self, face_mask, image):
+    def run(self, face_mask, image, ratio):
         cv_face_mask = self.from_torch_image(face_mask)
         cv_image = self.from_torch_image(image)
 
@@ -361,11 +361,11 @@ class TRI3D_Image_extend:
 
         # Only extend if the space below face is less than 1.5 times face height
         target_below_face = int(y_face * ratio)
-        print("y_face", y_face)
-        print("lowest_y", lowest_y)
-        print("highest_y", highest_y)
-        print("target_below_face", target_below_face)
-        print("y_below_face", y_below_face)
+        # print("y_face", y_face)
+        # print("lowest_y", lowest_y)
+        # print("highest_y", highest_y)
+        # print("target_below_face", target_below_face)
+        # print("y_below_face", y_below_face)
 
         original_height = cv_image.shape[0]
         if y_below_face < target_below_face:
