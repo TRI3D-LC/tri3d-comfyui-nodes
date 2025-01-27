@@ -368,13 +368,33 @@ class TRI3D_Image_extend:
         # print("y_below_face", y_below_face)
 
         original_height = cv_image.shape[0]
+        original_width = cv_image.shape[1]
+        
         if y_below_face < target_below_face:
             y_extend = target_below_face - y_below_face
-            cv_image = cv2.copyMakeBorder(cv_image, 0, y_extend, 0, 0, cv2.BORDER_CONSTANT, value=[0, 0, 0])
+            
+            # Calculate how much to extend horizontally to maintain aspect ratio
+            new_height = original_height + y_extend
+            new_width = int(original_width * (new_height / original_height))
+            x_extend = new_width - original_width
+            x_extend_left = x_extend // 2
+            x_extend_right = x_extend - x_extend_left
+            
+            # Extend the image in all necessary directions
+            cv_image = cv2.copyMakeBorder(
+                cv_image, 
+                0, y_extend,                    # top, bottom
+                x_extend_left, x_extend_right,  # left, right
+                cv2.BORDER_CONSTANT, 
+                value=[0, 0, 0]
+            )
             
             # Create extension mask
             extension_mask = np.zeros_like(cv_image)
-            extension_mask[original_height:, :] = 255  # Make extended portion white
+            # Make extended portions white
+            extension_mask[original_height:, :] = 255  # bottom extension
+            extension_mask[:, :x_extend_left] = 255    # left extension
+            extension_mask[:, -x_extend_right:] = 255  # right extension
 
         else:
             extension_mask = np.zeros_like(cv_image)
