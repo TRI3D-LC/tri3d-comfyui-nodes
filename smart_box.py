@@ -303,3 +303,87 @@ class TRI3D_Skip_HeadMask_AddNeck:
         torch_image = torch_image.unsqueeze(0)
 
         return (torch_image,)
+
+
+class TRI3D_Image_extend:
+    def from_torch_image(self, image):
+        image = image.cpu().numpy() * 255.0
+        image = np.clip(image, 0, 255).astype(np.uint8)
+        return image
+
+    def to_torch_image(self, image):
+        image = image.astype(dtype=np.float32)
+        image /= 255.0
+        image = torch.from_numpy(image)
+        return image
+    
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "face_mask": ("IMAGE", ),
+                "image": ("IMAGE", ),
+            },
+        }
+    
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", "IMAGE", )
+    RETURN_NAMES = ("image", "mask_image", )
+    CATEGORY = "TRI3D"
+
+    def run(self, face_mask, image):
+        cv_face_mask = self.from_torch_image(face_mask)
+        cv_image = self.from_torch_image(image)
+
+        # Remove the batch dimension if present
+        if len(cv_image.shape) == 4:
+            cv_image = cv_image[0]
+        if len(cv_face_mask.shape) == 4:
+            cv_face_mask = cv_face_mask[0]
+        mask = cv_face_mask[:, :, 0]  # Assuming single-channel mask
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        lowest_y = 0
+        highest_y = cv_image.shape[0]
+        for contour in contours:
+            for point in contour:
+                x, y = point[0]
+                if y > lowest_y:
+                    lowest_y = y
+                if y < highest_y:
+                    highest_y = y
+
+        y_below_face = cv_image.shape[0] - lowest_y
+        y_face = lowest_y-highest_y
+
+        # Only extend if the space below face is less than 1.5 times face height
+        target_below_face = int(y_face * 1.5)
+        print("y_face", y_face)
+        print("lowest_y", lowest_y)
+        print("highest_y", highest_y)
+        print("target_below_face", target_below_face)
+        print("y_below_face", y_below_face)
+
+        original_height = cv_image.shape[0]
+        if y_below_face < target_below_face:
+            y_extend = target_below_face - y_below_face
+            cv_image = cv2.copyMakeBorder(cv_image, 0, y_extend, 0, 0, cv2.BORDER_CONSTANT, value=[0, 0, 0])
+            
+            # Create extension mask
+            extension_mask = np.zeros_like(cv_image)
+            extension_mask[original_height:, :] = 255  # Make extended portion white
+
+        else:
+            extension_mask = np.zeros_like(cv_image)
+
+        # Convert both images back to torch format
+        torch_image = self.to_torch_image(cv_image)
+        torch_mask = self.to_torch_image(extension_mask)
+        
+        # Add batch dimension to both
+        torch_image = torch_image.unsqueeze(0)
+        torch_mask = torch_mask.unsqueeze(0)
+        
+        return (torch_image, torch_mask)
