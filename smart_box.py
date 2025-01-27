@@ -326,6 +326,7 @@ class TRI3D_Image_extend:
             "required": {
                 "face_mask": ("IMAGE", ),
                 "image": ("IMAGE", ),
+                "ratio": ("FLOAT", {"default": 1.5, "min": 1.2, "max": 2, "step": 0.01}),
             },
         }
     
@@ -359,7 +360,7 @@ class TRI3D_Image_extend:
         y_face = lowest_y-highest_y
 
         # Only extend if the space below face is less than 1.5 times face height
-        target_below_face = int(y_face * 1.5)
+        target_below_face = int(y_face * ratio)
         print("y_face", y_face)
         print("lowest_y", lowest_y)
         print("highest_y", highest_y)
