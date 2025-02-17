@@ -15,7 +15,7 @@ from scaled_paste import main_scaled_paste
 from scaled_paste import main_scaled_paste_2
 from simple_bg_swap import (simple_bg_swap, get_threshold_for_bg_swap, RGB_2_LAB, LAB_2_RGB, get_mean_and_standard_deviation, renormalize_array)
 from distribution_reshape import (simple_rescale_histogram, get_histogram_limits)
-from utility_nodes import TRI3D_clean_mask, TRI3D_extract_pose_part, TRI3D_position_pose_part, TRI3D_fill_mask, TRI3D_is_only_trouser, TRI3D_extract_facer_mask,
+from utility_nodes import TRI3D_clean_mask, TRI3D_extract_pose_part, TRI3D_position_pose_part, TRI3D_fill_mask, TRI3D_is_only_trouser, TRI3D_extract_facer_mask
 from utility_nodes import TRI3D_extract_facer_mask
 
 from .AEMatter import (load_AEMatter_Model, run_AEMatter_inference)

@@ -544,90 +544,92 @@ class TRI3D_NarrowfyImage:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "face_mask": ("IMAGE", ),
                 "image": ("IMAGE", ),
-                "ratio": ("FLOAT", {"default": 1.5, "min": 1.2, "max": 2, "step": 0.01}),
+                "mask": ("IMAGE", ),
+                "aspect_ratio": ("FLOAT", {"default": 0.33, "min": 0.25, "max": 1, "step": 0.01}),
             },
         }
     
     FUNCTION = "run"
     RETURN_TYPES = ("IMAGE", "IMAGE", )
-    RETURN_NAMES = ("image", "mask_image", )
+    RETURN_NAMES = ("cropped_image", "cropped_mask", )
     CATEGORY = "TRI3D"
 
-    def run(self, face_mask, image, ratio):
-        cv_face_mask = self.from_torch_image(face_mask)
-        cv_image = self.from_torch_image(image)
-
-        # Remove the batch dimension if present
-        if len(cv_image.shape) == 4:
-            cv_image = cv_image[0]
-        if len(cv_face_mask.shape) == 4:
-            cv_face_mask = cv_face_mask[0]
-        mask = cv_face_mask[:, :, 0]  # Assuming single-channel mask
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        lowest_y = 0
-        highest_y = cv_image.shape[0]
-        for contour in contours:
-            for point in contour:
-                x, y = point[0]
-                if y > lowest_y:
-                    lowest_y = y
-                if y < highest_y:
-                    highest_y = y
-
-        y_below_face = cv_image.shape[0] - lowest_y
-        y_face = lowest_y-highest_y
-
-        # Only extend if the space below face is less than 1.5 times face height
-        target_below_face = int(y_face * ratio)
-        # print("y_face", y_face)
-        # print("lowest_y", lowest_y)
-        # print("highest_y", highest_y)
-        # print("target_below_face", target_below_face)
-        # print("y_below_face", y_below_face)
-
-        original_height = cv_image.shape[0]
-        original_width = cv_image.shape[1]
+    def run(self, image, mask, aspect_ratio):
+        # Convert to CV format and remove batch dimension
+        cv_image = self.from_torch_image(image)[0]
+        cv_mask = self.from_torch_image(mask)[0]
         
-        if y_below_face < target_below_face:
-            y_extend = target_below_face - y_below_face
+        # Find bounding box of the mask
+        mask_channel = cv_mask[:, :, 0]
+        contours, _ = cv2.findContours(mask_channel, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if not contours:
+            return image, mask, aspect_ratio
             
-            # Calculate how much to extend horizontally to maintain aspect ratio
-            new_height = original_height + y_extend
-            new_width = int(original_width * (new_height / original_height))
-            x_extend = new_width - original_width
-            x_extend_left = x_extend // 2
-            x_extend_right = x_extend - x_extend_left
+        # Filter contours by area
+        significant_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 100]
+        
+        if not significant_contours:
+            return image, mask, aspect_ratio
             
-            # Extend the image in all necessary directions
-            cv_image = cv2.copyMakeBorder(
-                cv_image, 
-                0, y_extend,                    # top, bottom
-                x_extend_left, x_extend_right,  # left, right
-                cv2.BORDER_CONSTANT, 
+        # Get combined bounding box for all significant contours
+        x_min = float('inf')
+        y_min = float('inf')
+        x_max = 0
+        y_max = 0
+        
+        for contour in significant_contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            x_min = min(x_min, x)
+            y_min = min(y_min, y)
+            x_max = max(x_max, x + w)
+            y_max = max(y_max, y + h)
+        
+        # Calculate final width and height with margin
+        margin = 15
+        x = max(0, x_min - margin)  # Ensure we don't go below 0
+        y = max(0, y_min - margin)
+        w = min(cv_image.shape[1] - x, (x_max - x_min) + 2 * margin)  # Ensure we don't exceed image width
+        h = min(cv_image.shape[0] - y, (y_max - y_min) + 2 * margin)  # Ensure we don't exceed image height
+        
+        # Crop both image and mask to bounding box
+        cropped_image = cv_image[y:y+h, x:x+w]
+        cropped_mask = cv_mask[y:y+h, x:x+w]
+        
+        # Calculate required height for aspect ratio 1/3
+        min_height = w * 1/aspect_ratio
+        if h < min_height:
+            height_extend = min_height - h
+            
+            # Extend image with black pixels
+            extended_image = cv2.copyMakeBorder(
+                cropped_image,
+                0, int(height_extend),  # top, bottom
+                0, 0,                   # left, right
+                cv2.BORDER_CONSTANT,
                 value=[0, 0, 0]
             )
             
-            # Create extension mask
-            extension_mask = np.zeros_like(cv_image)
-            # Make extended portions white
-            extension_mask[original_height:, :] = 255  # bottom extension
-            extension_mask[:, :x_extend_left] = 255    # left extension
-            extension_mask[:, -x_extend_right:] = 255  # right extension
-
-        else:
-            extension_mask = np.zeros_like(cv_image)
-
-        # Convert both images back to torch format
-        torch_image = self.to_torch_image(cv_image)
-        torch_mask = self.to_torch_image(extension_mask)
+            # Create mask with white pixels only in extended region
+            extended_mask = cv2.copyMakeBorder(
+                np.zeros_like(cropped_mask),  # Start with black base
+                0, int(height_extend),  # top, bottom
+                0, 0,                   # left, right
+                cv2.BORDER_CONSTANT,
+                value=[255, 255, 255]   # White extension
+            )
+            
+            cropped_image = extended_image
+            cropped_mask = extended_mask
         
-        # Add batch dimension to both
-        torch_image = torch_image.unsqueeze(0)
-        torch_mask = torch_mask.unsqueeze(0)
+        # Convert back to torch format and add batch dimension
+        torch_image = self.to_torch_image(cropped_image).unsqueeze(0)
+        torch_mask = self.to_torch_image(cropped_mask).unsqueeze(0)
         
         return (torch_image, torch_mask)
+
+
 
 
 class TRI3D_CropAndExtend:
