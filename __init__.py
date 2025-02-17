@@ -15,7 +15,7 @@ from scaled_paste import main_scaled_paste
 from scaled_paste import main_scaled_paste_2
 from simple_bg_swap import (simple_bg_swap, get_threshold_for_bg_swap, RGB_2_LAB, LAB_2_RGB, get_mean_and_standard_deviation, renormalize_array)
 from distribution_reshape import (simple_rescale_histogram, get_histogram_limits)
-from utility_nodes import TRI3D_clean_mask, TRI3D_extract_pose_part, TRI3D_position_pose_part, TRI3D_fill_mask, TRI3D_is_only_trouser
+from utility_nodes import TRI3D_clean_mask, TRI3D_extract_pose_part, TRI3D_position_pose_part, TRI3D_fill_mask, TRI3D_is_only_trouser, TRI3D_extract_facer_mask,
 from utility_nodes import TRI3D_extract_facer_mask
 
 from .AEMatter import (load_AEMatter_Model, run_AEMatter_inference)
@@ -3694,7 +3694,7 @@ class TRI3D_BGREMOVE_MEGA():
 
 
 from photoroom import TRI3D_photoroom_bgremove_api
-from smart_box import TRI3D_SmartBox, TRI3D_Skip_HeadMask, TRI3D_Skip_HeadMask_AddNeck, TRI3D_Image_extend
+from smart_box import TRI3D_SmartBox, TRI3D_Skip_HeadMask, TRI3D_Skip_HeadMask_AddNeck, TRI3D_Image_extend, TRI3D_Smart_Depth, TRI3D_NarrowfyImage
 from nsfw import TRI3DNSFWFilter
 
 # A dictionary that contains all nodes you want to export with their names
@@ -3760,11 +3760,13 @@ NODE_CLASS_MAPPINGS = {
     "tri3d_Skip_HeadMask": TRI3D_Skip_HeadMask,
     "tri3d_Skip_HeadMask_AddNeck": TRI3D_Skip_HeadMask_AddNeck,
     "tri3d_Image_extend": TRI3D_Image_extend,
+    "tri3d_Smart_Depth": TRI3D_Smart_Depth,
     "tri3d_NSFWFilter": TRI3DNSFWFilter,
+    "tri3d_NarrowfyImage": TRI3D_NarrowfyImage,
 }
 
 
-VERSION = "4.8.6"
+VERSION = "4.8.7"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-photoroom-bgremove-api": "Photoroom BG Remove" + " v" + VERSION,
@@ -3830,4 +3832,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d_Skip_HeadMask_AddNeck": "Skip Head Mask and add neck" + " v" + VERSION,
     "tri3d_NSFWFilter": "TRI3D NSFW Filter" + " v" + VERSION,
     "tri3d_Image_extend": "Image extend" + " v" + VERSION,
+    "tri3d_Smart_Depth": "Smart Depth" + " v" + VERSION,
+    "tri3d_NarrowfyImage": "Narrowfy Image" + " v" + VERSION,
 }
