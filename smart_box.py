@@ -551,8 +551,8 @@ class TRI3D_NarrowfyImage:
         }
     
     FUNCTION = "run"
-    RETURN_TYPES = ("IMAGE", "IMAGE", )
-    RETURN_NAMES = ("cropped_image", "cropped_mask", )
+    RETURN_TYPES = ("IMAGE", "IMAGE", "INT", "INT",)
+    RETURN_NAMES = ("cropped_image", "cropped_mask", "cropped_width", "cropped_height",)
     CATEGORY = "TRI3D"
 
     def run(self, image, mask, aspect_ratio):
@@ -627,7 +627,7 @@ class TRI3D_NarrowfyImage:
         torch_image = self.to_torch_image(cropped_image).unsqueeze(0)
         torch_mask = self.to_torch_image(cropped_mask).unsqueeze(0)
         
-        return (torch_image, torch_mask)
+        return (torch_image, torch_mask,w,h)
 
 
 
@@ -660,74 +660,104 @@ class TRI3D_CropAndExtend:
         }
 
     FUNCTION = "run"
-    RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE", "IMAGE",)
-    RETURN_NAMES = ("cropped_garment", "cropped_garment_mask", "cropped_human", "cropped_human_mask",)
-    CATEGORY = "TRI3D"
-
-    def process_image_and_mask(self, image, mask, margin):
+    RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE", "IMAGE", "INT", "INT",)
+    RETURN_NAMES = ("cropped_garment", "cropped_garment_mask", "cropped_human", "cropped_human_mask", "cropped_width", "cropped_height",)
+    
+    def run(self, garment_image, garment_mask, human_image, human_mask, margin):
         # Convert to CV format and remove batch dimension
-        cv_image = self.from_torch_image(image)[0]
-        cv_mask = self.from_torch_image(mask)[0]
+        cv_garment = self.from_torch_image(garment_image)[0]
+        cv_garment_mask = self.from_torch_image(garment_mask)[0]
+        cv_human = self.from_torch_image(human_image)[0]
+        cv_human_mask = self.from_torch_image(human_mask)[0]
         
-        # Find bounding box from mask
-        mask_channel = cv_mask[:, :, 0]
+        # Process garment
+        mask_channel = cv_garment_mask[:, :, 0]
         contours, _ = cv2.findContours(mask_channel, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         if not contours:
-            return image, mask
+            return garment_image, garment_mask, human_image, human_mask, cv_garment.shape[1], cv_garment.shape[0]
             
         # Get bounding box with margin
         x, y, w, h = cv2.boundingRect(contours[0])
         x = max(0, x - margin)
         y = max(0, y - margin)
-        w = min(cv_image.shape[1] - x, w + 2 * margin)
-        h = min(cv_image.shape[0] - y, h + 2 * margin)
+        w = min(cv_garment.shape[1] - x, w + 2 * margin)
+        h = min(cv_garment.shape[0] - y, h + 2 * margin)
         
-        # Crop image and mask
-        cropped_image = cv_image[y:y+h, x:x+w]
-        cropped_mask = cv_mask[y:y+h, x:x+w]
+        # Store the cropped dimensions before extension
+        cropped_width = w
+        cropped_height = h
+        
+        # Crop garment and its mask
+        cropped_garment = cv_garment[y:y+h, x:x+w]
+        cropped_garment_mask = cv_garment_mask[y:y+h, x:x+w]
         
         # Calculate required height for aspect ratio 1/3
         min_height = w * 3
         if h < min_height:
             height_extend = min_height - h
             
-            # Extend image with black pixels
-            extended_image = cv2.copyMakeBorder(
-                cropped_image,
-                0, int(height_extend),  # top, bottom
-                0, 0,                   # left, right
+            # Extend garment image and mask
+            extended_garment = cv2.copyMakeBorder(
+                cropped_garment,
+                0, int(height_extend),
+                0, 0,
                 cv2.BORDER_CONSTANT,
                 value=[0, 0, 0]
             )
             
-            # Extend mask with white pixels for garment mask
-            extended_mask = cv2.copyMakeBorder(
-                cropped_mask,
-                0, int(height_extend),  # top, bottom
-                0, 0,                   # left, right
+            extended_garment_mask = cv2.copyMakeBorder(
+                cropped_garment_mask,
+                0, int(height_extend),
+                0, 0,
                 cv2.BORDER_CONSTANT,
                 value=[255, 255, 255]
             )
             
-            cropped_image = extended_image
-            cropped_mask = extended_mask
+            cropped_garment = extended_garment
+            cropped_garment_mask = extended_garment_mask
+        
+        # Process human image similarly
+        mask_channel = cv_human_mask[:, :, 0]
+        contours, _ = cv2.findContours(mask_channel, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if contours:
+            x, y, w, h = cv2.boundingRect(contours[0])
+            x = max(0, x - margin)
+            y = max(0, y - margin)
+            w = min(cv_human.shape[1] - x, w + 2 * margin)
+            h = min(cv_human.shape[0] - y, h + 2 * margin)
+            
+            cropped_human = cv_human[y:y+h, x:x+w]
+            cropped_human_mask = cv_human_mask[y:y+h, x:x+w]
+            
+            min_height = w * 3
+            if h < min_height:
+                height_extend = min_height - h
+                
+                extended_human = cv2.copyMakeBorder(
+                    cropped_human,
+                    0, int(height_extend),
+                    0, 0,
+                    cv2.BORDER_CONSTANT,
+                    value=[0, 0, 0]
+                )
+                
+                extended_human_mask = cv2.copyMakeBorder(
+                    cropped_human_mask,
+                    0, int(height_extend),
+                    0, 0,
+                    cv2.BORDER_CONSTANT,
+                    value=[255, 255, 255]
+                )
+                
+                cropped_human = extended_human
+                cropped_human_mask = extended_human_mask
         
         # Convert back to torch format and add batch dimension
-        torch_image = self.to_torch_image(cropped_image).unsqueeze(0)
-        torch_mask = self.to_torch_image(cropped_mask).unsqueeze(0)
+        torch_garment = self.to_torch_image(cropped_garment).unsqueeze(0)
+        torch_garment_mask = self.to_torch_image(cropped_garment_mask).unsqueeze(0)
+        torch_human = self.to_torch_image(cropped_human).unsqueeze(0)
+        torch_human_mask = self.to_torch_image(cropped_human_mask).unsqueeze(0)
         
-        return torch_image, torch_mask
-
-    def run(self, garment_image, garment_mask, human_image, human_mask, margin):
-        # Process garment
-        cropped_garment, cropped_garment_mask = self.process_image_and_mask(
-            garment_image, garment_mask, margin
-        )
-        
-        # Process human
-        cropped_human, cropped_human_mask = self.process_image_and_mask(
-            human_image, human_mask, margin
-        )
-        
-        return (cropped_garment, cropped_garment_mask, cropped_human, cropped_human_mask)
+        return (torch_garment, torch_garment_mask, torch_human, torch_human_mask, cropped_width, cropped_height)
