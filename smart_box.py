@@ -408,3 +408,326 @@ class TRI3D_Image_extend:
         torch_mask = torch_mask.unsqueeze(0)
         
         return (torch_image, torch_mask)
+
+
+class TRI3D_Smart_Depth:
+    
+    
+    def from_torch_image(self, image):
+        image = image.cpu().numpy() * 255.0
+        image = np.clip(image, 0, 255).astype(np.uint8)
+        return image
+
+    def to_torch_image(self, image):
+        image = image.astype(dtype=np.float32)
+        image /= 255.0
+        image = torch.from_numpy(image)
+        return image
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE", ),
+                "keypoints_json": ("STRING", {"multiline": True}),
+            },
+        }
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", )
+    CATEGORY = "TRI3D"
+
+    def extract_torso_keypoints(self, keypoints):
+        # Indices for torso-related keypoints
+        torso_indices = [8, 9, 10, 11, 12, 13]
+        return [keypoints[i] for i in torso_indices]
+
+
+    def run(self, image, keypoints_json):
+        
+        kp_data = json.loads(open(keypoints_json, 'r').read())
+        original_height, original_width = kp_data['height'], kp_data['width']
+        torso_keypoints = self.extract_torso_keypoints(kp_data['keypoints'])
+
+        # Convert Torch image to OpenCV format
+        cv_image = self.from_torch_image(image)
+        
+        # Remove the batch dimension if present
+        if len(cv_image.shape) == 4:
+            cv_image = cv_image[0]
+
+        # Adjust keypoints to match the image dimensions
+        adjusted_keypoints = self.adjust_keypoints(torso_keypoints, cv_image.shape, original_height, original_width)
+        
+
+        # Fill the area below the hip line
+        filled_image = self.fill_below_hip(cv_image, adjusted_keypoints)
+        
+
+        # Convert back to Torch format
+        torch_image = self.to_torch_image(filled_image)
+
+        # Add the batch dimension back
+        torch_image = torch_image.unsqueeze(0)
+        
+
+        return (torch_image,)
+
+    def adjust_keypoints(self, keypoints, image_shape, original_height, original_width):
+        image_height, image_width = image_shape[:2]
+        scale_x = image_width / original_width
+        scale_y = image_height / original_height
+
+        adjusted_keypoints = [
+            (int(x * scale_x), int(y * scale_y)) for x, y in keypoints
+        ]
+        return adjusted_keypoints
+
+    def fill_below_hip(self, image, keypoints):
+        # Correct the indices for hip keypoints
+        # Assuming indices 8 and 11 are for left and right hips
+        # print(keypoints,"hip keypoints")
+        try:
+            valid_y_coords = [kp[1] for kp in keypoints if kp[1] >= 0]
+            hip_y = min(valid_y_coords) if valid_y_coords else 0
+        except:
+            hip_y = 0
+        
+        if hip_y == 0:
+            return image
+
+        # Find the bounding box of the mask below the hip line
+        mask = image[:, :, 0]  # Assuming single-channel mask
+        below_hip = mask[hip_y:, :]
+        contours, _ = cv2.findContours(below_hip, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnt = 0
+        
+        for contour in contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            # print(cnt, x,y,w,h, cv2.contourArea(contour), "cnt,x,y,w,h,area")
+            cnt+=1
+        #     cv2.rectangle(image, (x, y + hip_y), (x + w, y + h + hip_y), (255, 255, 255), -1)
+        contours = [contour for contour in contours if cv2.contourArea(contour) > 0]
+
+        if len(contours) == 0:
+            return image
+        # Combine all contours into one
+        all_contours = np.vstack(contours)
+
+        # Calculate a single bounding rectangle for all contours
+        x, y, w, h = cv2.boundingRect(all_contours)
+        # print(x,y,w,h, "x,y,w,h")
+        cv2.rectangle(image, (x, y + hip_y), (x + w, y + h + hip_y), (0, 0, 0), -1)
+
+        return image
+
+
+class TRI3D_NarrowfyImage:
+    def from_torch_image(self, image):
+        image = image.cpu().numpy() * 255.0
+        image = np.clip(image, 0, 255).astype(np.uint8)
+        return image
+
+    def to_torch_image(self, image):
+        image = image.astype(dtype=np.float32)
+        image /= 255.0
+        image = torch.from_numpy(image)
+        return image
+    
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE", ),
+                "mask": ("IMAGE", ),
+                "aspect_ratio": ("FLOAT", {"default": 0.33, "min": 0.25, "max": 1, "step": 0.01}),
+            },
+        }
+    
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", "IMAGE", )
+    RETURN_NAMES = ("cropped_image", "cropped_mask", )
+    CATEGORY = "TRI3D"
+
+    def run(self, image, mask, aspect_ratio):
+        # Convert to CV format and remove batch dimension
+        cv_image = self.from_torch_image(image)[0]
+        cv_mask = self.from_torch_image(mask)[0]
+        
+        # Find bounding box of the mask
+        mask_channel = cv_mask[:, :, 0]
+        contours, _ = cv2.findContours(mask_channel, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if not contours:
+            return image, mask, aspect_ratio
+            
+        # Filter contours by area
+        significant_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 100]
+        
+        if not significant_contours:
+            return image, mask, aspect_ratio
+            
+        # Get combined bounding box for all significant contours
+        x_min = float('inf')
+        y_min = float('inf')
+        x_max = 0
+        y_max = 0
+        
+        for contour in significant_contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            x_min = min(x_min, x)
+            y_min = min(y_min, y)
+            x_max = max(x_max, x + w)
+            y_max = max(y_max, y + h)
+        
+        # Calculate final width and height with margin
+        margin = 15
+        x = max(0, x_min - margin)  # Ensure we don't go below 0
+        y = max(0, y_min - margin)
+        w = min(cv_image.shape[1] - x, (x_max - x_min) + 2 * margin)  # Ensure we don't exceed image width
+        h = min(cv_image.shape[0] - y, (y_max - y_min) + 2 * margin)  # Ensure we don't exceed image height
+        
+        # Crop both image and mask to bounding box
+        cropped_image = cv_image[y:y+h, x:x+w]
+        cropped_mask = cv_mask[y:y+h, x:x+w]
+        
+        # Calculate required height for aspect ratio 1/3
+        min_height = w * 1/aspect_ratio
+        if h < min_height:
+            height_extend = min_height - h
+            
+            # Extend image with black pixels
+            extended_image = cv2.copyMakeBorder(
+                cropped_image,
+                0, int(height_extend),  # top, bottom
+                0, 0,                   # left, right
+                cv2.BORDER_CONSTANT,
+                value=[0, 0, 0]
+            )
+            
+            # Create mask with white pixels only in extended region
+            extended_mask = cv2.copyMakeBorder(
+                np.zeros_like(cropped_mask),  # Start with black base
+                0, int(height_extend),  # top, bottom
+                0, 0,                   # left, right
+                cv2.BORDER_CONSTANT,
+                value=[255, 255, 255]   # White extension
+            )
+            
+            cropped_image = extended_image
+            cropped_mask = extended_mask
+        
+        # Convert back to torch format and add batch dimension
+        torch_image = self.to_torch_image(cropped_image).unsqueeze(0)
+        torch_mask = self.to_torch_image(cropped_mask).unsqueeze(0)
+        
+        return (torch_image, torch_mask)
+
+
+
+
+class TRI3D_CropAndExtend:
+    def from_torch_image(self, image):
+        image = image.cpu().numpy() * 255.0
+        image = np.clip(image, 0, 255).astype(np.uint8)
+        return image
+
+    def to_torch_image(self, image):
+        image = image.astype(dtype=np.float32)
+        image /= 255.0
+        image = torch.from_numpy(image)
+        return image
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "garment_image": ("IMAGE",),
+                "garment_mask": ("IMAGE",),
+                "human_image": ("IMAGE",),
+                "human_mask": ("IMAGE",),
+                "margin": ("INT", {"default": 10, "min": 0, "max": 50}),
+            },
+        }
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE", "IMAGE",)
+    RETURN_NAMES = ("cropped_garment", "cropped_garment_mask", "cropped_human", "cropped_human_mask",)
+    CATEGORY = "TRI3D"
+
+    def process_image_and_mask(self, image, mask, margin):
+        # Convert to CV format and remove batch dimension
+        cv_image = self.from_torch_image(image)[0]
+        cv_mask = self.from_torch_image(mask)[0]
+        
+        # Find bounding box from mask
+        mask_channel = cv_mask[:, :, 0]
+        contours, _ = cv2.findContours(mask_channel, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if not contours:
+            return image, mask
+            
+        # Get bounding box with margin
+        x, y, w, h = cv2.boundingRect(contours[0])
+        x = max(0, x - margin)
+        y = max(0, y - margin)
+        w = min(cv_image.shape[1] - x, w + 2 * margin)
+        h = min(cv_image.shape[0] - y, h + 2 * margin)
+        
+        # Crop image and mask
+        cropped_image = cv_image[y:y+h, x:x+w]
+        cropped_mask = cv_mask[y:y+h, x:x+w]
+        
+        # Calculate required height for aspect ratio 1/3
+        min_height = w * 3
+        if h < min_height:
+            height_extend = min_height - h
+            
+            # Extend image with black pixels
+            extended_image = cv2.copyMakeBorder(
+                cropped_image,
+                0, int(height_extend),  # top, bottom
+                0, 0,                   # left, right
+                cv2.BORDER_CONSTANT,
+                value=[0, 0, 0]
+            )
+            
+            # Extend mask with white pixels for garment mask
+            extended_mask = cv2.copyMakeBorder(
+                cropped_mask,
+                0, int(height_extend),  # top, bottom
+                0, 0,                   # left, right
+                cv2.BORDER_CONSTANT,
+                value=[255, 255, 255]
+            )
+            
+            cropped_image = extended_image
+            cropped_mask = extended_mask
+        
+        # Convert back to torch format and add batch dimension
+        torch_image = self.to_torch_image(cropped_image).unsqueeze(0)
+        torch_mask = self.to_torch_image(cropped_mask).unsqueeze(0)
+        
+        return torch_image, torch_mask
+
+    def run(self, garment_image, garment_mask, human_image, human_mask, margin):
+        # Process garment
+        cropped_garment, cropped_garment_mask = self.process_image_and_mask(
+            garment_image, garment_mask, margin
+        )
+        
+        # Process human
+        cropped_human, cropped_human_mask = self.process_image_and_mask(
+            human_image, human_mask, margin
+        )
+        
+        return (cropped_garment, cropped_garment_mask, cropped_human, cropped_human_mask)
