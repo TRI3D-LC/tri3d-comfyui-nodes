@@ -547,6 +547,7 @@ class TRI3D_NarrowfyImage:
                 "image": ("IMAGE", ),
                 "mask": ("IMAGE", ),
                 "aspect_ratio": ("FLOAT", {"default": 0.33, "min": 0.25, "max": 1, "step": 0.01}),
+                "border_margin": ("INT", {"default": 15, "min": 10, "max": 100, "step": 1}),
             },
         }
     
@@ -555,7 +556,7 @@ class TRI3D_NarrowfyImage:
     RETURN_NAMES = ("cropped_image", "cropped_mask", "cropped_width", "cropped_height",)
     CATEGORY = "TRI3D"
 
-    def run(self, image, mask, aspect_ratio):
+    def run(self, image, mask, aspect_ratio, border_margin):
         # Convert to CV format and remove batch dimension
         cv_image = self.from_torch_image(image)[0]
         cv_mask = self.from_torch_image(mask)[0]
@@ -587,7 +588,7 @@ class TRI3D_NarrowfyImage:
             y_max = max(y_max, y + h)
         
         # Calculate final width and height with margin
-        margin = 15
+        margin = border_margin
         x = max(0, x_min - margin)  # Ensure we don't go below 0
         y = max(0, y_min - margin)
         w = min(cv_image.shape[1] - x, (x_max - x_min) + 2 * margin)  # Ensure we don't exceed image width
