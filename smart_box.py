@@ -238,6 +238,10 @@ class TRI3D_Skip_HeadMask_AddNeck:
         neck_indices = [1]
         return [keypoints[i] for i in neck_indices]
 
+    def extract_ear_keypoints(self, keypoints):
+        # Indices for ear keypoints (17=right ear, 18=left ear)
+        ear_indices = [17, 18]
+        return [keypoints[i] for i in ear_indices]
 
     def __init__(self):
         pass
@@ -257,7 +261,7 @@ class TRI3D_Skip_HeadMask_AddNeck:
     RETURN_TYPES = ("IMAGE", )
     CATEGORY = "TRI3D"
 
-    def run(self, image, head_mask, keypoints_json,ratio_aggression):
+    def run(self, image, head_mask, keypoints_json, ratio_aggression):
         # Convert Torch images to OpenCV format
         cv_image = self.from_torch_image(image)
         cv_head_mask = self.from_torch_image(head_mask)
@@ -271,10 +275,16 @@ class TRI3D_Skip_HeadMask_AddNeck:
         kp_data = json.loads(open(keypoints_json, 'r').read())
         original_height, original_width = kp_data['height'], kp_data['width']
         neck_keypoints = self.extract_neck_keypoint(kp_data['keypoints'])
-        from pprint import pprint
-        pprint(neck_keypoints)
+        ear_keypoints = self.extract_ear_keypoints(kp_data['keypoints'])
+        
+        # Make a copy of the original image
+        result_image = cv_image.copy()
+        
+        # Adjust keypoints to match the image dimensions
         adjusted_neck_keypoints = self.adjust_keypoints(neck_keypoints, cv_image.shape, original_height, original_width)
-        # Find the lowest point in the head mask
+        adjusted_ear_keypoints = self.adjust_keypoints(ear_keypoints, cv_image.shape, original_height, original_width)
+        
+        # Find the lowest point in the head mask (chin)
         mask = cv_head_mask[:, :, 0]  # Assuming single-channel mask
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         lowest_y = 0
@@ -284,20 +294,72 @@ class TRI3D_Skip_HeadMask_AddNeck:
                 if y > lowest_y:
                     lowest_y = y
         
-        #take average of neck keypoint y and lowest_y in head mask 
+        # Calculate weighted average point between neck and chin
         neck_y = adjusted_neck_keypoints[0][1]
-        if(neck_y <= 0):
+        if neck_y <= 0:
             neck_y = lowest_y
-        average_y = int((neck_y*ratio_aggression + lowest_y*(1-ratio_aggression)))
+        average_y = int((neck_y * ratio_aggression + lowest_y * (1 - ratio_aggression)))
         
         print(neck_y, lowest_y, "neck_y, lowest_y")
         print(average_y, "average_y")
-
-        # Black out everything above the lowest point
-        cv_image[:average_y, :] = 0
-
+        
+        # ZONE 1: Black out everything above the chin point
+        result_image[:lowest_y, :] = 0
+        
+        # ZONE 2: Create a mask for the area between chin and weighted average
+        # Only black out the area within the lines from weighted average to ears
+        if lowest_y < average_y:  # Only process if there's a gap between chin and average_y
+            # Create a mask for Zone 2
+            zone2_mask = np.zeros_like(cv_image[:,:,0])
+            
+            # Get valid ear keypoints
+            valid_ear_points = []
+            for ear in adjusted_ear_keypoints:
+                if ear[1] > 0:  # Check if the y-coordinate is valid
+                    valid_ear_points.append(ear)
+            
+            # If we don't have ear keypoints, use image width to estimate
+            if not valid_ear_points:
+                # Estimate ear positions based on image width
+                left_ear = (int(cv_image.shape[1] * 0.2), lowest_y)
+                right_ear = (int(cv_image.shape[1] * 0.8), lowest_y)
+                valid_ear_points = [left_ear, right_ear]
+            
+            # Weighted average point x-coordinate (center of image)
+            avg_x = cv_image.shape[1] // 2
+            
+            # Create polygon for the area to black out
+            polygon_points = []
+            
+            # Add the weighted average point
+            polygon_points.append([avg_x, average_y])
+            
+            # Add the ear points
+            for ear in valid_ear_points:
+                polygon_points.append([ear[0], ear[1]])
+            
+            # If we have fewer than 3 points, add points to make a valid polygon
+            if len(polygon_points) < 3:
+                # Add a point at the chin level
+                polygon_points.append([avg_x, lowest_y])
+            
+            # Convert to numpy array with the right format for fillPoly
+            polygon_points = np.array([polygon_points], dtype=np.int32)
+            
+            # Fill the polygon in the mask
+            cv2.fillPoly(zone2_mask, polygon_points, 255)
+            
+            # Apply the mask only to the region between chin and weighted average
+            for y in range(lowest_y, average_y):
+                for x in range(cv_image.shape[1]):
+                    if zone2_mask[y, x] > 0:
+                        result_image[y, x] = 0
+        
+        # ZONE 3: Area below weighted average point is left as is
+        # No action needed for this zone
+        
         # Convert back to Torch format
-        torch_image = self.to_torch_image(cv_image)
+        torch_image = self.to_torch_image(result_image)
 
         # Add the batch dimension back
         torch_image = torch_image.unsqueeze(0)
