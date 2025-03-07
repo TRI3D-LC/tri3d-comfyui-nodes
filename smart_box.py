@@ -254,6 +254,7 @@ class TRI3D_Skip_HeadMask_AddNeck:
                 "head_mask": ("IMAGE", ),
                 "keypoints_json": ("STRING", {"multiline": True}),
                 "ratio_aggression": ("FLOAT", {"default": 0.5, "min": 0, "max": 1, "step": 0.01}),
+                "neck_width_factor": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 1.5, "step": 0.05}),
             },
         }
 
@@ -261,7 +262,7 @@ class TRI3D_Skip_HeadMask_AddNeck:
     RETURN_TYPES = ("IMAGE", )
     CATEGORY = "TRI3D"
 
-    def run(self, image, head_mask, keypoints_json, ratio_aggression):
+    def run(self, image, head_mask, keypoints_json, ratio_aggression, neck_width_factor):
         # Convert Torch images to OpenCV format
         cv_image = self.from_torch_image(image)
         cv_head_mask = self.from_torch_image(head_mask)
@@ -275,24 +276,40 @@ class TRI3D_Skip_HeadMask_AddNeck:
         kp_data = json.loads(open(keypoints_json, 'r').read())
         original_height, original_width = kp_data['height'], kp_data['width']
         neck_keypoints = self.extract_neck_keypoint(kp_data['keypoints'])
-        ear_keypoints = self.extract_ear_keypoints(kp_data['keypoints'])
         
         # Make a copy of the original image
         result_image = cv_image.copy()
         
         # Adjust keypoints to match the image dimensions
         adjusted_neck_keypoints = self.adjust_keypoints(neck_keypoints, cv_image.shape, original_height, original_width)
-        adjusted_ear_keypoints = self.adjust_keypoints(ear_keypoints, cv_image.shape, original_height, original_width)
         
-        # Find the lowest point in the head mask (chin)
+        # Find the lowest point and face dimensions in the head mask
         mask = cv_head_mask[:, :, 0]  # Assuming single-channel mask
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        # Find the chin point (lowest point) and calculate face properties
         lowest_y = 0
-        for contour in contours:
-            for point in contour:
-                x, y = point[0]
-                if y > lowest_y:
-                    lowest_y = y
+        face_center_x = cv_image.shape[1] // 2  # Default to center of image
+        face_width = cv_image.shape[1] // 3     # Default face width
+        
+        if contours:
+            # Find the lowest point (chin)
+            for contour in contours:
+                for point in contour:
+                    x, y = point[0]
+                    if y > lowest_y:
+                        lowest_y = y
+            
+            # Calculate face bounding box and center of gravity
+            x, y, w, h = cv2.boundingRect(contours[0])
+            face_width = w
+            
+            # Calculate center of gravity of the face mask
+            M = cv2.moments(contours[0])
+            if M["m00"] != 0:
+                face_center_x = int(M["m10"] / M["m00"])
+            else:
+                face_center_x = x + w // 2
         
         # Calculate weighted average point between neck and chin
         neck_y = adjusted_neck_keypoints[0][1]
@@ -306,48 +323,25 @@ class TRI3D_Skip_HeadMask_AddNeck:
         # ZONE 1: Black out everything above the chin point
         result_image[:lowest_y, :] = 0
         
-        # ZONE 2: Create a mask for the area between chin and weighted average
-        # Only black out the area within the lines from weighted average to ears
+        # ZONE 2: Create a triangle for the neck area
         if lowest_y < average_y:  # Only process if there's a gap between chin and average_y
             # Create a mask for Zone 2
             zone2_mask = np.zeros_like(cv_image[:,:,0])
             
-            # Get valid ear keypoints
-            valid_ear_points = []
-            for ear in adjusted_ear_keypoints:
-                if ear[1] > 0:  # Check if the y-coordinate is valid
-                    valid_ear_points.append(ear)
+            # Create a triangle with apex at weighted average point and base at chin level
+            # Apply the neck width factor to the face width
+            neck_width = int(face_width * neck_width_factor)
+            triangle_half_width = neck_width // 2
             
-            # If we don't have ear keypoints, use image width to estimate
-            if not valid_ear_points:
-                # Estimate ear positions based on image width
-                left_ear = (int(cv_image.shape[1] * 0.2), lowest_y)
-                right_ear = (int(cv_image.shape[1] * 0.8), lowest_y)
-                valid_ear_points = [left_ear, right_ear]
+            # Create polygon points for the triangle
+            triangle_points = np.array([
+                [face_center_x, average_y],  # Apex at weighted average point
+                [face_center_x - triangle_half_width, lowest_y],  # Left base point at chin level
+                [face_center_x + triangle_half_width, lowest_y]   # Right base point at chin level
+            ], dtype=np.int32)
             
-            # Weighted average point x-coordinate (center of image)
-            avg_x = cv_image.shape[1] // 2
-            
-            # Create polygon for the area to black out
-            polygon_points = []
-            
-            # Add the weighted average point
-            polygon_points.append([avg_x, average_y])
-            
-            # Add the ear points
-            for ear in valid_ear_points:
-                polygon_points.append([ear[0], ear[1]])
-            
-            # If we have fewer than 3 points, add points to make a valid polygon
-            if len(polygon_points) < 3:
-                # Add a point at the chin level
-                polygon_points.append([avg_x, lowest_y])
-            
-            # Convert to numpy array with the right format for fillPoly
-            polygon_points = np.array([polygon_points], dtype=np.int32)
-            
-            # Fill the polygon in the mask
-            cv2.fillPoly(zone2_mask, polygon_points, 255)
+            # Fill the triangle in the mask
+            cv2.fillPoly(zone2_mask, [triangle_points], 255)
             
             # Apply the mask only to the region between chin and weighted average
             for y in range(lowest_y, average_y):
