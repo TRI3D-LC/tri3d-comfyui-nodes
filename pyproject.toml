@@ -1,0 +1,15 @@
+[project]
+name = "tri3d-comfyui-nodes"
+description = "Nodes: tri3d-extract-hand, tri3d-fuzzification, tri3d-position-hands, tri3d-atr-parse."
+version = "1.0.0"
+license = "LICENSE"
+dependencies = ["opencv-python", "ninja", "pillow", "torch", "torchvision", "transparent-background", "wget", "gdown", "matplotlib", "python-dotenv"]
+
+[project.urls]
+Repository = "https://github.com/TRI3D-LC/tri3d-comfyui-nodes"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "tri3d-comfyui-nodes"
+Icon = ""
