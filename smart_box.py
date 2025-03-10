@@ -238,6 +238,10 @@ class TRI3D_Skip_HeadMask_AddNeck:
         neck_indices = [1]
         return [keypoints[i] for i in neck_indices]
 
+    def extract_ear_keypoints(self, keypoints):
+        # Indices for ear keypoints (17=right ear, 18=left ear)
+        ear_indices = [17, 18]
+        return [keypoints[i] for i in ear_indices]
 
     def __init__(self):
         pass
@@ -250,6 +254,7 @@ class TRI3D_Skip_HeadMask_AddNeck:
                 "head_mask": ("IMAGE", ),
                 "keypoints_json": ("STRING", {"multiline": True}),
                 "ratio_aggression": ("FLOAT", {"default": 0.5, "min": 0, "max": 1, "step": 0.01}),
+                "neck_width_factor": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 1.5, "step": 0.05}),
             },
         }
 
@@ -257,7 +262,7 @@ class TRI3D_Skip_HeadMask_AddNeck:
     RETURN_TYPES = ("IMAGE", )
     CATEGORY = "TRI3D"
 
-    def run(self, image, head_mask, keypoints_json,ratio_aggression):
+    def run(self, image, head_mask, keypoints_json, ratio_aggression, neck_width_factor):
         # Convert Torch images to OpenCV format
         cv_image = self.from_torch_image(image)
         cv_head_mask = self.from_torch_image(head_mask)
@@ -271,33 +276,84 @@ class TRI3D_Skip_HeadMask_AddNeck:
         kp_data = json.loads(open(keypoints_json, 'r').read())
         original_height, original_width = kp_data['height'], kp_data['width']
         neck_keypoints = self.extract_neck_keypoint(kp_data['keypoints'])
-        from pprint import pprint
-        pprint(neck_keypoints)
+        
+        # Make a copy of the original image
+        result_image = cv_image.copy()
+        
+        # Adjust keypoints to match the image dimensions
         adjusted_neck_keypoints = self.adjust_keypoints(neck_keypoints, cv_image.shape, original_height, original_width)
-        # Find the lowest point in the head mask
+        
+        # Find the lowest point and face dimensions in the head mask
         mask = cv_head_mask[:, :, 0]  # Assuming single-channel mask
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        lowest_y = 0
-        for contour in contours:
-            for point in contour:
-                x, y = point[0]
-                if y > lowest_y:
-                    lowest_y = y
         
-        #take average of neck keypoint y and lowest_y in head mask 
+        # Find the chin point (lowest point) and calculate face properties
+        lowest_y = 0
+        face_center_x = cv_image.shape[1] // 2  # Default to center of image
+        face_width = cv_image.shape[1] // 3     # Default face width
+        
+        if contours:
+            # Find the lowest point (chin)
+            for contour in contours:
+                for point in contour:
+                    x, y = point[0]
+                    if y > lowest_y:
+                        lowest_y = y
+            
+            # Calculate face bounding box and center of gravity
+            x, y, w, h = cv2.boundingRect(contours[0])
+            face_width = w
+            
+            # Calculate center of gravity of the face mask
+            M = cv2.moments(contours[0])
+            if M["m00"] != 0:
+                face_center_x = int(M["m10"] / M["m00"])
+            else:
+                face_center_x = x + w // 2
+        
+        # Calculate weighted average point between neck and chin
         neck_y = adjusted_neck_keypoints[0][1]
-        if(neck_y <= 0):
+        if neck_y <= 0:
             neck_y = lowest_y
-        average_y = int((neck_y*ratio_aggression + lowest_y*(1-ratio_aggression)))
+        average_y = int((neck_y * ratio_aggression + lowest_y * (1 - ratio_aggression)))
         
         print(neck_y, lowest_y, "neck_y, lowest_y")
         print(average_y, "average_y")
-
-        # Black out everything above the lowest point
-        cv_image[:average_y, :] = 0
-
+        
+        # ZONE 1: Black out everything above the chin point
+        result_image[:lowest_y, :] = 0
+        
+        # ZONE 2: Create a triangle for the neck area
+        if lowest_y < average_y:  # Only process if there's a gap between chin and average_y
+            # Create a mask for Zone 2
+            zone2_mask = np.zeros_like(cv_image[:,:,0])
+            
+            # Create a triangle with apex at weighted average point and base at chin level
+            # Apply the neck width factor to the face width
+            neck_width = int(face_width * neck_width_factor)
+            triangle_half_width = neck_width // 2
+            
+            # Create polygon points for the triangle
+            triangle_points = np.array([
+                [face_center_x, average_y],  # Apex at weighted average point
+                [face_center_x - triangle_half_width, lowest_y],  # Left base point at chin level
+                [face_center_x + triangle_half_width, lowest_y]   # Right base point at chin level
+            ], dtype=np.int32)
+            
+            # Fill the triangle in the mask
+            cv2.fillPoly(zone2_mask, [triangle_points], 255)
+            
+            # Apply the mask only to the region between chin and weighted average
+            for y in range(lowest_y, average_y):
+                for x in range(cv_image.shape[1]):
+                    if zone2_mask[y, x] > 0:
+                        result_image[y, x] = 0
+        
+        # ZONE 3: Area below weighted average point is left as is
+        # No action needed for this zone
+        
         # Convert back to Torch format
-        torch_image = self.to_torch_image(cv_image)
+        torch_image = self.to_torch_image(result_image)
 
         # Add the batch dimension back
         torch_image = torch_image.unsqueeze(0)
