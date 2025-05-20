@@ -818,3 +818,110 @@ class TRI3D_CropAndExtend:
         torch_human_mask = self.to_torch_image(cropped_human_mask).unsqueeze(0)
         
         return (torch_garment, torch_garment_mask, torch_human, torch_human_mask, cropped_width, cropped_height)
+
+class TRI3D_Skip_LipMask:
+
+    def adjust_keypoints(self, keypoints, image_shape, original_height, original_width):
+        image_height, image_width = image_shape[:2]
+        scale_x = image_width / original_width
+        scale_y = image_height / original_height
+
+        adjusted_keypoints = [
+            (int(x * scale_x), int(y * scale_y)) for x, y in keypoints
+        ]
+        return adjusted_keypoints
+
+    def from_torch_image(self, image):
+        image = image.cpu().numpy() * 255.0
+        image = np.clip(image, 0, 255).astype(np.uint8)
+        return image
+
+    def to_torch_image(self, image):
+        image = image.astype(dtype=np.float32)
+        image /= 255.0
+        image = torch.from_numpy(image)
+        return image
+
+    def extract_lip_keypoints(self, keypoints):
+        # In DWPose, lips are typically keypoints in face area
+        # Assuming standard face keypoint format where lips are around indices 61-68
+        # This may need adjustment based on your specific keypoint format
+        lip_indices = range(61, 69)  # Adjust these indices based on your keypoint format
+        
+        # Filter out invalid keypoints (those with negative confidence or coordinates)
+        lip_keypoints = []
+        for idx in lip_indices:
+            if idx < len(keypoints):
+                x, y = keypoints[idx]
+                if x >= 0 and y >= 0:  # Check for valid coordinates
+                    lip_keypoints.append((x, y))
+        
+        return lip_keypoints
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE", ),
+                "keypoints_json": ("STRING", {"multiline": True}),
+            },
+        }
+
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE", )
+    CATEGORY = "TRI3D"
+
+    def run(self, image, keypoints_json):
+        # Convert Torch image to OpenCV format
+        cv_image = self.from_torch_image(image)
+
+        # Remove the batch dimension if present
+        if len(cv_image.shape) == 4:
+            cv_image = cv_image[0]
+
+        # Make a copy of the original image
+        result_image = cv_image.copy()
+        
+        # Parse keypoints JSON
+        try:
+            kp_data = json.loads(open(keypoints_json, 'r').read())
+            original_height, original_width = kp_data['height'], kp_data['width']
+            keypoints = kp_data['keypoints']
+            
+            # Extract lip keypoints
+            lip_keypoints = self.extract_lip_keypoints(keypoints)
+            
+            # If no valid lip keypoints found, use a fallback approach
+            if not lip_keypoints:
+                # Fallback: use the nose point (index 0) as reference
+                nose_point = keypoints[0]
+                if nose_point[1] > 0:  # If y-coordinate is valid
+                    # Estimate lip position slightly below nose
+                    lip_y = int(nose_point[1] + 0.15 * cv_image.shape[0])
+                    lowest_y = lip_y
+                else:
+                    # If no valid reference point, use 1/3 of the image height
+                    lowest_y = cv_image.shape[0] // 3
+            else:
+                # Find the lowest y-coordinate among lip keypoints
+                adjusted_lip_keypoints = self.adjust_keypoints(lip_keypoints, cv_image.shape, original_height, original_width)
+                lowest_y = max([kp[1] for kp in adjusted_lip_keypoints])
+            
+            # Black out everything above the lowest lip point
+            result_image[:lowest_y, :] = 0
+            
+        except Exception as e:
+            print(f"Error processing keypoints JSON: {e}")
+            # In case of error, return the original image
+            result_image = cv_image
+        
+        # Convert back to Torch format
+        torch_image = self.to_torch_image(result_image)
+
+        # Add the batch dimension back
+        torch_image = torch_image.unsqueeze(0)
+
+        return (torch_image,)
