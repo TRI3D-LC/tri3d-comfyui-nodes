@@ -20,6 +20,7 @@ from utility_nodes import TRI3D_extract_facer_mask
 
 from .AEMatter import (load_AEMatter_Model, run_AEMatter_inference)
 from .light_layer import main_light_layer
+from .remove_small_mask_islands import TRI3D_RemoveSmallMaskIslands
 
 
 from .image_stack import (
@@ -3696,6 +3697,7 @@ class TRI3D_BGREMOVE_MEGA():
 from photoroom import TRI3D_photoroom_bgremove_api
 from smart_box import TRI3D_SmartBox, TRI3D_Skip_HeadMask, TRI3D_Skip_HeadMask_AddNeck, TRI3D_Image_extend, TRI3D_Smart_Depth, TRI3D_NarrowfyImage, TRI3D_Skip_LipMask
 from nsfw import TRI3DNSFWFilter
+from cut_by_mask_aspect_ratio import TRI3D_CutByMaskAspectRatio
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
@@ -3765,6 +3767,8 @@ NODE_CLASS_MAPPINGS = {
     "tri3d_NSFWFilter": TRI3DNSFWFilter,
     "tri3d_NarrowfyImage": TRI3D_NarrowfyImage,
     "tri3d_Skip_LipMask": TRI3D_Skip_LipMask,
+    "tri3d_Remove_Small_Mask_Islands": TRI3D_RemoveSmallMaskIslands,
+    "tri3d_CutByMaskAspectRatio": TRI3D_CutByMaskAspectRatio,
 }
 
 
@@ -3837,4 +3841,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d_Image_extend": "Image extend" + " v" + VERSION,
     "tri3d_Smart_Depth": "Smart Depth" + " v" + VERSION,
     "tri3d_NarrowfyImage": "Narrowfy Image" + " v" + VERSION,
+    "tri3d_Remove_Small_Mask_Islands": "Remove Small Mask Islands" + " v" + VERSION,
+    "tri3d_CutByMaskAspectRatio": "Cut by mask aspect ratio" + " v" + VERSION,
 }
