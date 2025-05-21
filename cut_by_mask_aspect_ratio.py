@@ -34,6 +34,7 @@ class TRI3D_CutByMaskAspectRatio:
                 "margin": ("INT", {"default": 10, "min": 0, "max": 100, "step": 1}),
                 "target_width": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 8}),
                 "target_height": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 8}),
+                "padding_color": ("INT", {"default": 255, "min": 0, "max": 255, "step": 1}),
             },
         }
 
@@ -41,7 +42,7 @@ class TRI3D_CutByMaskAspectRatio:
     RETURN_TYPES = ("IMAGE",)
     CATEGORY = "TRI3D"
 
-    def run(self, image, mask, margin, target_width, target_height):
+    def run(self, image, mask, margin, target_width, target_height, padding_color=255):
         # Convert Torch images to OpenCV format
         cv_image = self.from_torch_image(image)
         cv_mask = self.from_torch_image(mask)
@@ -96,34 +97,38 @@ class TRI3D_CutByMaskAspectRatio:
         # Calculate current aspect ratio
         current_aspect_ratio = width / height
         
+        # Crop the image to the original bounding box
+        cropped_image = cv_image[y_min:y_max, x_min:x_max]
+        
         # Adjust width to match the target aspect ratio while keeping height constant
         if current_aspect_ratio < target_aspect_ratio:
-            # Current width is too narrow, extend it
-            new_width = int(height * target_aspect_ratio)
-            width_difference = new_width - width
+            # Current width is too narrow, add white padding
+            # Calculate the intermediate dimensions for resizing
+            intermediate_height = height
+            intermediate_width = width  # Keep original width
             
-            # Add equal padding on both sides if possible
-            left_extend = width_difference // 2
-            right_extend = width_difference - left_extend
+            # Calculate the final canvas size with padding
+            canvas_height = intermediate_height
+            canvas_width = int(canvas_height * target_aspect_ratio)
             
-            # Ensure we don't go out of bounds
-            if x_min - left_extend < 0:
-                # Not enough space on the left
-                left_extend = x_min
-                right_extend = width_difference - left_extend
+            # Calculate padding on each side
+            padding_x = (canvas_width - intermediate_width) // 2
             
-            if x_max + right_extend > cv_image.shape[1]:
-                # Not enough space on the right
-                right_extend = cv_image.shape[1] - x_max
-                left_extend = width_difference - right_extend
-                
-                # Double-check left boundary again
-                if x_min - left_extend < 0:
-                    left_extend = x_min
+            # Create canvas with padding color
+            num_channels = cropped_image.shape[2] if len(cropped_image.shape) == 3 else 1
+            if num_channels == 1:
+                canvas = np.full((canvas_height, canvas_width), padding_color, dtype=np.uint8)
+            else:
+                canvas = np.full((canvas_height, canvas_width, num_channels), padding_color, dtype=np.uint8)
             
-            # Apply the extension
-            x_min -= left_extend
-            x_max += right_extend
+            # Place the cropped image on the canvas
+            if num_channels == 1:
+                canvas[:, padding_x:padding_x+intermediate_width] = cropped_image
+            else:
+                canvas[:, padding_x:padding_x+intermediate_width, :] = cropped_image
+            
+            # Set the final image to be the padded canvas
+            cropped_image = canvas
             
         elif current_aspect_ratio > target_aspect_ratio:
             # Current width is too wide, crop it
@@ -134,14 +139,10 @@ class TRI3D_CutByMaskAspectRatio:
             left_crop = width_difference // 2
             right_crop = width_difference - left_crop
             
-            # Apply the crop
-            x_min += left_crop
-            x_max -= right_crop
+            # Apply the crop to the cropped image
+            cropped_image = cropped_image[:, left_crop:width-right_crop]
         
-        # Crop the image to the adjusted bounding box
-        cropped_image = cv_image[y_min:y_max, x_min:x_max]
-        
-        # Resize the cropped image to the target dimensions using Lanczos interpolation
+        # Resize the cropped/padded image to the target dimensions using Lanczos interpolation
         resized_image = cv2.resize(cropped_image, (target_width, target_height), interpolation=cv2.INTER_LANCZOS4)
         
         # Convert back to torch format
@@ -152,11 +153,11 @@ class TRI3D_CutByMaskAspectRatio:
         
         return (torch_image,)
 
-# # Node registration for ComfyUI
-# NODE_CLASS_MAPPINGS = {
-#     "TRI3D_CutByMaskAspectRatio": TRI3D_CutByMaskAspectRatio
-# }
+# Node registration for ComfyUI
+NODE_CLASS_MAPPINGS = {
+    "TRI3D_CutByMaskAspectRatio": TRI3D_CutByMaskAspectRatio
+}
 
-# NODE_DISPLAY_NAME_MAPPINGS = {
-#     "TRI3D_CutByMaskAspectRatio": "TRI3D Cut By Mask Aspect Ratio"
-# }
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "TRI3D_CutByMaskAspectRatio": "TRI3D Cut By Mask Aspect Ratio"
+}
