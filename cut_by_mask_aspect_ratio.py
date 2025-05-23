@@ -97,38 +97,55 @@ class TRI3D_CutByMaskAspectRatio:
         # Calculate current aspect ratio
         current_aspect_ratio = width / height
         
-        # Crop the image to the original bounding box
-        cropped_image = cv_image[y_min:y_max, x_min:x_max]
-        
         # Adjust width to match the target aspect ratio while keeping height constant
         if current_aspect_ratio < target_aspect_ratio:
-            # Current width is too narrow, add white padding
-            # Calculate the intermediate dimensions for resizing
-            intermediate_height = height
-            intermediate_width = width  # Keep original width
+            # Current width is too narrow - need to extend it
+            # Calculate the required width for the target aspect ratio
+            required_width = int(height * target_aspect_ratio)
+            width_difference = required_width - width
             
-            # Calculate the final canvas size with padding
-            canvas_height = intermediate_height
-            canvas_width = int(canvas_height * target_aspect_ratio)
+            # Calculate how much to extend on each side
+            left_extend = width_difference // 2
+            right_extend = width_difference - left_extend
             
-            # Calculate padding on each side
-            padding_x = (canvas_width - intermediate_width) // 2
+            # Calculate new potential boundaries
+            new_x_min = x_min - left_extend
+            new_x_max = x_max + right_extend
             
-            # Create canvas with padding color
-            num_channels = cropped_image.shape[2] if len(cropped_image.shape) == 3 else 1
-            if num_channels == 1:
-                canvas = np.full((canvas_height, canvas_width), padding_color, dtype=np.uint8)
+            # Check if the new boundaries are within the original image
+            left_padding_needed = abs(min(0, new_x_min))
+            right_padding_needed = max(0, new_x_max - cv_image.shape[1])
+            
+            # Adjust boundaries to be within the original image
+            new_x_min = max(0, new_x_min)
+            new_x_max = min(cv_image.shape[1], new_x_max)
+            
+            # Get the portion of the original image within valid boundaries
+            extended_image = cv_image[y_min:y_max, new_x_min:new_x_max]
+            
+            # If we need padding (i.e., extension goes beyond image boundaries)
+            if left_padding_needed > 0 or right_padding_needed > 0:
+                # Create canvas with padding color
+                num_channels = extended_image.shape[2] if len(extended_image.shape) == 3 else 1
+                if num_channels == 1:
+                    canvas = np.full((height, required_width), padding_color, dtype=np.uint8)
+                else:
+                    canvas = np.full((height, required_width, num_channels), padding_color, dtype=np.uint8)
+                
+                # Calculate the position to place the extended image
+                place_x = left_padding_needed
+                
+                # Place the extended image on the canvas
+                if num_channels == 1:
+                    canvas[:, place_x:place_x+extended_image.shape[1]] = extended_image
+                else:
+                    canvas[:, place_x:place_x+extended_image.shape[1], :] = extended_image
+                
+                # Use the canvas as our cropped image
+                cropped_image = canvas
             else:
-                canvas = np.full((canvas_height, canvas_width, num_channels), padding_color, dtype=np.uint8)
-            
-            # Place the cropped image on the canvas
-            if num_channels == 1:
-                canvas[:, padding_x:padding_x+intermediate_width] = cropped_image
-            else:
-                canvas[:, padding_x:padding_x+intermediate_width, :] = cropped_image
-            
-            # Set the final image to be the padded canvas
-            cropped_image = canvas
+                # No padding needed, use the extended image
+                cropped_image = extended_image
             
         elif current_aspect_ratio > target_aspect_ratio:
             # Current width is too wide, crop it
@@ -139,8 +156,11 @@ class TRI3D_CutByMaskAspectRatio:
             left_crop = width_difference // 2
             right_crop = width_difference - left_crop
             
-            # Apply the crop to the cropped image
-            cropped_image = cropped_image[:, left_crop:width-right_crop]
+            # Apply the crop
+            cropped_image = cv_image[y_min:y_max, x_min+left_crop:x_max-right_crop]
+        else:
+            # Aspect ratio is already correct
+            cropped_image = cv_image[y_min:y_max, x_min:x_max]
         
         # Resize the cropped/padded image to the target dimensions using Lanczos interpolation
         resized_image = cv2.resize(cropped_image, (target_width, target_height), interpolation=cv2.INTER_LANCZOS4)

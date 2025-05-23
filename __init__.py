@@ -21,6 +21,7 @@ from utility_nodes import TRI3D_extract_facer_mask
 from .AEMatter import (load_AEMatter_Model, run_AEMatter_inference)
 from .light_layer import main_light_layer
 from .remove_small_mask_islands import TRI3D_RemoveSmallMaskIslands
+from .mask_area_percentage import TRI3D_MaskAreaPercentage
 
 
 from .image_stack import (
@@ -3771,6 +3772,7 @@ NODE_CLASS_MAPPINGS = {
     "tri3d_Remove_Small_Mask_Islands": TRI3D_RemoveSmallMaskIslands,
     "tri3d_CutByMaskAspectRatio": TRI3D_CutByMaskAspectRatio,
     "tri3d_StringContains": TRI3D_StringContains,
+    "tri3d_MaskAreaPercentage": TRI3D_MaskAreaPercentage,
 }
 
 
@@ -3846,4 +3848,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d_Remove_Small_Mask_Islands": "Remove Small Mask Islands" + " v" + VERSION,
     "tri3d_CutByMaskAspectRatio": "Cut by mask aspect ratio" + " v" + VERSION,
     "tri3d_StringContains": "String contains" + " v" + VERSION,
+    "tri3d_MaskAreaPercentage": "Mask Area Percentage" + " v" + VERSION,
 }
