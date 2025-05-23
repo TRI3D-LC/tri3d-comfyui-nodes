@@ -101,14 +101,16 @@ def apply_transform(img):
 from PIL import Image
 
 
-def generate_mask(input_image, net, device='cpu'):
+def generate_mask(input_image, net, device='cpu', image_id=None, output_dir=None):
     img = input_image
     img_size = img.size
     img = img.resize((768, 768), Image.BICUBIC)
     image_tensor = apply_transform(img)
     image_tensor = torch.unsqueeze(image_tensor, 0)
 
-    output_dir = os.path.join(opt.output, 'extracted_garment')
+    # Allow output_dir override for batch processing
+    if output_dir is None:
+        output_dir = os.path.join(opt.output, 'extracted_garment')
     os.makedirs(output_dir, exist_ok=True)
 
     with torch.no_grad():
@@ -118,30 +120,50 @@ def generate_mask(input_image, net, device='cpu'):
         output_tensor = torch.squeeze(output_tensor, dim=0)
         output_arr = output_tensor.cpu().numpy()
 
+    # Create and save individual masks for classes 1, 2, 3
+    classes_of_interest = [1, 2, 3]
+    mask_imgs = []
+    for idx, cls in enumerate(classes_of_interest):
+        mask = np.zeros_like(output_arr, dtype=np.uint8)
+        mask[output_arr == cls] = 255
+        if mask.ndim > 2:
+            mask = mask.squeeze()
+        if mask.ndim != 2:
+            raise ValueError(f"mask{idx} must be a 2-dimensional array")
+        mask_img = Image.fromarray(mask, mode='L').resize(img_size, Image.BICUBIC)
+        # Save with unique name if image_id is provided
+        if image_id is not None:
+            mask_path = os.path.join(output_dir, f'{image_id}__mask{idx}.png')
+        else:
+            mask_path = os.path.join(output_dir, f'mask{idx}.png')
+        mask_img.save(mask_path, format="PNG")
+        print(f"Saved mask{idx} at: {mask_path}")
+        mask_imgs.append(mask_img)
+
     # Create a binary mask where selected classes are 1, others are 0
     binary_mask = np.zeros_like(output_arr, dtype=np.uint8)
-    classes_of_interest = [1, 2, 3]  # Modify this list according to your classes of interest
     for cls in classes_of_interest:
         binary_mask[output_arr == cls] = 255
-
-    # Ensure binary_mask is 2D
     if binary_mask.ndim > 2:
-        binary_mask = binary_mask.squeeze()  # Removes single-dimensional entries from the shape
+        binary_mask = binary_mask.squeeze()
     if binary_mask.ndim != 2:
         raise ValueError("binary_mask must be a 2-dimensional array")
-
     binary_mask_img = Image.fromarray(binary_mask, mode='L').resize(img_size, Image.BICUBIC)
 
     # Create an RGBA image for the output
     extracted_garment = Image.new("RGBA", img_size)
-    original_img = img.resize(img_size)  # Resize the processed image back to original size
+    original_img = img.resize(img_size)
     extracted_garment.paste(original_img, mask=binary_mask_img)
 
     # Save the garment image with transparency
-    garment_path = os.path.join(output_dir, 'extracted_garment.png')
+    if image_id is not None:
+        garment_path = os.path.join(output_dir, f'{image_id}__extracted_garment.png')
+    else:
+        garment_path = os.path.join(output_dir, 'extracted_garment.png')
     extracted_garment.save(garment_path, format="PNG")
+    print(f"Saved extracted garment at: {garment_path}")
 
-    return extracted_garment
+    return (*mask_imgs, extracted_garment)
 
 # def generate_mask(input_image, net, device='cpu'):
 #     img = input_image

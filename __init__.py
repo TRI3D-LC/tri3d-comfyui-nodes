@@ -238,7 +238,7 @@ class TRI3DLEVINDABHICLOTHSEGBATCH:
             },
         }
 
-    RETURN_TYPES = ("IMAGE", )
+    RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE")
     FUNCTION = "main"
     CATEGORY = "TRI3D"
 
@@ -292,21 +292,33 @@ class TRI3DLEVINDABHICLOTHSEGBATCH:
 
         # Collect and return the results
 
-        
-
-        batch_results = []
+        mask0_batch = []
+        mask1_batch = []
+        mask2_batch = []
         for i in range(images.shape[0]):
-            cv2_segm = cv2.imread(LSEG_OUTPUT_PATH + f'image{i}.png', cv2.IMREAD_UNCHANGED)  # Read PNG with alpha channel
-            cv2_segm = cv2.cvtColor(cv2_segm, cv2.COLOR_BGRA2RGBA)  # Convert from BGRA to RGBA
-            b_tensor_img = cv2_img_to_tensor(cv2_segm)
-            batch_results.append(b_tensor_img.squeeze(0))
-
-        
-        batch_results = torch.stack(batch_results)
-
-        
-
-        return (batch_results, )
+            mask0_path = os.path.join(LSEG_OUTPUT_PATH, f"{i}__mask0.png")
+            mask1_path = os.path.join(LSEG_OUTPUT_PATH, f"{i}__mask1.png")
+            mask2_path = os.path.join(LSEG_OUTPUT_PATH, f"{i}__mask2.png")
+            mask0_img = cv2.imread(mask0_path, cv2.IMREAD_UNCHANGED)
+            mask1_img = cv2.imread(mask1_path, cv2.IMREAD_UNCHANGED)
+            mask2_img = cv2.imread(mask2_path, cv2.IMREAD_UNCHANGED)
+            # Ensure single channel, convert to 3 channel if needed for consistency
+            if mask0_img is not None and len(mask0_img.shape) == 2:
+                mask0_img = cv2.cvtColor(mask0_img, cv2.COLOR_GRAY2RGB)
+            if mask1_img is not None and len(mask1_img.shape) == 2:
+                mask1_img = cv2.cvtColor(mask1_img, cv2.COLOR_GRAY2RGB)
+            if mask2_img is not None and len(mask2_img.shape) == 2:
+                mask2_img = cv2.cvtColor(mask2_img, cv2.COLOR_GRAY2RGB)
+            mask0_tensor = cv2_img_to_tensor(mask0_img).squeeze(0)
+            mask1_tensor = cv2_img_to_tensor(mask1_img).squeeze(0)
+            mask2_tensor = cv2_img_to_tensor(mask2_img).squeeze(0)
+            mask0_batch.append(mask0_tensor)
+            mask1_batch.append(mask1_tensor)
+            mask2_batch.append(mask2_tensor)
+        mask0_batch = torch.stack(mask0_batch)
+        mask1_batch = torch.stack(mask1_batch)
+        mask2_batch = torch.stack(mask2_batch)
+        return (mask0_batch, mask1_batch, mask2_batch)
 
 
 
