@@ -1932,7 +1932,7 @@ class TRI3DDWPose_Preprocessor:
             cur_file_dir = os.path.dirname(os.path.realpath(__file__))
             save_file_path = os.path.join(cur_file_dir,
                                           filename_path)
-            json.dump(pose_dict, open(save_file_path, 'w'))
+            json.dump(pose_dict, open(save_file_path, 'w'), indent=4)
             np_result = cv2.resize(np_result, (W, H),
                                    interpolation=cv2.INTER_AREA)
             out_image_list.append(
@@ -3700,6 +3700,7 @@ from smart_box import TRI3D_SmartBox, TRI3D_Skip_HeadMask, TRI3D_Skip_HeadMask_A
 from nsfw import TRI3DNSFWFilter
 from cut_by_mask_aspect_ratio import TRI3D_CutByMaskAspectRatio
 from string_check import TRI3D_StringContains
+from .dwpose_conversion import SaveFlattenedPoseKpsAsJsonFile
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
@@ -3773,10 +3774,12 @@ NODE_CLASS_MAPPINGS = {
     "tri3d_CutByMaskAspectRatio": TRI3D_CutByMaskAspectRatio,
     "tri3d_StringContains": TRI3D_StringContains,
     "tri3d_MaskAreaPercentage": TRI3D_MaskAreaPercentage,
+    "tri3d_SaveFlattenedPoseKpsAsJsonFile": SaveFlattenedPoseKpsAsJsonFile,
+
 }
 
 
-VERSION = "5.0.0"
+VERSION = "5.1.0"
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d-photoroom-bgremove-api": "Photoroom BG Remove" + " v" + VERSION,
@@ -3849,4 +3852,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "tri3d_CutByMaskAspectRatio": "Cut by mask aspect ratio" + " v" + VERSION,
     "tri3d_StringContains": "String contains" + " v" + VERSION,
     "tri3d_MaskAreaPercentage": "Mask Area Percentage" + " v" + VERSION,
+    "tri3d_SaveFlattenedPoseKpsAsJsonFile": "Save Flattened Pose Keypoints as JSON File" + " v" + VERSION,
 }
